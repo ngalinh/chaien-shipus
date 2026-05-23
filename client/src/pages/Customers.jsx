@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Users, Search } from 'lucide-react';
-import { formatDate, StatusBadge, calcCustomerStatus } from '../utils.js';
+import { formatDate, StatusBadge, calcCustomerStatus } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
 

@@ -4,14 +4,14 @@ import dayjs from 'dayjs';
 import {
   Users, UserPlus, Weight, Banknote, ArrowUpDown, TrendingUp,
 } from 'lucide-react';
-import { formatCurrency } from '../utils.js';
+import { formatCurrency } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
-  { label: '3 tháng', value: '3months' },
-  { label: '6 tháng', value: '6months' },
-  { label: '1 năm', value: 'year' },
+  { label: '3 tháng', value: '3m' },
+  { label: '6 tháng', value: '6m' },
+  { label: '1 năm', value: '1y' },
   { label: 'Tùy chỉnh', value: 'custom' },
 ];
 
@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(() => dayjs().format('YYYY-MM-DD'));
-  const [stats, setStats] = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -31,12 +31,14 @@ export default function Dashboard() {
     try {
       let params = {};
       if (period === 'custom') {
-        params = { period: 'custom', start: startDate, end: endDate };
+        params = { start_date: startDate, end_date: endDate };
+      } else if (period === 'month') {
+        params = { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: dayjs().format('YYYY-MM-DD') };
       } else {
         params = { period };
       }
       const res = await axios.get('/api/dashboard', { params });
-      setStats(res.data);
+      setData(res.data);
     } catch (err) {
       toast(err.response?.data?.error || 'Không thể tải dữ liệu dashboard', 'error');
     } finally {
@@ -49,24 +51,24 @@ export default function Dashboard() {
     if (val === 'month') {
       setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
       setEndDate(dayjs().format('YYYY-MM-DD'));
-    } else if (val === '3months') {
+    } else if (val === '3m') {
       setStartDate(dayjs().subtract(3, 'month').format('YYYY-MM-DD'));
       setEndDate(dayjs().format('YYYY-MM-DD'));
-    } else if (val === '6months') {
+    } else if (val === '6m') {
       setStartDate(dayjs().subtract(6, 'month').format('YYYY-MM-DD'));
       setEndDate(dayjs().format('YYYY-MM-DD'));
-    } else if (val === 'year') {
+    } else if (val === '1y') {
       setStartDate(dayjs().subtract(1, 'year').format('YYYY-MM-DD'));
       setEndDate(dayjs().format('YYYY-MM-DD'));
     }
   }
 
-  const s = stats || {};
+  const s = data?.summary || {};
 
   const cards = [
     {
       label: 'SL khách hàng',
-      value: s.total_customers ?? '–',
+      value: s.total_customers,
       icon: Users,
       color: 'bg-blue-50 text-blue-600',
       border: 'border-blue-200',
@@ -74,7 +76,7 @@ export default function Dashboard() {
     },
     {
       label: 'SL khách mới',
-      value: s.new_customers ?? '–',
+      value: s.new_customers,
       icon: UserPlus,
       color: 'bg-green-50 text-green-600',
       border: 'border-green-200',
@@ -82,7 +84,7 @@ export default function Dashboard() {
     },
     {
       label: 'Tổng cân nặng (kg)',
-      value: s.total_weight ?? '–',
+      value: s.total_weight,
       icon: Weight,
       color: 'bg-purple-50 text-purple-600',
       border: 'border-purple-200',
@@ -90,7 +92,7 @@ export default function Dashboard() {
     },
     {
       label: 'Tổng phí VC (khách trả)',
-      value: s.total_fee_customer ?? '–',
+      value: s.total_vc_fee_customer,
       icon: Banknote,
       color: 'bg-yellow-50 text-yellow-600',
       border: 'border-yellow-200',
@@ -98,7 +100,7 @@ export default function Dashboard() {
     },
     {
       label: 'Tổng phí VC (trả đối tác)',
-      value: s.total_fee_partner ?? '–',
+      value: s.total_vc_fee_partner,
       icon: ArrowUpDown,
       color: 'bg-red-50 text-red-600',
       border: 'border-red-200',
@@ -107,11 +109,14 @@ export default function Dashboard() {
   ];
 
   function renderValue(card) {
-    if (card.value === '–' || card.value == null) return '–';
+    if (card.value == null || !data) return '–';
     if (card.format === 'currency') return formatCurrency(card.value);
     if (card.format === 'kg') return `${Number(card.value).toLocaleString('vi-VN')} kg`;
     return Number(card.value).toLocaleString('vi-VN');
   }
+
+  const displayStart = data?.period?.start_date || startDate;
+  const displayEnd = data?.period?.end_date || endDate;
 
   return (
     <div className="p-6 space-y-6">
@@ -175,7 +180,7 @@ export default function Dashboard() {
 
         {/* Date range display */}
         <div className="mt-2 text-xs text-gray-400">
-          {dayjs(startDate).format('DD/MM/YYYY')} – {dayjs(endDate).format('DD/MM/YYYY')}
+          {dayjs(displayStart).format('DD/MM/YYYY')} – {dayjs(displayEnd).format('DD/MM/YYYY')}
         </div>
       </div>
 
@@ -211,13 +216,42 @@ export default function Dashboard() {
       )}
 
       {/* Summary note */}
-      {!loading && stats && (
+      {!loading && data && (
         <div className="card p-4 bg-green-50 border-green-200">
           <p className="text-sm text-green-700">
-            <span className="font-semibold">Lợi nhuận ước tính:</span>{' '}
-            {formatCurrency((s.total_fee_customer || 0) - (s.total_fee_partner || 0))}
+            <span className="font-semibold">Lợi nhuận gộp:</span>{' '}
+            {formatCurrency(s.gross_margin || 0)}
             {' '} (Phí khách trả – Phí đối tác)
           </p>
+          {s.total_receivable > 0 && (
+            <p className="text-sm text-orange-700 mt-1">
+              <span className="font-semibold">Tổng còn phải thu:</span>{' '}
+              {formatCurrency(s.total_receivable)}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Top customers */}
+      {!loading && data?.top_customers?.length > 0 && (
+        <div className="card p-5">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Top khách hàng (theo phí VC)</h3>
+          <div className="space-y-2">
+            {data.top_customers.slice(0, 5).map((c, idx) => (
+              <div key={c.customer_id} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                  {idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-800 truncate">{c.customer_name}</div>
+                  <div className="text-xs text-gray-500">{c.customer_code} · {c.total_weight} kg · {c.shipment_count} kiện</div>
+                </div>
+                <div className="text-sm font-semibold text-green-700 flex-shrink-0">
+                  {formatCurrency(c.total_vc_fee)}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

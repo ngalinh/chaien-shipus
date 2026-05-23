@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, CreditCard } from 'lucide-react';
 import { toast } from './Toast.jsx';
-import { formatCurrency, todayInputValue } from '../utils.js';
+import { formatCurrency, todayInputValue } from '../utils.jsx';
 
 export default function PaymentModal({ customerId, batchDate, amount, onClose, onSaved }) {
   const [form, setForm] = useState({
-    trans_date: todayInputValue(),
-    amount: amount || 0,
+    payment_date: todayInputValue(),
+    amount: amount || '',
     bank_account_id: '',
-    description: '',
+    content: '',
   });
   const [bankAccounts, setBankAccounts] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -51,22 +51,16 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
     }
     setSaving(true);
     try {
-      const selectedBank = bankAccounts.find((b) => b.id === parseInt(form.bank_account_id));
-      const bankLabel = selectedBank
-        ? `${selectedBank.bank_name} - ${selectedBank.account_number}`
-        : '';
-
       const payload = {
-        trans_date: form.trans_date,
         customer_id: customerId,
-        description: form.description || `Thanh toán cước vận chuyển${batchDate ? ` ngày ${batchDate}` : ''}`,
-        credit: amt,
-        debit: 0,
-        reference_type: 'payment',
-        bank_account: bankLabel,
+        payment_date: form.payment_date,
+        amount: amt,
+        bank_account_id: form.bank_account_id ? parseInt(form.bank_account_id) : null,
+        content: form.content || `Thanh toán cước vận chuyển${batchDate ? ` ngày ${batchDate}` : ''}`,
+        reference_batch_date: batchDate || null,
       };
 
-      const res = await axios.post('/api/transactions', payload);
+      const res = await axios.post('/api/transactions/payment', payload);
       onSaved(res.data);
       toast('Đã ghi nhận thanh toán', 'success');
     } catch (err) {
@@ -96,8 +90,8 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
               <label className="label">Ngày tháng</label>
               <input
                 type="date"
-                name="trans_date"
-                value={form.trans_date}
+                name="payment_date"
+                value={form.payment_date}
                 onChange={handleField}
                 className="input-field"
                 required
@@ -141,16 +135,16 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
               </select>
             </div>
 
-            {/* Description */}
+            {/* Content */}
             <div>
               <label className="label">Nội dung</label>
               <input
                 type="text"
-                name="description"
-                value={form.description}
+                name="content"
+                value={form.content}
                 onChange={handleField}
                 className="input-field"
-                placeholder="Thanh toán cước vận chuyển..."
+                placeholder={`Thanh toán cước vận chuyển${batchDate ? ` ngày ${batchDate}` : ''}...`}
               />
             </div>
           </div>
