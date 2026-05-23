@@ -1,0 +1,171 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { X, CreditCard } from 'lucide-react';
+import { toast } from './Toast.jsx';
+import { formatCurrency, todayInputValue } from '../utils.js';
+
+export default function PaymentModal({ customerId, batchDate, amount, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    trans_date: todayInputValue(),
+    amount: amount || 0,
+    bank_account_id: '',
+    description: '',
+  });
+  const [bankAccounts, setBankAccounts] = useState([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchBankAccounts();
+  }, []);
+
+  useEffect(() => {
+    if (amount != null) {
+      setForm((prev) => ({ ...prev, amount }));
+    }
+  }, [amount]);
+
+  async function fetchBankAccounts() {
+    try {
+      const res = await axios.get('/api/settings/bank-accounts');
+      setBankAccounts(res.data);
+      const def = res.data.find((b) => b.is_default);
+      if (def) {
+        setForm((prev) => ({ ...prev, bank_account_id: def.id }));
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  function handleField(e) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const amt = parseFloat(form.amount);
+    if (!amt || amt <= 0) {
+      toast('Số tiền phải lớn hơn 0', 'warning');
+      return;
+    }
+    setSaving(true);
+    try {
+      const selectedBank = bankAccounts.find((b) => b.id === parseInt(form.bank_account_id));
+      const bankLabel = selectedBank
+        ? `${selectedBank.bank_name} - ${selectedBank.account_number}`
+        : '';
+
+      const payload = {
+        trans_date: form.trans_date,
+        customer_id: customerId,
+        description: form.description || `Thanh toán cước vận chuyển${batchDate ? ` ngày ${batchDate}` : ''}`,
+        credit: amt,
+        debit: 0,
+        reference_type: 'payment',
+        bank_account: bankLabel,
+      };
+
+      const res = await axios.post('/api/transactions', payload);
+      onSaved(res.data);
+      toast('Đã ghi nhận thanh toán', 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không thể lưu thanh toán', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box max-w-md">
+        <div className="modal-header">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-green-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Ghi nhận thanh toán</h2>
+          </div>
+          <button onClick={onClose} className="btn-icon">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            {/* Date */}
+            <div>
+              <label className="label">Ngày tháng</label>
+              <input
+                type="date"
+                name="trans_date"
+                value={form.trans_date}
+                onChange={handleField}
+                className="input-field"
+                required
+              />
+            </div>
+
+            {/* Amount */}
+            <div>
+              <label className="label">Số tiền (VND)</label>
+              <input
+                type="number"
+                name="amount"
+                value={form.amount}
+                onChange={handleField}
+                className="input-field"
+                min={0}
+                step={1000}
+                required
+              />
+              {form.amount > 0 && (
+                <p className="text-xs text-green-600 mt-1">{formatCurrency(form.amount)}</p>
+              )}
+            </div>
+
+            {/* Bank Account */}
+            <div>
+              <label className="label">Tài khoản ngân hàng</label>
+              <select
+                name="bank_account_id"
+                value={form.bank_account_id}
+                onChange={handleField}
+                className="input-field"
+              >
+                <option value="">-- Chọn tài khoản --</option>
+                {bankAccounts.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.bank_name} - {b.account_number} ({b.account_holder})
+                    {b.is_default ? ' ★' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="label">Nội dung</label>
+              <input
+                type="text"
+                name="description"
+                value={form.description}
+                onChange={handleField}
+                className="input-field"
+                placeholder="Thanh toán cước vận chuyển..."
+              />
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" onClick={onClose} className="btn-secondary">
+              Hủy
+            </button>
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {saving ? 'Đang lưu...' : 'Xác nhận thanh toán'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
