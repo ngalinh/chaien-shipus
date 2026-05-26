@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "concurrently \"node server.js\" \"vite client --port 5173\"",
-    "postinstall": "npm --prefix client install --include=dev && npm --prefix client run build"
+    "postinstall": "npm --prefix client install --include=dev && npm --prefix client run build && cp client/dist/index.html . && rm -rf assets && cp -r client/dist/assets ."
   },
   "dependencies": {
     "cors": "^2.8.5",
