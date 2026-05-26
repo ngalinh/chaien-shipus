@@ -50,6 +50,61 @@ function withStatus(customer) {
 // ═════════════════════════════════════════════════════════════════════════════
 // GET /api/customers
 // ═════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// POST /api/customers/import  — bulk import from parsed Excel rows
+// ═════════════════════════════════════════════════════════════════════════════
+router.post('/import', (req, res) => {
+  const { rows } = req.body;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'Không có dữ liệu' });
+  }
+
+  const checkStmt  = db.prepare('SELECT id FROM customers WHERE code = ?');
+  const insertStmt = db.prepare(`
+    INSERT INTO customers (code, name, phone, email, address, channel, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  let imported = 0;
+  let skipped  = 0;
+  const rowErrors = [];
+
+  try {
+    db.exec('BEGIN');
+    for (const [i, row] of rows.entries()) {
+      const code = (row.code || '').trim();
+      const name = (row.name || '').trim();
+      if (!code || !name) {
+        rowErrors.push({ row: i + 2, error: 'Thiếu mã KH hoặc tên' });
+        continue;
+      }
+      if (checkStmt.get(code)) {
+        skipped++;
+        continue;
+      }
+      try {
+        insertStmt.run(
+          code,
+          name,
+          row.phone   || null,
+          row.email   || null,
+          row.address || null,
+          row.channel || null,
+          row.notes   || null,
+        );
+        imported++;
+      } catch (err) {
+        rowErrors.push({ row: i + 2, error: err.message });
+      }
+    }
+    db.exec('COMMIT');
+    res.json({ imported, skipped, errors: rowErrors });
+  } catch (err) {
+    db.exec('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/', (_req, res) => {
   try {
     const customers = db.prepare(`
@@ -79,17 +134,18 @@ router.get('/', (_req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/', (req, res) => {
   try {
-    const { code, name, phone, address, channel, notes, rate_id } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      INSERT INTO customers (code, name, phone, address, channel, notes, rate_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customers (code, name, phone, email, address, channel, notes, rate_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       code.trim(),
       name.trim(),
       phone   || null,
+      email   || null,
       address || null,
       channel || null,
       notes   || null,
@@ -193,17 +249,18 @@ router.get('/:id', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.put('/:id', (req, res) => {
   try {
-    const { code, name, phone, address, channel, notes, rate_id } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      UPDATE customers SET code = ?, name = ?, phone = ?, address = ?, channel = ?, notes = ?, rate_id = ?
+      UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?
       WHERE id = ?
     `).run(
       code.trim(),
       name.trim(),
       phone   || null,
+      email   || null,
       address || null,
       channel || null,
       notes   || null,

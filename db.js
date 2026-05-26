@@ -115,6 +115,9 @@ db.exec(`
   );
 `);
 
+// ─── Idempotent migrations ────────────────────────────────────────────────────
+try { db.exec('ALTER TABLE customers ADD COLUMN email TEXT'); } catch { /* already exists */ }
+
 // ─── Seed default data ────────────────────────────────────────────────────────
 
 const insertDefault = db.prepare(
