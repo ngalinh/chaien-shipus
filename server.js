@@ -54,6 +54,29 @@ app.use('/api/shipments',    require('./routes/shipments'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/dashboard',    require('./routes/dashboard'));
 
+// ─── Deploy webhook ──────────────────────────────────────────────────────────
+const { exec } = require('child_process');
+app.post('/deploy', express.raw({ type: '*/*' }), (req, res) => {
+  const secret = process.env.DEPLOY_SECRET;
+  if (secret && req.query.secret !== secret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  res.json({ ok: true });
+  console.log('[deploy] Starting git pull + rebuild...');
+  exec(
+    'git pull origin main && npm --prefix client install --include=dev && npm --prefix client run build && cp client/dist/index.html . && rm -rf assets && cp -r client/dist/assets .',
+    { cwd: __dirname },
+    (err) => {
+      if (err) {
+        console.error('[deploy] Failed:', err.message);
+      } else {
+        console.log('[deploy] Done, restarting...');
+        process.exit(0);
+      }
+    }
+  );
+});
+
 // ─── SPA Fallback ─────────────────────────────────────────────────────────────
 // Serve from repo root first (platform file-check), then client/dist as fallback
 const rootIndex  = path.join(__dirname, 'index.html');
