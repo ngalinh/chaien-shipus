@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import {
   Settings as SettingsIcon, Plus, Edit2, Trash2, Save, X,
   Check, Star, Upload, Building2, Truck, Warehouse, CreditCard,
+  FileSpreadsheet, Download,
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -54,18 +56,291 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Section 1: Customer Rates */}
+      {/* Section 1: Import Customers */}
+      <ImportCustomersSection />
+
+      {/* Section 2: Customer Rates */}
       <RatesSection rates={rates} setRates={setRates} />
 
-      {/* Section 2: Partner Warehouses */}
+      {/* Section 3: Partner Warehouses */}
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
 
-      {/* Section 3: Bank Accounts */}
+      {/* Section 4: Bank Accounts */}
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
 
-      {/* Section 4: Company Info */}
+      {/* Section 5: Company Info */}
       <CompanySection company={company} setCompany={setCompany} />
     </div>
+  );
+}
+
+// ── Import Customers ──────────────────────────────────────────────────────────
+const IMPORT_HEADERS = [
+  'Mã khách hàng', 'Tên khách', 'Số điện thoại', 'Email',
+  'Kênh LH', 'Địa chỉ nhận hàng', 'Ghi chú',
+];
+const FIELD_MAP = {
+  'Mã khách hàng': 'code',
+  'Tên khách': 'name',
+  'Số điện thoại': 'phone',
+  'Email': 'email',
+  'Kênh LH': 'channel',
+  'Địa chỉ nhận hàng': 'address',
+  'Ghi chú': 'notes',
+};
+
+function ImportCustomersSection() {
+  const [rows, setRows] = useState([]);
+  const [parseErrors, setParseErrors] = useState([]);
+  const [importing, setImporting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
+  const fileRef = useRef(null);
+
+  function parseFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        if (data.length < 2) {
+          setParseErrors(['File không có dữ liệu']);
+          setRows([]);
+          return;
+        }
+
+        const headerRow = data[0].map((h) => String(h).trim());
+        const colMap = {};
+        IMPORT_HEADERS.forEach((h) => {
+          const idx = headerRow.findIndex((hh) => hh === h);
+          if (idx >= 0) colMap[h] = idx;
+        });
+
+        if (colMap['Mã khách hàng'] === undefined || colMap['Tên khách'] === undefined) {
+          setParseErrors(['File thiếu cột "Mã khách hàng" hoặc "Tên khách". Vui lòng dùng đúng mẫu file.']);
+          setRows([]);
+          return;
+        }
+
+        const parsed = [];
+        const errs = [];
+
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const obj = {};
+          IMPORT_HEADERS.forEach((h) => {
+            const idx = colMap[h];
+            obj[FIELD_MAP[h]] = idx !== undefined ? String(row[idx] || '').trim() : '';
+          });
+
+          if (!obj.code && !obj.name) continue;
+
+          if (!obj.code) {
+            errs.push(`Dòng ${i + 1}: Thiếu mã khách hàng`);
+          } else if (!obj.name) {
+            errs.push(`Dòng ${i + 1}: Thiếu tên khách`);
+          } else {
+            const ch = obj.channel.toLowerCase();
+            if (ch.includes('zalo')) obj.channel = 'zalo';
+            else if (ch.includes('facebook') || ch === 'fb') obj.channel = 'fb';
+            parsed.push(obj);
+          }
+        }
+
+        setRows(parsed);
+        setParseErrors(errs);
+        setResult(null);
+      } catch (err) {
+        setParseErrors([`Lỗi đọc file: ${err.message}`]);
+        setRows([]);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (file) parseFile(file);
+    e.target.value = '';
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) parseFile(file);
+  }
+
+  function downloadTemplate() {
+    const sampleRow = [
+      'SUHCM_MAUKH', 'Nguyễn Văn A', '0912345678',
+      'example@gmail.com', 'Zalo', '123 Đường ABC, Q.1, TP.HCM', '',
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([IMPORT_HEADERS, sampleRow]);
+    ws['!cols'] = IMPORT_HEADERS.map(() => ({ wch: 24 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'KhachHang');
+    XLSX.writeFile(wb, 'mau_import_khach_hang.xlsx');
+  }
+
+  async function handleImport() {
+    if (rows.length === 0) return;
+    setImporting(true);
+    try {
+      const res = await axios.post('/api/customers/import', { rows });
+      setResult(res.data);
+      setRows([]);
+      setParseErrors([]);
+      toast(`Đã import ${res.data.imported} khách hàng`, 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi import', 'error');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  function handleReset() {
+    setRows([]);
+    setParseErrors([]);
+    setResult(null);
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <FileSpreadsheet className="w-5 h-5 text-primary-600" />
+          <h2 className="text-base font-semibold text-gray-900">Import danh sách khách hàng</h2>
+        </div>
+        <button onClick={downloadTemplate} className="btn-secondary text-sm py-1.5">
+          <Download className="w-4 h-4" />
+          Tải mẫu file
+        </button>
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => fileRef.current?.click()}
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+          dragOver
+            ? 'border-primary-400 bg-primary-50'
+            : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'
+        }`}
+      >
+        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+        <p className="text-sm font-medium text-gray-600">Kéo thả hoặc click để chọn file Excel</p>
+        <p className="text-xs text-gray-400 mt-1">Hỗ trợ .xlsx, .xls, .csv</p>
+      </div>
+      <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} className="hidden" />
+
+      {/* Parse errors */}
+      {parseErrors.length > 0 && (
+        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg space-y-0.5">
+          {parseErrors.map((e, i) => (
+            <p key={i} className="text-xs text-red-600">{e}</p>
+          ))}
+        </div>
+      )}
+
+      {/* Preview table */}
+      {rows.length > 0 && (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-gray-700">
+              Xem trước: <span className="text-primary-600">{rows.length} dòng</span> sẵn sàng import
+            </p>
+            <div className="flex gap-2">
+              <button onClick={handleReset} className="btn-secondary text-sm py-1.5">
+                <X className="w-4 h-4" />
+                Hủy
+              </button>
+              <button onClick={handleImport} disabled={importing} className="btn-primary text-sm py-1.5">
+                {importing
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <Upload className="w-4 h-4" />}
+                {importing ? 'Đang import...' : `Import ${rows.length} khách hàng`}
+              </button>
+            </div>
+          </div>
+          <div className="table-container" style={{ maxHeight: '16rem', overflowY: 'auto' }}>
+            <table className="data-table text-xs">
+              <thead>
+                <tr>
+                  <th className="text-center w-10">STT</th>
+                  <th>Mã KH</th>
+                  <th>Tên khách</th>
+                  <th>SĐT</th>
+                  <th>Email</th>
+                  <th>Kênh LH</th>
+                  <th>Địa chỉ</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {rows.slice(0, 100).map((r, i) => (
+                  <tr key={i}>
+                    <td className="text-center text-gray-400">{i + 1}</td>
+                    <td className="font-mono font-medium text-primary-700">{r.code}</td>
+                    <td>{r.name}</td>
+                    <td>{r.phone}</td>
+                    <td>{r.email}</td>
+                    <td>
+                      {r.channel === 'zalo' ? 'Zalo' : r.channel === 'fb' ? 'Facebook' : r.channel}
+                    </td>
+                    <td className="max-w-xs truncate" title={r.address}>{r.address}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {rows.length > 100 && (
+            <p className="text-xs text-gray-400 mt-1 text-center">Hiển thị 100 / {rows.length} dòng</p>
+          )}
+        </div>
+      )}
+
+      {/* Import result */}
+      {result && (
+        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-sm font-semibold text-green-800 mb-2">Kết quả import</p>
+          <div className="flex flex-wrap gap-4">
+            <span className="text-sm text-green-700">
+              <Check className="w-4 h-4 inline mr-1" />
+              Đã thêm: <strong>{result.imported}</strong>
+            </span>
+            <span className="text-sm text-yellow-700">
+              Đã tồn tại (bỏ qua): <strong>{result.skipped}</strong>
+            </span>
+            {result.errors?.length > 0 && (
+              <span className="text-sm text-red-700">
+                Lỗi: <strong>{result.errors.length}</strong>
+              </span>
+            )}
+          </div>
+          {result.errors?.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              {result.errors.map((e, i) => (
+                <p key={i} className="text-xs text-red-600">Dòng {e.row}: {e.error}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Format guide */}
+      <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+        <p className="text-xs font-medium text-blue-700 mb-1">Hướng dẫn định dạng file:</p>
+        <p className="text-xs text-blue-600">
+          Cột bắt buộc: <strong>Mã khách hàng</strong>, <strong>Tên khách</strong>.
+          Cột Kênh LH nhận giá trị <strong>Zalo</strong> hoặc <strong>Facebook</strong>.
+          Các mã KH đã tồn tại trong hệ thống sẽ được bỏ qua.
+        </p>
+      </div>
+    </section>
   );
 }
 
