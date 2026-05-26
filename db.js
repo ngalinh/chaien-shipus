@@ -1,16 +1,29 @@
 'use strict';
 
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
-const fs = require('fs');
 
 const DB_PATH = path.join(__dirname, 'shipus.db');
 
-const db = new Database(DB_PATH);
+const db = new DatabaseSync(DB_PATH);
 
-// Enable WAL mode for better concurrent read performance
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
+db.exec('PRAGMA journal_mode = WAL');
+db.exec('PRAGMA foreign_keys = ON');
+
+// Shim to match better-sqlite3's db.transaction() API
+db.transaction = function(fn) {
+  return function(...args) {
+    db.exec('BEGIN');
+    try {
+      const result = fn(...args);
+      db.exec('COMMIT');
+      return result;
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+  };
+};
 
 // ─── Schema Migrations ────────────────────────────────────────────────────────
 
