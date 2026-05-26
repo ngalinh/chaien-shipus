@@ -34,26 +34,26 @@ export default function Layout() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 w-64 bg-green-900 flex flex-col
+          fixed inset-y-0 left-0 z-30 w-64 bg-primary-900 flex flex-col
           transform transition-transform duration-300 ease-in-out
           lg:relative lg:translate-x-0 lg:flex-shrink-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 bg-green-950 border-b border-green-800">
+        <div className="flex items-center justify-between h-16 px-4 bg-primary-950 border-b border-primary-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-green-400 rounded-lg flex items-center justify-center">
-              <Truck className="w-5 h-5 text-green-900" />
+            <div className="w-8 h-8 bg-primary-400 rounded-lg flex items-center justify-center">
+              <Truck className="w-5 h-5 text-primary-950" />
             </div>
             <div>
-              <div className="text-white font-bold text-sm leading-tight">Chaien Shipus</div>
-              <div className="text-green-400 text-xs">Quản lý vận chuyển</div>
+              <div className="text-white font-bold text-base leading-tight tracking-wide">ShipUS</div>
+              <div className="text-primary-300 text-xs">Quản lý vận chuyển</div>
             </div>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden text-green-300 hover:text-white p-1"
+            className="lg:hidden text-primary-300 hover:text-white p-1"
           >
             <X className="w-5 h-5" />
           </button>
@@ -70,14 +70,14 @@ export default function Layout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
                   isActive
-                    ? 'bg-green-600 text-white shadow-sm'
-                    : 'text-green-200 hover:bg-green-800 hover:text-white'
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'text-primary-200 hover:bg-primary-800 hover:text-white'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-green-400 group-hover:text-green-200'}`} />
+                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-primary-400 group-hover:text-primary-200'}`} />
                   <span className="flex-1">{label}</span>
                   {isActive && <ChevronRight className="w-4 h-4 opacity-70" />}
                 </>
@@ -87,8 +87,8 @@ export default function Layout() {
         </nav>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-green-800">
-          <p className="text-green-500 text-xs text-center">v0.0.1</p>
+        <div className="px-4 py-3 border-t border-primary-800">
+          <p className="text-primary-500 text-xs text-center">ShipUS v1.0</p>
         </div>
       </aside>
 
@@ -103,8 +103,10 @@ export default function Layout() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2 lg:hidden">
-            <Truck className="w-5 h-5 text-green-600" />
-            <span className="font-semibold text-gray-800 text-sm">Chaien Shipus</span>
+            <div className="w-6 h-6 bg-primary-500 rounded flex items-center justify-center">
+              <Truck className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-gray-800 text-sm tracking-wide">ShipUS</span>
           </div>
         </header>
 

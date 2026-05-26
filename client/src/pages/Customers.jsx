@@ -24,7 +24,7 @@ export default function Customers() {
       const res = await axios.get('/api/customers');
       setCustomers(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải danh sách khách hàng', 'error');
+      console.error('fetchCustomers:', err);
     } finally {
       setLoading(false);
     }
@@ -85,8 +85,8 @@ export default function Customers() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-            <Users className="w-5 h-5 text-green-600" />
+          <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
+            <Users className="w-5 h-5 text-primary-600" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Khách hàng</h1>
@@ -133,7 +133,7 @@ export default function Customers() {
               <tr>
                 <td colSpan={10} className="text-center py-10 text-gray-400">
                   <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                     Đang tải...
                   </div>
                 </td>
@@ -152,7 +152,7 @@ export default function Customers() {
                     <td>
                       <Link
                         to={`/customers/${c.id}`}
-                        className="font-semibold text-green-700 hover:text-green-900 hover:underline"
+                        className="font-semibold text-primary-700 hover:text-primary-900 hover:underline"
                       >
                         {c.code}
                       </Link>
@@ -166,7 +166,7 @@ export default function Customers() {
                     <td>{channelLabel(c.channel)}</td>
                     <td>
                       {c.rate_name ? (
-                        <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
+                        <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
                           {c.rate_name}
                         </span>
                       ) : '–'}

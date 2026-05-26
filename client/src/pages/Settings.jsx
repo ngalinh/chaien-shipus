@@ -27,7 +27,7 @@ export default function Settings() {
       setBankAccounts(res.data.bank_accounts || []);
       setCompany(res.data.company || {});
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải cài đặt', 'error');
+      console.error('fetchAll:', err);
     } finally {
       setLoading(false);
     }
@@ -36,7 +36,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -45,8 +45,8 @@ export default function Settings() {
     <div className="p-6 space-y-8 max-w-4xl">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-          <SettingsIcon className="w-5 h-5 text-green-600" />
+        <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
+          <SettingsIcon className="w-5 h-5 text-primary-600" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Cài đặt</h1>
@@ -133,7 +133,7 @@ function RatesSection({ rates, setRates }) {
     <section className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Truck className="w-5 h-5 text-green-600" />
+          <Truck className="w-5 h-5 text-primary-600" />
           <h2 className="text-base font-semibold text-gray-900">Cước vận chuyển – Khách hàng</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5">
@@ -153,7 +153,7 @@ function RatesSection({ rates, setRates }) {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {adding && (
-              <tr className="bg-green-50">
+              <tr className="bg-primary-50">
                 <td>
                   <input
                     value={form.name}
@@ -176,7 +176,7 @@ function RatesSection({ rates, setRates }) {
                 </td>
                 <td className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                       {saving ? '...' : 'Lưu'}
                     </button>
                     <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300">
@@ -222,7 +222,7 @@ function RatesSection({ rates, setRates }) {
                     <div className="flex items-center justify-end gap-1">
                       {editId === r.id ? (
                         <>
-                          <button onClick={() => handleSaveEdit(r.id)} disabled={saving} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                          <button onClick={() => handleSaveEdit(r.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                             {saving ? '...' : 'Lưu'}
                           </button>
                           <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300">
@@ -324,7 +324,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
     <section className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Warehouse className="w-5 h-5 text-green-600" />
+          <Warehouse className="w-5 h-5 text-primary-600" />
           <h2 className="text-base font-semibold text-gray-900">Cước vận chuyển – Đối tác (Kho)</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5">
@@ -345,7 +345,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {adding && (
-              <tr className="bg-green-50">
+              <tr className="bg-primary-50">
                 <td>
                   <input
                     value={form.code}
@@ -376,7 +376,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                 </td>
                 <td className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                       {saving ? '...' : 'Lưu'}
                     </button>
                     <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
@@ -401,7 +401,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                         className="input-field py-1 text-sm uppercase"
                       />
                     ) : (
-                      <span className="font-mono font-medium text-green-700">{w.code}</span>
+                      <span className="font-mono font-medium text-primary-700">{w.code}</span>
                     )}
                   </td>
                   <td>
@@ -431,7 +431,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                     <div className="flex items-center justify-end gap-1">
                       {editId === w.id ? (
                         <>
-                          <button onClick={() => handleSaveEdit(w.id)} disabled={saving} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                          <button onClick={() => handleSaveEdit(w.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                             {saving ? '...' : 'Lưu'}
                           </button>
                           <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
@@ -539,7 +539,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
     <section className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-green-600" />
+          <CreditCard className="w-5 h-5 text-primary-600" />
           <h2 className="text-base font-semibold text-gray-900">Tài khoản ngân hàng</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5">
@@ -561,7 +561,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {adding && (
-              <tr className="bg-green-50">
+              <tr className="bg-primary-50">
                 <td>
                   <input
                     value={form.bank_name}
@@ -592,12 +592,12 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                     type="checkbox"
                     checked={form.is_default}
                     onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))}
-                    className="w-4 h-4 text-green-600"
+                    className="w-4 h-4 text-primary-600"
                   />
                 </td>
                 <td className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                       {saving ? '...' : 'Lưu'}
                     </button>
                     <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
@@ -651,7 +651,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                         type="checkbox"
                         checked={editForm.is_default}
                         onChange={(e) => setEditForm((p) => ({ ...p, is_default: e.target.checked }))}
-                        className="w-4 h-4 text-green-600"
+                        className="w-4 h-4 text-primary-600"
                       />
                     ) : (
                       b.is_default ? (
@@ -666,7 +666,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                     <div className="flex items-center justify-end gap-1">
                       {editId === b.id ? (
                         <>
-                          <button onClick={() => handleSaveEdit(b.id)} disabled={saving} className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+                          <button onClick={() => handleSaveEdit(b.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                             {saving ? '...' : 'Lưu'}
                           </button>
                           <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
@@ -758,7 +758,7 @@ function CompanySection({ company, setCompany }) {
   return (
     <section className="card p-5">
       <div className="flex items-center gap-2 mb-5">
-        <Building2 className="w-5 h-5 text-green-600" />
+        <Building2 className="w-5 h-5 text-primary-600" />
         <h2 className="text-base font-semibold text-gray-900">Thông tin công ty</h2>
       </div>
 

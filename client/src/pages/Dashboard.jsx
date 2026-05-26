@@ -5,7 +5,6 @@ import {
   Users, UserPlus, Weight, Banknote, ArrowUpDown, TrendingUp,
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
-import { toast } from '../components/Toast.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -40,7 +39,7 @@ export default function Dashboard() {
       const res = await axios.get('/api/dashboard', { params });
       setData(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải dữ liệu dashboard', 'error');
+      console.error('fetchStats:', err);
     } finally {
       setLoading(false);
     }
@@ -78,8 +77,8 @@ export default function Dashboard() {
       label: 'SL khách mới',
       value: s.new_customers,
       icon: UserPlus,
-      color: 'bg-green-50 text-green-600',
-      border: 'border-green-200',
+      color: 'bg-primary-50 text-primary-600',
+      border: 'border-primary-200',
       format: 'number',
     },
     {
@@ -122,8 +121,8 @@ export default function Dashboard() {
     <div className="p-6 space-y-6">
       {/* Page header */}
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-green-600" />
+        <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
+          <TrendingUp className="w-5 h-5 text-primary-600" />
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
@@ -142,7 +141,7 @@ export default function Dashboard() {
                 onClick={() => handlePeriodChange(p.value)}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
                   period === p.value
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-primary-600 text-white'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
@@ -187,7 +186,7 @@ export default function Dashboard() {
       {/* Stat cards */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {cards.map((_, i) => (
+          {[...Array(5)].map((_, i) => (
             <div key={i} className="stat-card animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
               <div className="h-8 bg-gray-200 rounded w-1/2" />
@@ -217,8 +216,8 @@ export default function Dashboard() {
 
       {/* Summary note */}
       {!loading && data && (
-        <div className="card p-4 bg-green-50 border-green-200">
-          <p className="text-sm text-green-700">
+        <div className="card p-4 bg-primary-50 border-primary-200">
+          <p className="text-sm text-primary-700">
             <span className="font-semibold">Lợi nhuận gộp:</span>{' '}
             {formatCurrency(s.gross_margin || 0)}
             {' '} (Phí khách trả – Phí đối tác)
@@ -239,14 +238,14 @@ export default function Dashboard() {
           <div className="space-y-2">
             {data.top_customers.slice(0, 5).map((c, idx) => (
               <div key={c.customer_id} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-green-100 text-green-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                   {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium text-gray-800 truncate">{c.customer_name}</div>
                   <div className="text-xs text-gray-500">{c.customer_code} · {c.total_weight} kg · {c.shipment_count} kiện</div>
                 </div>
-                <div className="text-sm font-semibold text-green-700 flex-shrink-0">
+                <div className="text-sm font-semibold text-primary-700 flex-shrink-0">
                   {formatCurrency(c.total_vc_fee)}
                 </div>
               </div>

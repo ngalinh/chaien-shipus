@@ -50,7 +50,7 @@ export default function CustomerDetail() {
       const res = await axios.get(`/api/customers/${id}`);
       setCustomer(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải thông tin khách hàng', 'error');
+      console.error('fetchCustomer:', err);
     } finally {
       setLoading(false);
     }
@@ -72,7 +72,7 @@ export default function CustomerDetail() {
       });
       setBatches(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải dữ liệu hàng về', 'error');
+      console.error('fetchBatches:', err);
     } finally {
       setBatchesLoading(false);
     }
@@ -84,7 +84,7 @@ export default function CustomerDetail() {
       const res = await axios.get(`/api/transactions/${id}`);
       setTxData(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải giao dịch', 'error');
+      console.error('fetchTransactions:', err);
     } finally {
       setTxLoading(false);
     }
@@ -173,7 +173,7 @@ export default function CustomerDetail() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-64">
-        <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -230,7 +230,7 @@ export default function CustomerDetail() {
                 {channelLabel(customer.channel)}
               </span>
               {customer.rate_name && (
-                <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-200">
+                <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
                   {customer.rate_name} ({Number(customer.rate_per_kg || 0).toLocaleString('vi-VN')} đ/kg)
                 </span>
               )}
@@ -260,7 +260,7 @@ export default function CustomerDetail() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-5 pt-4 border-t border-gray-100">
           {[
             { label: 'Tổng kg', value: `${Number(stats.total_kg || 0).toFixed(2)} kg`, icon: Weight, color: 'text-purple-600' },
-            { label: 'Tổng cước VC', value: formatCurrency(stats.total_vc_fee || 0), icon: Banknote, color: 'text-green-600' },
+            { label: 'Tổng cước VC', value: formatCurrency(stats.total_vc_fee || 0), icon: Banknote, color: 'text-primary-600' },
             { label: 'Đã thanh toán', value: formatCurrency(stats.paid || 0), icon: CheckCircle, color: 'text-blue-600' },
             { label: 'Còn lại', value: formatCurrency(stats.remaining || 0), icon: CreditCard, color: 'text-red-600' },
             { label: 'SL đã giao', value: stats.shipped_count || 0, icon: Package, color: 'text-gray-600' },
@@ -301,7 +301,7 @@ export default function CustomerDetail() {
         <div>
           {batchesLoading ? (
             <div className="text-center py-8 text-gray-400">
-              <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               Đang tải...
             </div>
           ) : batches.length === 0 ? (
@@ -333,7 +333,7 @@ export default function CustomerDetail() {
                     return [
                       <tr
                         key={bKey}
-                        className="cursor-pointer hover:bg-green-50"
+                        className="cursor-pointer hover:bg-primary-50"
                         onClick={() => toggleBatch(bKey)}
                       >
                         <td className="text-center text-gray-400">
@@ -344,7 +344,7 @@ export default function CustomerDetail() {
                         <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
                         <td>{formatCurrency(batch.total_partner_fee)}</td>
                         <td>{formatCurrency(batch.total_surcharge)}</td>
-                        <td className="font-semibold text-green-700">{formatCurrency(batch.total_vc_fee)}</td>
+                        <td className="font-semibold text-primary-700">{formatCurrency(batch.total_vc_fee)}</td>
                         <td onClick={(e) => e.stopPropagation()}>
                           <VanDonInlineEdit
                             value={batch.van_don_code || ''}
@@ -355,7 +355,7 @@ export default function CustomerDetail() {
                           <div className="flex items-center gap-1 flex-wrap">
                             <button
                               onClick={() => generateNotification(batch)}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100"
+                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded hover:bg-primary-100"
                               title="Phiếu báo hàng về"
                             >
                               <Bell className="w-3.5 h-3.5" />
@@ -376,7 +376,7 @@ export default function CustomerDetail() {
                       </tr>,
                       isOpen && (
                         <tr key={`${bKey}-expand`} className="expand-row">
-                          <td colSpan={9} className="bg-green-50/50 p-0">
+                          <td colSpan={9} className="bg-primary-50/50 p-0">
                             <div className="px-6 py-3">
                               <table className="w-full text-sm border-collapse">
                                 <thead>
@@ -418,7 +418,7 @@ export default function CustomerDetail() {
                                         <td className="px-3 py-2">{s.weight} kg</td>
                                         <td className="px-3 py-2">{formatCurrency(s.weight * s.partner_rate)}</td>
                                         <td className="px-3 py-2">{formatCurrency(s.surcharge)}</td>
-                                        <td className="px-3 py-2 font-semibold text-green-700">{formatCurrency(vcFee)}</td>
+                                        <td className="px-3 py-2 font-semibold text-primary-700">{formatCurrency(vcFee)}</td>
                                         <td className="px-3 py-2 text-gray-500 text-xs">{s.notes || '–'}</td>
                                       </tr>
                                     );
@@ -443,7 +443,7 @@ export default function CustomerDetail() {
         <div>
           {txLoading ? (
             <div className="text-center py-8 text-gray-400">
-              <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+              <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               Đang tải...
             </div>
           ) : txList.length === 0 ? (
@@ -457,9 +457,9 @@ export default function CustomerDetail() {
                     <span className="text-gray-500">Tổng chi phí: </span>
                     <span className="font-semibold text-red-700">{formatCurrency(txData.total_debit)}</span>
                   </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm">
+                  <div className="bg-primary-50 border border-primary-200 rounded-lg px-4 py-2 text-sm">
                     <span className="text-gray-500">Đã thanh toán: </span>
-                    <span className="font-semibold text-green-700">{formatCurrency(txData.total_credit)}</span>
+                    <span className="font-semibold text-primary-700">{formatCurrency(txData.total_credit)}</span>
                   </div>
                   <div className={`border rounded-lg px-4 py-2 text-sm ${txData.net_balance >= 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
                     <span className="text-gray-500">Số dư: </span>
@@ -587,7 +587,7 @@ function VanDonInlineEdit({ value, onSave }) {
         />
         <button
           onClick={handleSave}
-          className="text-xs px-1.5 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+          className="text-xs px-1.5 py-1 bg-primary-600 text-white rounded hover:bg-primary-700"
         >
           ✓
         </button>
@@ -604,7 +604,7 @@ function VanDonInlineEdit({ value, onSave }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="text-left text-xs text-gray-600 hover:text-green-700 hover:underline min-w-[60px]"
+      className="text-left text-xs text-gray-600 hover:text-primary-700 hover:underline min-w-[60px]"
     >
       {value || <span className="text-gray-300 italic">+ Thêm</span>}
     </button>

@@ -43,7 +43,7 @@ export default function Shipping() {
       const res = await axios.get('/api/shipments');
       setShipments(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải danh sách hàng', 'error');
+      console.error('fetchShipments:', err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +56,7 @@ export default function Shipping() {
       const res = await axios.get('/api/shipments/bao-khach');
       setNotifyBatches(res.data);
     } catch (err) {
-      toast(err.response?.data?.error || 'Không thể tải dữ liệu báo khách', 'error');
+      console.error('fetchNotifyBatches:', err);
     } finally {
       setLoading(false);
     }
@@ -161,8 +161,8 @@ export default function Shipping() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-            <Package className="w-5 h-5 text-green-600" />
+          <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
+            <Package className="w-5 h-5 text-primary-600" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Vận chuyển</h1>
@@ -216,7 +216,7 @@ export default function Shipping() {
                 <tr>
                   <td colSpan={10} className="text-center py-10 text-gray-400">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                       Đang tải...
                     </div>
                   </td>
@@ -234,7 +234,7 @@ export default function Shipping() {
                     <tr key={s.id} className={isEditing ? 'bg-yellow-50' : ''}>
                       <td>{formatDate(s.import_date)}</td>
                       <td>
-                        <span className="font-mono text-sm text-green-700">{s.customer_code}</span>
+                        <span className="font-mono text-sm text-primary-700">{s.customer_code}</span>
                         {s.customer_name && <span className="text-xs text-gray-500 ml-1">({s.customer_name})</span>}
                       </td>
                       <td>{s.warehouse_code || '–'}</td>
@@ -306,7 +306,7 @@ export default function Shipping() {
                             <>
                               <button
                                 onClick={() => saveEdit(s.id)}
-                                className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                                className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700"
                               >
                                 Lưu
                               </button>
@@ -370,7 +370,7 @@ export default function Shipping() {
                 <tr>
                   <td colSpan={10} className="text-center py-10 text-gray-400">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                       Đang tải...
                     </div>
                   </td>
@@ -388,7 +388,7 @@ export default function Shipping() {
                   return [
                     <tr
                       key={bKey}
-                      className={`cursor-pointer hover:bg-green-50 ${batch.notified_at ? 'opacity-75' : ''}`}
+                      className={`cursor-pointer hover:bg-primary-50 ${batch.notified_at ? 'opacity-75' : ''}`}
                       onClick={() => setExpandedBatch(isOpen ? null : bKey)}
                     >
                       <td className="text-center text-gray-400">
@@ -396,14 +396,14 @@ export default function Shipping() {
                       </td>
                       <td className="font-medium">{formatDate(batch.batch_date)}</td>
                       <td>
-                        <span className="font-mono text-green-700">{batch.customer_code}</span>
+                        <span className="font-mono text-primary-700">{batch.customer_code}</span>
                         <span className="text-xs text-gray-500 ml-1">({batch.customer_name})</span>
                       </td>
                       <td>{batch.tracking_count}</td>
                       <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
                       <td>{formatCurrency(batch.total_partner_fee)}</td>
                       <td>{formatCurrency(batch.total_surcharge)}</td>
-                      <td className="font-semibold text-green-700">{formatCurrency(batch.total_vc_fee)}</td>
+                      <td className="font-semibold text-primary-700">{formatCurrency(batch.total_vc_fee)}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <VanDonInlineEdit
                           value={batch.van_don_code || ''}
@@ -416,7 +416,7 @@ export default function Shipping() {
                           className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg ${
                             batch.notified_at
                               ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              : 'bg-green-600 text-white hover:bg-green-700'
+                              : 'bg-primary-600 text-white hover:bg-primary-700'
                           }`}
                         >
                           <Bell className="w-3.5 h-3.5" />
@@ -426,7 +426,7 @@ export default function Shipping() {
                     </tr>,
                     isOpen && (
                       <tr key={`${bKey}-detail`} className="expand-row">
-                        <td colSpan={10} className="bg-green-50/50 p-0">
+                        <td colSpan={10} className="bg-primary-50/50 p-0">
                           <div className="px-8 py-3">
                             <table className="w-full text-xs border-collapse">
                               <thead>
@@ -451,7 +451,7 @@ export default function Shipping() {
                                       <td className="px-3 py-2">{s.weight} kg</td>
                                       <td className="px-3 py-2">{formatCurrency(s.weight * s.partner_rate)}</td>
                                       <td className="px-3 py-2">{formatCurrency(s.surcharge)}</td>
-                                      <td className="px-3 py-2 font-semibold text-green-700">{formatCurrency(vcFee)}</td>
+                                      <td className="px-3 py-2 font-semibold text-primary-700">{formatCurrency(vcFee)}</td>
                                     </tr>
                                   );
                                 })}
@@ -529,7 +529,7 @@ function VanDonInlineEdit({ value, onSave }) {
         />
         <button
           onClick={handleSave}
-          className="text-xs px-1.5 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+          className="text-xs px-1.5 py-1 bg-primary-600 text-white rounded hover:bg-primary-700"
         >
           ✓
         </button>
@@ -546,7 +546,7 @@ function VanDonInlineEdit({ value, onSave }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="text-left text-xs text-gray-600 hover:text-green-700 hover:underline min-w-[60px]"
+      className="text-left text-xs text-gray-600 hover:text-primary-700 hover:underline min-w-[60px]"
     >
       {value || <span className="text-gray-300 italic">+ Thêm</span>}
     </button>
