@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "concurrently \"node server.js\" \"vite client --port 5173\""
+    "dev": "concurrently \"node server.js\" \"vite client --port 5173\"",
+    "postinstall": "npm --prefix client install && npm --prefix client run build"
   },
   "dependencies": {
     "cors": "^2.8.5",
