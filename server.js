@@ -1,5 +1,18 @@
 'use strict';
 
+console.log(`[startup] Node ${process.version} | pid ${process.pid} | ${new Date().toISOString()}`);
+
+process.on('uncaughtException', (err) => {
+  console.error('[crash] uncaughtException:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[crash] unhandledRejection:', reason);
+  process.exit(1);
+});
+
 require('dotenv').config();
 
 const express = require('express');
@@ -7,14 +20,21 @@ const cors    = require('cors');
 const path    = require('path');
 const fs      = require('fs');
 
-// Initialise DB (runs migrations on first import)
-require('./db');
+console.log('[startup] loading db...');
+let db;
+try {
+  db = require('./db');
+  console.log('[startup] db OK');
+} catch (err) {
+  console.error('[crash] db init failed:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+}
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Ensure upload directories exist ─────────────────────────────────────────
-const UPLOADS_DIR = path.join(__dirname, 'uploads');
 ['uploads', 'uploads/cccd', 'uploads/logo'].forEach((dir) => {
   const full = path.join(__dirname, dir);
   if (!fs.existsSync(full)) fs.mkdirSync(full, { recursive: true });
@@ -25,7 +45,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files as static assets
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
@@ -37,6 +56,7 @@ app.use('/api/dashboard',    require('./routes/dashboard'));
 
 // ─── SPA Fallback ─────────────────────────────────────────────────────────────
 const clientDist = path.join(__dirname, 'client', 'dist');
+console.log(`[startup] client/dist exists: ${fs.existsSync(clientDist)} (${clientDist})`);
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.get(/^(?!\/api).*/, (_req, res) => {
@@ -53,7 +73,7 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Chaien Shipus server running on http://localhost:${PORT}`);
+  console.log(`[startup] Chaien Shipus running on port ${PORT}`);
 });
 
 module.exports = app;
