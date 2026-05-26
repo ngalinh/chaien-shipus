@@ -56,20 +56,20 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Section 1: Import Customers */}
-      <ImportCustomersSection />
-
-      {/* Section 2: Customer Rates */}
+      {/* Section 1: Customer Rates */}
       <RatesSection rates={rates} setRates={setRates} />
 
-      {/* Section 3: Partner Warehouses */}
+      {/* Section 2: Partner Warehouses */}
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
 
-      {/* Section 4: Bank Accounts */}
+      {/* Section 3: Bank Accounts */}
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
 
-      {/* Section 5: Company Info */}
+      {/* Section 4: Company Info */}
       <CompanySection company={company} setCompany={setCompany} />
+
+      {/* Section 5: Import Customers */}
+      <ImportCustomersSection />
     </div>
   );
 }
