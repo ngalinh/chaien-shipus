@@ -7,3 +7,5 @@ uploads/
 dist/
 client/dist/
 .env
+index.html
+assets/
