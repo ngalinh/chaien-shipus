@@ -55,14 +55,18 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/dashboard',    require('./routes/dashboard'));
 
 // ─── SPA Fallback ─────────────────────────────────────────────────────────────
+// Serve from repo root first (platform file-check), then client/dist as fallback
+const rootIndex  = path.join(__dirname, 'index.html');
 const clientDist = path.join(__dirname, 'client', 'dist');
-console.log(`[startup] client/dist exists: ${fs.existsSync(clientDist)} (${clientDist})`);
-if (fs.existsSync(clientDist)) {
-  app.use(express.static(clientDist));
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
-}
+const staticRoot = fs.existsSync(rootIndex) ? __dirname : clientDist;
+console.log(`[startup] static root: ${staticRoot}`);
+app.use(express.static(staticRoot));
+app.get(/^(?!\/api).*/, (_req, res) => {
+  const htmlFile = fs.existsSync(rootIndex)
+    ? rootIndex
+    : path.join(clientDist, 'index.html');
+  res.sendFile(htmlFile);
+});
 
 // ─── Global error handler ─────────────────────────────────────────────────────
 app.use((err, _req, res, _next) => {

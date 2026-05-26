@@ -5,4 +5,5 @@ client/node_modules/
 *.db-wal
 uploads/
 dist/
+client/dist/
 .env
