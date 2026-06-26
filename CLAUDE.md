@@ -22,7 +22,9 @@ npm --prefix client run build   # production build
 > **Do not leave PRs as drafts.** Merge as soon as the fix is complete and the build passes.
 
 ## Deployment
-The app runs via Docker (`Dockerfile`). The hosting platform rebuilds and redeploys automatically whenever `main` is updated. There is no separate deploy command to run.
+GitHub Actions (`.github/workflows/deploy.yml`) auto-deploys on every push to `main`:
+- SSH vào VPS → `git pull origin main` → `npm install` → build frontend → `pm2 restart chaien-shipus`
+- Secrets cần thiết: `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_PORT`, `DEPLOY_PATH`
 
 ## Database migrations
 Add idempotent `ALTER TABLE … ADD COLUMN` statements inside a `try/catch` block in `db.js` (see existing examples). They run automatically on server start.
