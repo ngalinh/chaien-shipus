@@ -59,17 +59,16 @@ router.post('/import', (req, res) => {
     return res.status(400).json({ error: 'Không có dữ liệu' });
   }
 
-  const checkStmt  = db.prepare('SELECT id FROM customers WHERE code = ?');
-  const insertStmt = db.prepare(`
-    INSERT INTO customers (code, name, phone, email, address, channel, notes, warehouse)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
   let imported = 0;
   let skipped  = 0;
   const rowErrors = [];
 
   try {
+  const checkStmt  = db.prepare('SELECT id FROM customers WHERE code = ?');
+  const insertStmt = db.prepare(`
+    INSERT INTO customers (code, name, phone, email, address, channel, notes, warehouse)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `);
     db.exec('BEGIN');
     for (const [i, row] of rows.entries()) {
       const code = (row.code || '').trim();
