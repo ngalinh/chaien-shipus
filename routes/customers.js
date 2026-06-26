@@ -61,8 +61,8 @@ router.post('/import', (req, res) => {
 
   const checkStmt  = db.prepare('SELECT id FROM customers WHERE code = ?');
   const insertStmt = db.prepare(`
-    INSERT INTO customers (code, name, phone, email, address, channel, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO customers (code, name, phone, email, address, channel, notes, warehouse)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   let imported = 0;
@@ -86,11 +86,12 @@ router.post('/import', (req, res) => {
         insertStmt.run(
           code,
           name,
-          row.phone   || null,
-          row.email   || null,
-          row.address || null,
-          row.channel || null,
-          row.notes   || null,
+          row.phone     || null,
+          row.email     || null,
+          row.address   || null,
+          row.channel   || null,
+          row.notes     || null,
+          row.warehouse || null,
         );
         imported++;
       } catch (err) {
@@ -134,22 +135,23 @@ router.get('/', (_req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id, warehouse } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      INSERT INTO customers (code, name, phone, email, address, channel, notes, rate_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customers (code, name, phone, email, address, channel, notes, rate_id, warehouse)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       code.trim(),
       name.trim(),
-      phone   || null,
-      email   || null,
-      address || null,
-      channel || null,
-      notes   || null,
-      rate_id || null,
+      phone     || null,
+      email     || null,
+      address   || null,
+      channel   || null,
+      notes     || null,
+      rate_id   || null,
+      warehouse || null,
     );
     const customer = db.prepare(`
       SELECT c.*, cr.name AS rate_name, cr.rate_per_kg
@@ -249,22 +251,23 @@ router.get('/:id', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.put('/:id', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id, warehouse } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?
+      UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?, warehouse = ?
       WHERE id = ?
     `).run(
       code.trim(),
       name.trim(),
-      phone   || null,
-      email   || null,
-      address || null,
-      channel || null,
-      notes   || null,
-      rate_id || null,
+      phone     || null,
+      email     || null,
+      address   || null,
+      channel   || null,
+      notes     || null,
+      rate_id   || null,
+      warehouse || null,
       parseInt(req.params.id),
     );
     if (info.changes === 0) return res.status(404).json({ error: 'Customer not found' });

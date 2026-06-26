@@ -77,7 +77,7 @@ export default function Settings() {
 // ── Import Customers ──────────────────────────────────────────────────────────
 const IMPORT_HEADERS = [
   'Mã khách hàng', 'Tên khách', 'Số điện thoại', 'Email',
-  'Kênh LH', 'Địa chỉ nhận hàng', 'Ghi chú',
+  'Kênh LH', 'Địa chỉ', 'Kho', 'Ghi chú',
 ];
 const FIELD_MAP = {
   'Mã khách hàng': 'code',
@@ -85,7 +85,8 @@ const FIELD_MAP = {
   'Số điện thoại': 'phone',
   'Email': 'email',
   'Kênh LH': 'channel',
-  'Địa chỉ nhận hàng': 'address',
+  'Địa chỉ': 'address',
+  'Kho': 'warehouse',
   'Ghi chú': 'notes',
 };
 
@@ -145,6 +146,11 @@ function ImportCustomersSection() {
             const ch = obj.channel.toLowerCase();
             if (ch.includes('zalo')) obj.channel = 'zalo';
             else if (ch.includes('facebook') || ch === 'fb') obj.channel = 'fb';
+            const wh = (obj.warehouse || '').trim().toUpperCase().replace(/\s+/g, ' ');
+            if (wh === 'US UK' || wh === 'UK US') obj.warehouse = 'US UK';
+            else if (wh === 'US') obj.warehouse = 'US';
+            else if (wh === 'UK') obj.warehouse = 'UK';
+            else obj.warehouse = '';
             parsed.push(obj);
           }
         }
