@@ -13,6 +13,7 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
     channel: 'fb',
     rate_id: '',
     notes: '',
+    warehouse: '',
   });
   const [rates, setRates] = useState([]);
   const [newImages, setNewImages] = useState([]);  // File objects to upload
@@ -34,6 +35,7 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
         channel: customer.channel || 'fb',
         rate_id: customer.rate_id || '',
         notes: customer.notes || '',
+        warehouse: customer.warehouse || '',
       });
       fetchExistingImages(customer.id);
     }
@@ -206,6 +208,45 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
                 className="input-field"
                 placeholder="123 Đường ABC, Quận 1, TP.HCM"
               />
+            </div>
+
+            {/* Kho */}
+            <div>
+              <label className="label">Kho</label>
+              <div className="flex gap-4 mt-1">
+                {['US', 'UK'].map((wh) => {
+                  const checked = form.warehouse === wh || form.warehouse === 'US UK';
+                  return (
+                    <label key={wh} className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          const hasUS = form.warehouse === 'US' || form.warehouse === 'US UK';
+                          const hasUK = form.warehouse === 'UK' || form.warehouse === 'US UK';
+                          let next;
+                          if (wh === 'US') {
+                            const newUS = !hasUS;
+                            if (newUS && hasUK) next = 'US UK';
+                            else if (newUS) next = 'US';
+                            else if (hasUK) next = 'UK';
+                            else next = '';
+                          } else {
+                            const newUK = !hasUK;
+                            if (newUK && hasUS) next = 'US UK';
+                            else if (newUK) next = 'UK';
+                            else if (hasUS) next = 'US';
+                            else next = '';
+                          }
+                          setForm((prev) => ({ ...prev, warehouse: next }));
+                        }}
+                        className="w-4 h-4 accent-primary-600"
+                      />
+                      <span className="text-sm font-medium text-gray-700">{wh}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
 
             {/* CCCD Images */}
