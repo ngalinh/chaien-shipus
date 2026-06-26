@@ -201,7 +201,10 @@ function ImportCustomersSection() {
       setParseErrors([]);
       toast(`Đã import ${res.data.imported} khách hàng`, 'success');
     } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi import', 'error');
+      const msg = err.response?.data?.error
+        || (err.response ? `HTTP ${err.response.status}: ${JSON.stringify(err.response.data)}` : err.message)
+        || 'Lỗi import';
+      toast(msg, 'error');
     } finally {
       setImporting(false);
     }

@@ -100,7 +100,8 @@ router.post('/import', (req, res) => {
     db.exec('COMMIT');
     res.json({ imported, skipped, errors: rowErrors });
   } catch (err) {
-    db.exec('ROLLBACK');
+    console.error('[import error]', err.message, err.stack);
+    try { db.exec('ROLLBACK'); } catch {}
     res.status(500).json({ error: err.message });
   }
 });
