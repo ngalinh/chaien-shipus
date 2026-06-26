@@ -22,5 +22,5 @@ jobs:
             npm install --omit=dev
             npm --prefix client install
             npm --prefix client run build
-            pm2 restart chaien-shipus || pm2 start server.js --name chaien-shipus --env production
+            pm2 restart chaien-shipus --update-env || pm2 start server.js --name chaien-shipus --env production
             pm2 save
