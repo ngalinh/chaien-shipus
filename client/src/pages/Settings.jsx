@@ -415,12 +415,12 @@ function RatesSection({ rates, setRates }) {
 
   return (
     <section className="card p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <Truck className="w-5 h-5 text-primary-600" />
           <h2 className="text-base font-semibold text-gray-900">Cước vận chuyển – Khách hàng</h2>
         </div>
-        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5">
+        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
           Thêm gói
         </button>
@@ -606,12 +606,12 @@ function WarehousesSection({ warehouses, setWarehouses }) {
 
   return (
     <section className="card p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <Warehouse className="w-5 h-5 text-primary-600" />
           <h2 className="text-base font-semibold text-gray-900">Cước vận chuyển – Đối tác (Kho)</h2>
         </div>
-        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5">
+        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
           Thêm kho
         </button>
@@ -821,12 +821,12 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
 
   return (
     <section className="card p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary-600" />
           <h2 className="text-base font-semibold text-gray-900">Tài khoản ngân hàng</h2>
         </div>
-        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5">
+        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
           Thêm TK
         </button>
