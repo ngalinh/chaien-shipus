@@ -64,7 +64,7 @@ export default function Customers() {
     toast(editCustomer ? 'Đã cập nhật khách hàng' : 'Đã tạo khách hàng mới', 'success');
   }
 
-  const filtered = customers.filter((c) => {
+  const filtered = (Array.isArray(customers) ? customers : []).filter((c) => {
     const q = search.toLowerCase();
     return (
       c.code?.toLowerCase().includes(q) ||

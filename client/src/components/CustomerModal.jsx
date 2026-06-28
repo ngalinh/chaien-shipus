@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { X, Upload, Trash2, ZoomIn } from 'lucide-react';
 import { toast } from './Toast.jsx';
@@ -9,8 +9,9 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
     code: '',
     name: '',
     phone: '',
+    email: '',
     address: '',
-    channel: 'fb',
+    channel: '',
     rate_id: '',
     notes: '',
     warehouse: '',
@@ -31,8 +32,9 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
         code: customer.code || '',
         name: customer.name || '',
         phone: customer.phone || '',
+        email: customer.email || '',
         address: customer.address || '',
-        channel: customer.channel || 'fb',
+        channel: customer.channel || '',
         rate_id: customer.rate_id || '',
         notes: customer.notes || '',
         warehouse: customer.warehouse || '',
@@ -142,6 +144,18 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
     }
   }
 
+  // Create stable object URLs and revoke them on change to avoid memory leaks
+  const newImageUrls = useMemo(() => {
+    const urls = newImages.map((f) => URL.createObjectURL(f));
+    return urls;
+  }, [newImages]);
+
+  useEffect(() => {
+    return () => {
+      newImageUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [newImageUrls]);
+
   const totalImages = existingImages.length + newImages.length;
 
   return (
@@ -195,6 +209,19 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
                 onChange={handleField}
                 className="input-field"
                 placeholder="0912 345 678"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="label">Email</label>
+              <input
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleField}
+                className="input-field"
+                placeholder="example@gmail.com"
               />
             </div>
 
@@ -311,15 +338,15 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
                   {newImages.map((file, i) => (
                     <div key={i} className="relative group">
                       <img
-                        src={URL.createObjectURL(file)}
+                        src={newImageUrls[i]}
                         alt="CCCD mới"
                         className="w-24 h-16 object-cover rounded-lg border-2 border-blue-300 cursor-pointer"
-                        onClick={() => setLightbox(URL.createObjectURL(file))}
+                        onClick={() => setLightbox(newImageUrls[i])}
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity flex items-center justify-center gap-1">
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setLightbox(URL.createObjectURL(file)); }}
+                          onClick={(e) => { e.stopPropagation(); setLightbox(newImageUrls[i]); }}
                           className="w-7 h-7 bg-white/80 rounded-full flex items-center justify-center text-gray-700"
                         >
                           <ZoomIn className="w-3.5 h-3.5" />
@@ -343,6 +370,7 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
             <div>
               <label className="label">Kênh liên hệ</label>
               <select name="channel" value={form.channel} onChange={handleField} className="input-field">
+                <option value="">-- Chọn kênh --</option>
                 <option value="fb">Facebook</option>
                 <option value="zalo">Zalo</option>
               </select>

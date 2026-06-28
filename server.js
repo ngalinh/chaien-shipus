@@ -56,7 +56,11 @@ app.use('/api/dashboard',    require('./routes/dashboard'));
 
 // ─── Deploy webhook ──────────────────────────────────────────────────────────
 const { exec } = require('child_process');
-app.post('/deploy', express.raw({ type: '*/*' }), (_req, res) => {
+app.post('/deploy', express.raw({ type: '*/*' }), (req, res) => {
+  const token = req.headers['x-deploy-token'];
+  if (!token || token !== process.env.DEPLOY_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
   res.json({ ok: true });
   console.log('[deploy] Starting git pull + rebuild...');
   exec(

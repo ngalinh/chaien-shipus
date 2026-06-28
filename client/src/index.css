@@ -38,12 +38,16 @@
     @apply hover:bg-primary-50 transition-colors duration-100;
   }
 
-  .data-table tbody tr:nth-child(even) {
+  .data-table tbody tr:nth-child(even):not(.expand-row) {
     @apply bg-gray-50;
   }
 
-  .data-table tbody tr:nth-child(even):hover {
+  .data-table tbody tr:nth-child(even):not(.expand-row):hover {
     @apply bg-primary-50;
+  }
+
+  .expand-row {
+    background-color: transparent !important;
   }
 
   .btn-primary {

@@ -197,15 +197,14 @@ router.get('/:id', (req, res) => {
     `).get(customer.id);
 
     const paidRow = db.prepare(`
-      SELECT COALESCE(SUM(credit) - SUM(debit), 0) AS balance
+      SELECT COALESCE(SUM(credit), 0) AS paid
       FROM transactions
-      WHERE customer_id = ?
+      WHERE customer_id = ? AND reference_type = 'payment'
     `).get(customer.id);
 
-    // Running balance: total_vc_fee (debit) – payments (credit)
-    const totalVcFee  = statsRow.total_vc_fee;
-    const netBalance  = paidRow.balance;        // positive = customer has credit
-    const remaining   = totalVcFee - netBalance; // positive = customer owes money
+    const totalVcFee = statsRow.total_vc_fee;
+    const paid       = paidRow.paid;
+    const remaining  = Math.max(0, totalVcFee - paid);
 
     // Pending: shipments not yet paid (simple proxy: total_vc_fee - paid)
     const pendingRow = db.prepare(`
@@ -236,8 +235,8 @@ router.get('/:id', (req, res) => {
         pending_count: pendingRow.pending_count,
         total_kg:      statsRow.total_kg,
         total_vc_fee:  totalVcFee,
-        paid:          netBalance > 0 ? netBalance : 0,
-        remaining:     remaining > 0  ? remaining  : 0,
+        paid,
+        remaining,
       },
     });
   } catch (err) {

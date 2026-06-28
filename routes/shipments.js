@@ -5,10 +5,9 @@ const db      = require('../db');
 
 const router = express.Router();
 
-// ─── Helper: today as YYYY-MM-DD in local time ────────────────────────────────
+// ─── Helper: today as YYYY-MM-DD in Vietnam local time ───────────────────────
 function todayStr() {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+  return new Date().toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' });
 }
 
 // ─── Helper: trigger auto-debit for a (date, customer_id) batch ───────────────
@@ -22,34 +21,24 @@ function triggerAutoDebit(importDate, customerId) {
     WHERE import_date = ? AND customer_id = ?
   `).get(importDate, customerId);
 
-  if (!feeRow || feeRow.cnt === 0) return;
+  const fee   = feeRow ? feeRow.total_vc_fee : 0;
+  const refId = String(importDate + '_' + customerId);
 
-  // Upsert: if a debit for this batch already exists, replace it with the new total
   const existing = db.prepare(`
     SELECT id FROM transactions
     WHERE customer_id = ? AND trans_date = ? AND reference_type = 'shipment_batch'
       AND reference_id = ?
-  `).get(customerId, importDate, String(importDate + '_' + customerId));
+  `).get(customerId, importDate, refId);
 
   if (existing) {
-    db.prepare(`
-      UPDATE transactions SET debit = ?, description = ? WHERE id = ?
-    `).run(
-      feeRow.total_vc_fee,
-      `Phí VC lô ${importDate}`,
-      existing.id
-    );
-  } else {
+    // Always update (even to 0) so deleted shipments don't leave stale debits
+    db.prepare(`UPDATE transactions SET debit = ?, description = ? WHERE id = ?`)
+      .run(fee, `Phí VC lô ${importDate}`, existing.id);
+  } else if (fee > 0) {
     db.prepare(`
       INSERT INTO transactions (trans_date, customer_id, description, debit, credit, reference_type, reference_id)
       VALUES (?, ?, ?, ?, 0, 'shipment_batch', ?)
-    `).run(
-      importDate,
-      customerId,
-      `Phí VC lô ${importDate}`,
-      feeRow.total_vc_fee,
-      String(importDate + '_' + customerId)
-    );
+    `).run(importDate, customerId, `Phí VC lô ${importDate}`, fee, refId);
   }
 }
 
@@ -97,36 +86,27 @@ router.get('/', (req, res) => {
 
 // ═════════════════════════════════════════════════════════════════════════════
 // POST /api/shipments/import
-// Parse pasted text from partner Excel (tab/whitespace separated lines).
-// Expected columns (in order): Ten Khach | Kho | Tracking | Noi Dung Hang | Kg
+// Import pre-parsed rows from client.
+// Body: { import_date, rows: [{ customer_name, warehouse_code, tracking_no, product, weight }] }
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/import', (req, res) => {
   try {
-    const { text, import_date, surcharge = 0 } = req.body;
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ error: 'text (pasted Excel content) is required' });
+    const { rows, import_date } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ error: 'rows array is required' });
     }
 
-    const date    = import_date || todayStr();
+    const date     = import_date || todayStr();
     const warnings = [];
     const inserted = [];
 
-    // Pre-load lookup maps for efficiency
     const allCustomers  = db.prepare('SELECT id, name, rate_id FROM customers').all();
     const allWarehouses = db.prepare('SELECT id, code, rate_per_kg FROM partner_warehouses').all();
     const allRates      = db.prepare('SELECT id, rate_per_kg FROM customer_rates').all();
 
-    // Build case-insensitive name→customer map
-    const customerMap = new Map(
-      allCustomers.map((c) => [c.name.trim().toLowerCase(), c])
-    );
-    const warehouseMap = new Map(
-      allWarehouses.map((w) => [w.code.trim().toUpperCase(), w])
-    );
-    const rateMap = new Map(allRates.map((r) => [r.id, r.rate_per_kg]));
-
-    // Parse lines — skip blank and header lines
-    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const customerMap  = new Map(allCustomers.map((c) => [c.name.trim().toLowerCase(), c]));
+    const warehouseMap = new Map(allWarehouses.map((w) => [w.code.trim().toUpperCase(), w]));
+    const rateMap      = new Map(allRates.map((r) => [r.id, r.rate_per_kg]));
 
     const insertStmt = db.prepare(`
       INSERT INTO shipments
@@ -135,49 +115,32 @@ router.post('/import', (req, res) => {
     `);
 
     const importAll = db.transaction(() => {
-      for (const line of lines) {
-        // Split on tab first; fall back to multiple spaces
-        const cols = line.includes('\t')
-          ? line.split('\t').map((c) => c.trim())
-          : line.split(/\s{2,}/).map((c) => c.trim());
+      for (const row of rows) {
+        const { customer_name, warehouse_code, tracking_no, product, weight } = row;
 
-        if (cols.length < 5) {
-          warnings.push(`Skipped (not enough columns): ${line}`);
-          continue;
-        }
-
-        const [tenKhach, kho, tracking, noiDung, kgRaw] = cols;
-        const weight = parseFloat(kgRaw);
-        if (isNaN(weight)) {
-          warnings.push(`Skipped (invalid weight "${kgRaw}"): ${line}`);
-          continue;
-        }
-
-        // Resolve customer
-        const customer = customerMap.get(tenKhach.trim().toLowerCase());
+        const customer = customerMap.get((customer_name || '').trim().toLowerCase());
         if (!customer) {
-          warnings.push(`Unmatched customer: "${tenKhach}"`);
+          warnings.push(`Không tìm thấy khách hàng: "${customer_name}"`);
           continue;
         }
 
-        // Resolve warehouse
-        const warehouse = warehouseMap.get(kho.trim().toUpperCase());
+        const warehouse = warehouseMap.get((warehouse_code || '').trim().toUpperCase());
         if (!warehouse) {
-          warnings.push(`Unmatched warehouse: "${kho}"`);
+          warnings.push(`Không tìm thấy kho: "${warehouse_code}"`);
         }
 
-        const partnerRate   = warehouse ? warehouse.rate_per_kg : 0;
-        const customerRate  = customer.rate_id ? (rateMap.get(customer.rate_id) || 0) : 0;
-        const warehouseId   = warehouse ? warehouse.id : null;
+        const partnerRate  = warehouse ? warehouse.rate_per_kg : 0;
+        const customerRate = customer.rate_id ? (rateMap.get(customer.rate_id) || 0) : 0;
+        const warehouseId  = warehouse ? warehouse.id : null;
 
         const info = insertStmt.run(
           date,
           customer.id,
           warehouseId,
-          tracking || null,
-          noiDung  || null,
-          weight,
-          parseFloat(surcharge) || 0,
+          tracking_no || null,
+          product     || null,
+          parseFloat(weight) || 0,
+          0,
           partnerRate,
           customerRate
         );
@@ -187,9 +150,7 @@ router.post('/import', (req, res) => {
 
     importAll();
 
-    // Group inserted shipments by customer and trigger auto-debit per (date, customer)
     if (inserted.length > 0) {
-      // Find distinct customers that were just inserted
       const batchCustomers = db.prepare(`
         SELECT DISTINCT customer_id FROM shipments
         WHERE id IN (${inserted.map(() => '?').join(',')})
@@ -204,7 +165,7 @@ router.post('/import', (req, res) => {
     }
 
     res.status(201).json({
-      inserted_count: inserted.length,
+      imported:    inserted.length,
       import_date: date,
       warnings,
     });
