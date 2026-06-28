@@ -20,6 +20,7 @@
 
   .data-table {
     @apply min-w-full divide-y divide-gray-200;
+    table-layout: fixed;
   }
 
   .data-table thead {

@@ -116,16 +116,16 @@ export default function Customers() {
         <table className="data-table">
           <thead>
             <tr>
-              <th className="w-24">Mã KH</th>
-              <th className="w-28">Tình trạng</th>
+              <th className="w-36">Mã KH</th>
+              <th className="w-24">Tình trạng</th>
               <th>Họ tên</th>
-              <th className="w-32">SĐT</th>
+              <th className="w-24">SĐT</th>
               <th>Địa chỉ</th>
-              <th className="w-24">Kênh LH</th>
-              <th className="w-32">Cước VC</th>
+              <th className="w-20">Kênh LH</th>
+              <th className="w-24">Cước VC</th>
               <th>Ghi chú</th>
-              <th className="w-28">Ngày tạo</th>
-              <th className="w-20 text-right">Thao tác</th>
+              <th className="w-24">Ngày tạo</th>
+              <th className="w-24 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">

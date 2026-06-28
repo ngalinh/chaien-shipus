@@ -200,15 +200,15 @@ export default function Shipping() {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="w-28">Ngày tháng</th>
-                <th className="w-28">Mã KH</th>
-                <th className="w-16">Kho</th>
-                <th className="w-32">Tracking #</th>
+                <th className="w-24">Ngày tháng</th>
+                <th className="w-24">Mã KH</th>
+                <th className="w-14">Kho</th>
+                <th className="w-28">Tracking #</th>
                 <th>Sản phẩm</th>
-                <th className="w-24">Cân nặng</th>
-                <th className="w-28">Phụ thu</th>
-                <th className="w-32">Phí trả đối tác</th>
-                <th>Ghi chú</th>
+                <th className="w-20">Cân nặng</th>
+                <th className="w-24">Phụ thu</th>
+                <th className="w-28">Phí trả đối tác</th>
+                <th className="w-24">Ghi chú</th>
                 <th className="w-24 text-right">Thao tác</th>
               </tr>
             </thead>
