@@ -79,11 +79,22 @@ const rootIndex  = path.join(__dirname, 'index.html');
 const clientDist = path.join(__dirname, 'client', 'dist');
 const staticRoot = fs.existsSync(rootIndex) ? __dirname : clientDist;
 console.log(`[startup] static root: ${staticRoot}`);
-app.use(express.static(staticRoot));
+app.use(express.static(staticRoot, {
+  setHeaders: (res, filePath) => {
+    // Content-hashed assets are immutable → cache long. index.html must never
+    // be cached so a new deploy is picked up immediately (no stale bundle refs).
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-store');
+    } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
+}));
 app.get(/^(?!\/api).*/, (_req, res) => {
   const htmlFile = fs.existsSync(rootIndex)
     ? rootIndex
     : path.join(clientDist, 'index.html');
+  res.setHeader('Cache-Control', 'no-store');
   res.sendFile(htmlFile);
 });
 
