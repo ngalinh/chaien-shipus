@@ -23,8 +23,10 @@ npm --prefix client run build   # production build
 
 ## Deployment
 GitHub Actions (`.github/workflows/deploy.yml`) auto-deploys on every push to `main`:
-- SSH vào VPS → `git pull origin main` → `npm install` → build frontend → `pm2 restart chaien-shipus`
+- SSH vào VPS → `git reset --hard origin/main` → `npm install` → build frontend → `pm2 restart chaien-shipus`
 - Secrets cần thiết: `SSH_HOST`, `SSH_USER`, `SSH_PRIVATE_KEY`, `SSH_PORT`, `DEPLOY_PATH`
+
+> **Quan trọng — vị trí deploy:** Chaien là một app trong nền tảng BASSO (`ai.basso.vn`). `DEPLOY_PATH` trỏ vào **đúng thư mục BASSO serve app**: `/opt/dashboard-bot/data/bots/e5f5323bdc7532ac` (cả frontend lẫn backend + `shipus.db` nằm chung ở đây, giống các app khác trong dashboard). Backend chạy pm2 `chaien-shipus` trên `:5000`; nginx route `/api/*` của `ai.basso.vn` tới `:5000`, còn frontend tĩnh do BASSO platform serve từ chính thư mục này. **Không** deploy ra `/var/www` (đã bỏ).
 
 ## Database migrations
 Add idempotent `ALTER TABLE … ADD COLUMN` statements inside a `try/catch` block in `db.js` (see existing examples). They run automatically on server start.
