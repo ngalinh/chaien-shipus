@@ -200,16 +200,16 @@ export default function Shipping() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Ngày tháng</th>
-                <th>Mã KH</th>
-                <th>Kho</th>
-                <th>Tracking #</th>
+                <th className="w-28">Ngày tháng</th>
+                <th className="w-28">Mã KH</th>
+                <th className="w-16">Kho</th>
+                <th className="w-32">Tracking #</th>
                 <th>Sản phẩm</th>
-                <th>Cân nặng</th>
-                <th>Phụ thu</th>
-                <th>Phí trả đối tác</th>
+                <th className="w-24">Cân nặng</th>
+                <th className="w-28">Phụ thu</th>
+                <th className="w-32">Phí trả đối tác</th>
                 <th>Ghi chú</th>
-                <th className="text-right">Thao tác</th>
+                <th className="w-24 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -235,8 +235,10 @@ export default function Shipping() {
                     <tr key={s.id} className={isEditing ? 'bg-yellow-50' : ''}>
                       <td>{formatDate(s.import_date)}</td>
                       <td>
-                        <span className="font-mono text-sm text-primary-700">{s.customer_code}</span>
-                        {s.customer_name && <span className="text-xs text-gray-500 ml-1">({s.customer_name})</span>}
+                        <div className="max-w-[110px]">
+                          <span className="font-mono text-sm text-primary-700">{s.customer_code}</span>
+                          {s.customer_name && <span className="text-xs text-gray-500 ml-1 truncate block" title={s.customer_name}>({s.customer_name})</span>}
+                        </div>
                       </td>
                       <td>{s.warehouse_code || '–'}</td>
                       <td>
@@ -298,7 +300,7 @@ export default function Shipping() {
                             className="input-field py-1 text-xs w-28"
                           />
                         ) : (
-                          <span className="text-gray-500 text-xs">{s.notes || '–'}</span>
+                          <div className="max-w-[140px] truncate text-gray-500 text-xs" title={s.notes}>{s.notes || '–'}</div>
                         )}
                       </td>
                       <td className="text-right">

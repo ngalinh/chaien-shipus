@@ -116,16 +116,16 @@ export default function Customers() {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Mã KH</th>
-              <th>Tình trạng</th>
+              <th className="w-24">Mã KH</th>
+              <th className="w-28">Tình trạng</th>
               <th>Họ tên</th>
-              <th>SĐT</th>
+              <th className="w-32">SĐT</th>
               <th>Địa chỉ</th>
-              <th>Kênh LH</th>
-              <th>Cước VC</th>
+              <th className="w-24">Kênh LH</th>
+              <th className="w-32">Cước VC</th>
               <th>Ghi chú</th>
-              <th>Ngày tạo</th>
-              <th className="text-right">Thao tác</th>
+              <th className="w-28">Ngày tạo</th>
+              <th className="w-20 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -160,18 +160,18 @@ export default function Customers() {
                     <td>
                       <StatusBadge status={status} />
                     </td>
-                    <td className="font-medium">{c.name}</td>
-                    <td>{c.phone || '–'}</td>
-                    <td className="max-w-xs truncate" title={c.address}>{c.address || '–'}</td>
+                    <td className="font-medium"><div className="max-w-[160px] truncate" title={c.name}>{c.name}</div></td>
+                    <td><div className="max-w-[120px] truncate" title={c.phone}>{c.phone || '–'}</div></td>
+                    <td><div className="max-w-[200px] truncate" title={c.address}>{c.address || '–'}</div></td>
                     <td>{channelLabel(c.channel)}</td>
                     <td>
                       {c.rate_name ? (
                         <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
-                          {c.rate_name}
+                          <span className="max-w-[100px] truncate inline-block align-bottom" title={c.rate_name}>{c.rate_name}</span>
                         </span>
                       ) : '–'}
                     </td>
-                    <td className="max-w-xs truncate text-gray-500" title={c.notes}>{c.notes || '–'}</td>
+                    <td><div className="max-w-[140px] truncate text-gray-500" title={c.notes}>{c.notes || '–'}</div></td>
                     <td className="text-gray-500">{formatDate(c.created_at)}</td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-1">
