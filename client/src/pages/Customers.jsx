@@ -152,7 +152,8 @@ export default function Customers() {
                     <td>
                       <Link
                         to={`/customers/${c.id}`}
-                        className="font-semibold text-primary-700 hover:text-primary-900 hover:underline"
+                        className="font-semibold text-primary-700 hover:text-primary-900 hover:underline block max-w-[160px] truncate"
+                        title={c.code}
                       >
                         {c.code}
                       </Link>
