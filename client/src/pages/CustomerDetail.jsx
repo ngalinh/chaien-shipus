@@ -207,8 +207,8 @@ export default function CustomerDetail() {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-3 mb-1 flex-wrap">
-              <h1 className="text-xl font-bold text-gray-900">{customer.name}</h1>
-              <span className="text-sm font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+              <h1 className="text-2xl font-bold text-ink-900">{customer.name}</h1>
+              <span className="text-sm font-mono bg-greige-100 text-ink-500 px-2.5 py-1 rounded-full">
                 {customer.code}
               </span>
               <StatusBadge status={status} />
@@ -282,7 +282,7 @@ export default function CustomerDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 flex gap-1">
+      <div className="inline-flex gap-1 p-1.5 bg-white rounded-full shadow-pill">
         <button
           onClick={() => setTab('batches')}
           className={`tab-btn ${tab === 'batches' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
@@ -323,7 +323,7 @@ export default function CustomerDetail() {
                     <th>Thao tác</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody>
                   {batches.map((batch) => {
                     const bKey = `${batch.customer_id}-${batch.batch_date}`;
                     const isOpen = expandedBatch === bKey;
@@ -479,7 +479,7 @@ export default function CustomerDetail() {
                       <th className="text-right">Số dư</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody>
                     {txList.map((tx) => (
                       <tr key={tx.id}>
                         <td>{formatDate(tx.trans_date)}</td>

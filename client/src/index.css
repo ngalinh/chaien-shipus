@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,43 +10,35 @@
   }
 
   body {
-    @apply bg-gray-50 text-gray-900;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    @apply bg-greige-200 text-ink-900;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   }
 }
 
 @layer components {
   .table-container {
-    @apply overflow-x-auto rounded-lg border border-gray-200 shadow-sm;
+    @apply overflow-x-auto rounded-card bg-white shadow-card;
   }
 
   .data-table {
-    @apply min-w-full divide-y divide-gray-200;
+    @apply min-w-full;
     table-layout: fixed;
   }
 
   .data-table thead {
-    @apply bg-gray-50;
+    @apply bg-transparent;
   }
 
   .data-table th {
-    @apply px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap;
+    @apply px-4 pt-4 pb-3 text-left text-[11px] font-bold text-ink-400 uppercase tracking-wider whitespace-nowrap;
   }
 
   .data-table td {
-    @apply px-4 py-3 text-sm text-gray-800 whitespace-nowrap;
+    @apply px-4 py-3.5 text-sm text-ink-900 whitespace-nowrap;
   }
 
   .data-table tbody tr {
-    @apply hover:bg-primary-50 transition-colors duration-100;
-  }
-
-  .data-table tbody tr:nth-child(even):not(.expand-row) {
-    @apply bg-gray-50;
-  }
-
-  .data-table tbody tr:nth-child(even):not(.expand-row):hover {
-    @apply bg-primary-50;
+    @apply border-t border-greige-100 hover:bg-greige-50 transition-colors duration-100;
   }
 
   .expand-row {
@@ -52,70 +46,70 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg font-medium text-sm
-           hover:bg-primary-700 active:bg-primary-800 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-full font-semibold text-sm
+           shadow-pill hover:bg-primary-600 active:scale-[.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium text-sm
-           hover:bg-gray-50 active:bg-gray-100 transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 bg-primary-100 text-primary-700 rounded-full font-semibold text-sm
+           hover:bg-sand-200 active:scale-[.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 rounded-lg font-medium text-xs
-           hover:bg-red-100 active:bg-red-200 transition-colors duration-150;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-[#F8E1E0] text-[#C2453F] rounded-full font-semibold text-xs
+           hover:brightness-95 active:scale-[.98] transition-all duration-150;
   }
 
   .btn-icon {
-    @apply inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-500
-           hover:bg-gray-100 hover:text-gray-700 transition-colors duration-150;
+    @apply inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-400
+           hover:bg-greige-100 hover:text-ink-700 transition-colors duration-150;
   }
 
   .input-field {
-    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900
-           placeholder-gray-400 shadow-sm
-           focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20
-           disabled:bg-gray-50 disabled:text-gray-500;
+    @apply block w-full rounded-tile border-[1.5px] border-greige-300 bg-white px-3.5 py-2.5 text-sm text-ink-900
+           placeholder-ink-400
+           focus:border-primary-500 focus:outline-none focus:ring-4 focus:ring-primary-500/15
+           disabled:bg-greige-50 disabled:text-ink-400;
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-semibold text-ink-500 mb-1.5;
   }
 
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply bg-white rounded-card shadow-card;
   }
 
   .stat-card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm p-5;
+    @apply bg-white rounded-card shadow-card p-5;
   }
 
   .badge-active {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#DCF3E7] text-[#2F855A];
   }
 
   .badge-warning {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-100 text-primary-700;
   }
 
   .badge-orange {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FBE9D7] text-[#B4691E];
   }
 
   .badge-inactive {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-greige-100 text-ink-500;
   }
 
   .modal-overlay {
-    @apply fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4;
+    @apply fixed inset-0 bg-ink-900/40 flex items-center justify-center z-50 p-4;
   }
 
   .modal-box {
-    @apply bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto;
+    @apply bg-white rounded-card shadow-raised w-full max-w-lg max-h-[90vh] overflow-y-auto;
   }
 
   .modal-header {
-    @apply flex items-center justify-between px-6 py-4 border-b border-gray-200;
+    @apply flex items-center justify-between px-6 py-4 border-b border-greige-100;
   }
 
   .modal-body {
@@ -123,19 +117,19 @@
   }
 
   .modal-footer {
-    @apply flex justify-end gap-3 px-6 py-4 border-t border-gray-200;
+    @apply flex justify-end gap-3 px-6 py-4 border-t border-greige-100;
   }
 
   .tab-btn {
-    @apply px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-150;
+    @apply px-5 py-2.5 text-sm font-semibold rounded-full transition-colors duration-150;
   }
 
   .tab-btn-active {
-    @apply bg-white text-primary-700 border-t border-l border-r border-gray-200 -mb-px;
+    @apply bg-primary-500 text-white;
   }
 
   .tab-btn-inactive {
-    @apply text-gray-500 hover:text-gray-700 hover:bg-gray-100;
+    @apply text-ink-500 hover:text-ink-900;
   }
 }
 
@@ -146,15 +140,15 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-gray-100;
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full;
+  @apply bg-greige-300 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400;
+  @apply bg-ink-300;
 }
 
 /* Toast animations */

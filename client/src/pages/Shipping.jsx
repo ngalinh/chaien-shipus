@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-  Package, Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight,
+  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -160,15 +160,10 @@ export default function Shipping() {
   return (
     <div className="p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
-            <Package className="w-5 h-5 text-primary-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Vận chuyển</h1>
-            <p className="text-sm text-gray-500">Quản lý hàng về và báo khách</p>
-          </div>
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Vận chuyển</h1>
+          <p className="text-[15px] text-ink-500 mt-1.5">Quản lý hàng về và báo khách</p>
         </div>
         {tab === 'incoming' && (
           <button onClick={() => setImportModal(true)} className="btn-primary">
@@ -179,7 +174,7 @@ export default function Shipping() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 flex gap-1">
+      <div className="inline-flex gap-1 p-1.5 bg-white rounded-full shadow-pill">
         <button
           onClick={() => setTab('incoming')}
           className={`tab-btn ${tab === 'incoming' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
@@ -212,7 +207,7 @@ export default function Shipping() {
                 <th className="w-24 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={10} className="text-center py-10 text-gray-400">
@@ -368,7 +363,7 @@ export default function Shipping() {
                 <th>Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {loading ? (
                 <tr>
                   <td colSpan={10} className="text-center py-10 text-gray-400">

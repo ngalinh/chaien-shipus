@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
-  Users, UserPlus, Weight, Banknote, ArrowUpDown, TrendingUp,
+  Users, UserPlus, Weight, Banknote, ArrowUpDown, TrendingUp, Calendar,
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
 
@@ -120,29 +120,27 @@ export default function Dashboard() {
   return (
     <div className="p-6 space-y-6">
       {/* Page header */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-primary-600" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500">Tổng quan hoạt động kinh doanh</p>
-        </div>
+      <div>
+        <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Dashboard</h1>
+        <p className="text-[15px] text-ink-500 mt-1.5">Tổng quan hoạt động kinh doanh</p>
       </div>
 
       {/* Filter bar */}
-      <div className="card p-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-gray-600">Khoảng thời gian:</span>
+      <div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5">
+            <Calendar className="w-4 h-4" />
+            Khoảng thời gian:
+          </span>
           <div className="flex flex-wrap gap-2">
             {PERIODS.map((p) => (
               <button
                 key={p.value}
                 onClick={() => handlePeriodChange(p.value)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
+                className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-150 ${
                   period === p.value
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
                 }`}
               >
                 {p.label}
@@ -150,102 +148,122 @@ export default function Dashboard() {
             ))}
           </div>
 
-          {period === 'custom' && (
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Từ:</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  max={endDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="input-field w-auto py-1.5 text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Đến:</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  min={startDate}
-                  max={dayjs().format('YYYY-MM-DD')}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="input-field w-auto py-1.5 text-sm"
-                />
-              </div>
-            </div>
-          )}
+          <span className="sm:ml-auto text-sm text-ink-400 font-semibold">
+            {dayjs(displayStart).format('DD/MM/YYYY')} – {dayjs(displayEnd).format('DD/MM/YYYY')}
+          </span>
         </div>
 
-        {/* Date range display */}
-        <div className="mt-2 text-xs text-gray-400">
-          {dayjs(displayStart).format('DD/MM/YYYY')} – {dayjs(displayEnd).format('DD/MM/YYYY')}
-        </div>
+        {period === 'custom' && (
+          <div className="flex items-center gap-4 mt-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-ink-500 font-semibold">Từ:</label>
+              <input
+                type="date"
+                value={startDate}
+                max={endDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input-field w-auto py-1.5 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-ink-500 font-semibold">Đến:</label>
+              <input
+                type="date"
+                value={endDate}
+                min={startDate}
+                max={dayjs().format('YYYY-MM-DD')}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input-field w-auto py-1.5 text-sm"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stat cards */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="stat-card animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
-              <div className="h-8 bg-gray-200 rounded w-1/2" />
+              <div className="w-11 h-11 rounded-tile bg-greige-100 mb-4" />
+              <div className="h-6 bg-greige-100 rounded w-2/3 mb-2" />
+              <div className="h-3 bg-greige-100 rounded w-3/4" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {cards.map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className={`stat-card border ${card.border}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${card.color}`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                </div>
-                <div className="text-2xl font-bold text-gray-900 mb-1">
+              <div key={card.label} className="stat-card">
+                <span className="w-11 h-11 rounded-tile bg-sand-100 text-primary-700 grid place-items-center">
+                  <Icon className="w-[22px] h-[22px]" strokeWidth={1.8} />
+                </span>
+                <div className="text-[26px] font-bold text-ink-900 mt-4 leading-none">
                   {renderValue(card)}
                 </div>
-                <div className="text-xs text-gray-500 font-medium">{card.label}</div>
+                <div className="text-[13px] text-ink-500 mt-2 font-medium">{card.label}</div>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Summary note */}
+      {/* Gross profit highlight */}
       {!loading && data && (
-        <div className="card p-4 bg-primary-50 border-primary-200">
-          <p className="text-sm text-primary-700">
-            <span className="font-semibold">Lợi nhuận gộp:</span>{' '}
-            {formatCurrency(s.gross_margin || 0)}
-            {' '} (Phí khách trả – Phí đối tác)
-          </p>
-          {s.total_receivable > 0 && (
-            <p className="text-sm text-orange-700 mt-1">
-              <span className="font-semibold">Tổng còn phải thu:</span>{' '}
-              {formatCurrency(s.total_receivable)}
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="bg-primary-500 text-white rounded-card p-7 flex flex-col justify-between gap-6">
+            <div className="flex items-center gap-2.5 text-[15px] font-semibold opacity-95">
+              <TrendingUp className="w-5 h-5" />
+              Lợi nhuận gộp
+            </div>
+            <div>
+              <div className="text-[36px] font-bold tracking-tight leading-none">
+                {formatCurrency(s.gross_margin || 0)}
+              </div>
+              <div className="text-[13px] opacity-85 mt-2">Phí khách trả − Phí đối tác</div>
+            </div>
+          </div>
+          {s.total_receivable > 0 ? (
+            <div className="card p-7 flex flex-col justify-between gap-6">
+              <div className="flex items-center gap-2.5 text-[15px] font-semibold text-ink-500">
+                <Banknote className="w-5 h-5 text-primary-700" />
+                Tổng còn phải thu
+              </div>
+              <div>
+                <div className="text-[36px] font-bold tracking-tight leading-none text-ink-900">
+                  {formatCurrency(s.total_receivable)}
+                </div>
+                <div className="text-[13px] text-ink-400 mt-2">Số tiền khách hàng chưa thanh toán</div>
+              </div>
+            </div>
+          ) : (
+            <div className="card p-7 flex flex-col justify-center">
+              <div className="text-[15px] font-semibold text-ink-500">Tổng còn phải thu</div>
+              <div className="text-[36px] font-bold tracking-tight text-ink-900 mt-2 leading-none">
+                {formatCurrency(0)}
+              </div>
+            </div>
           )}
         </div>
       )}
 
       {/* Top customers */}
       {!loading && data?.top_customers?.length > 0 && (
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Top khách hàng (theo phí VC)</h3>
-          <div className="space-y-2">
+        <div className="card p-6">
+          <h3 className="text-[17px] font-bold text-ink-900 mb-4">Top khách hàng (theo phí VC)</h3>
+          <div className="space-y-1">
             {data.top_customers.slice(0, 5).map((c, idx) => (
-              <div key={c.customer_id} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+              <div key={c.customer_id} className="flex items-center gap-3 py-2 border-t border-greige-100 first:border-t-0">
+                <div className="w-7 h-7 rounded-full bg-sand-100 text-primary-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
                   {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-800 truncate">{c.customer_name}</div>
-                  <div className="text-xs text-gray-500">{c.customer_code} · {c.total_weight} kg · {c.shipment_count} kiện</div>
+                  <div className="text-sm font-semibold text-ink-900 truncate">{c.customer_name}</div>
+                  <div className="text-xs text-ink-400">{c.customer_code} · {c.total_weight} kg · {c.shipment_count} kiện</div>
                 </div>
-                <div className="text-sm font-semibold text-primary-700 flex-shrink-0">
+                <div className="text-sm font-bold text-primary-700 flex-shrink-0">
                   {formatCurrency(c.total_vc_fee)}
                 </div>
               </div>

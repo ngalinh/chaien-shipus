@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import {
-  Settings as SettingsIcon, Plus, Edit2, Trash2, Save, X,
+  Plus, Edit2, Trash2, Save, X,
   Check, Star, Upload, Building2, Truck, Warehouse, CreditCard,
   FileSpreadsheet, Download,
 } from 'lucide-react';
@@ -44,16 +44,11 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 space-y-8 max-w-4xl">
+    <div className="p-6 space-y-6 max-w-4xl">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
-          <SettingsIcon className="w-5 h-5 text-primary-600" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">Cài đặt</h1>
-          <p className="text-sm text-gray-500">Quản lý cấu hình hệ thống</p>
-        </div>
+      <div>
+        <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Cài đặt</h1>
+        <p className="text-[15px] text-ink-500 mt-1.5">Quản lý cấu hình hệ thống</p>
       </div>
 
       {/* Section 1: Customer Rates */}
@@ -289,7 +284,7 @@ function ImportCustomersSection() {
                   <th>Địa chỉ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody>
                 {rows.slice(0, 100).map((r, i) => (
                   <tr key={i}>
                     <td className="text-center text-gray-400">{i + 1}</td>
@@ -435,7 +430,7 @@ function RatesSection({ rates, setRates }) {
               <th className="text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {adding && (
               <tr className="bg-primary-50">
                 <td>
@@ -627,7 +622,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
               <th className="text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {adding && (
               <tr className="bg-primary-50">
                 <td>
@@ -843,7 +838,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
               <th className="text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {adding && (
               <tr className="bg-primary-50">
                 <td>
