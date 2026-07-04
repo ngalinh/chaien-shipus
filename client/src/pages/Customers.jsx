@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Users, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search } from 'lucide-react';
 import { formatDate, StatusBadge, calcCustomerStatus } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
@@ -83,32 +83,27 @@ export default function Customers() {
   return (
     <div className="p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-primary-100 rounded-lg flex items-center justify-center">
-            <Users className="w-5 h-5 text-primary-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Khách hàng</h1>
-            <p className="text-sm text-gray-500">{customers.length} khách hàng</p>
-          </div>
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Khách hàng</h1>
+          <p className="text-[15px] text-ink-500 mt-1.5">{customers.length} khách hàng</p>
         </div>
-        <button onClick={openCreate} className="btn-primary">
-          <Plus className="w-4 h-4" />
-          Tạo Mã KH
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Tìm theo mã, tên, SĐT..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-field pl-9"
-        />
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 bg-white rounded-full shadow-pill px-4 py-2.5">
+            <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
+            <input
+              type="text"
+              placeholder="Tìm theo mã, tên, SĐT..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border-none outline-none bg-transparent text-sm w-44 text-ink-900 placeholder-ink-400"
+            />
+          </div>
+          <button onClick={openCreate} className="btn-primary">
+            <Plus className="w-4 h-4" />
+            Tạo Mã KH
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -128,7 +123,7 @@ export default function Customers() {
               <th className="w-24 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody>
             {loading ? (
               <tr>
                 <td colSpan={10} className="text-center py-10 text-gray-400">
