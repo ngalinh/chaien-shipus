@@ -48,6 +48,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
+// API responses must never be cached by the browser — otherwise a freshly
+// created/edited customer, rate, etc. can stay stale (e.g. missing from the
+// import dropdown) until the heuristic cache expires.
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 app.use('/api/settings',     require('./routes/settings'));
 app.use('/api/customers',    require('./routes/customers'));
 app.use('/api/shipments',    require('./routes/shipments'));

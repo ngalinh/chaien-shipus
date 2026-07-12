@@ -479,7 +479,7 @@ export default function Shipping() {
             customerName={notifData.customerName}
             date={notifData.date}
             items={notifData.items}
-            companyName={settings.company?.company_name || 'Chaien Shipus'}
+            companyName={settings.company?.company_name || 'ShipUS'}
             companyLogo={settings.company?.logo_path || undefined}
             hotline={settings.company?.hotline}
             autoDownload={true}

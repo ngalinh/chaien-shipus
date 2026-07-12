@@ -20,7 +20,7 @@ export default function NotificationTemplate({
   customerName,
   date,
   items = [],
-  companyName = 'Chaien Shipus',
+  companyName = 'ShipUS',
   companyLogo,
   hotline,
   onRendered,
@@ -75,7 +75,7 @@ export default function NotificationTemplate({
       }}
     >
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #166534, #16a34a)', padding: '24px 28px', color: '#fff' }}>
+      <div style={{ background: 'linear-gradient(135deg, #16506A, #2A9ABE)', padding: '24px 28px', color: '#fff' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             {companyLogo && (
@@ -99,11 +99,11 @@ export default function NotificationTemplate({
       </div>
 
       {/* Title banner */}
-      <div style={{ background: '#dcfce7', borderBottom: '3px solid #16a34a', padding: '14px 28px', textAlign: 'center' }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#14532d', letterSpacing: 1 }}>
+      <div style={{ background: '#ECF7FB', borderBottom: '3px solid #2A9ABE', padding: '14px 28px', textAlign: 'center' }}>
+        <div style={{ fontSize: 18, fontWeight: 800, color: '#16506A', letterSpacing: 1 }}>
           THONG BAO HANG VE
         </div>
-        <div style={{ fontSize: 13, color: '#166534', marginTop: 4 }}>
+        <div style={{ fontSize: 13, color: '#21809E', marginTop: 4 }}>
           Kinh gui: <strong>{customerName}</strong>
         </div>
       </div>
@@ -118,17 +118,17 @@ export default function NotificationTemplate({
         {/* Table */}
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style={{ background: '#166534', color: '#fff' }}>
-              <th style={{ padding: '9px 10px', textAlign: 'center', width: 36, fontWeight: 600, border: '1px solid #15803d' }}>STT</th>
-              <th style={{ padding: '9px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #15803d' }}>Tracking #</th>
-              <th style={{ padding: '9px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #15803d' }}>San pham</th>
-              <th style={{ padding: '9px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #15803d' }}>KG</th>
-              <th style={{ padding: '9px 10px', textAlign: 'right', fontWeight: 600, border: '1px solid #15803d' }}>Phi VC</th>
+            <tr style={{ background: '#21809E', color: '#fff' }}>
+              <th style={{ padding: '9px 10px', textAlign: 'center', width: 36, fontWeight: 600, border: '1px solid #2A9ABE' }}>STT</th>
+              <th style={{ padding: '9px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #2A9ABE' }}>Tracking #</th>
+              <th style={{ padding: '9px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #2A9ABE' }}>San pham</th>
+              <th style={{ padding: '9px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #2A9ABE' }}>KG</th>
+              <th style={{ padding: '9px 10px', textAlign: 'right', fontWeight: 600, border: '1px solid #2A9ABE' }}>Phi VC</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, idx) => (
-              <tr key={idx} style={{ background: idx % 2 === 0 ? '#f0fdf4' : '#fff' }}>
+              <tr key={idx} style={{ background: idx % 2 === 0 ? '#ECF7FB' : '#fff' }}>
                 <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', color: '#6b7280' }}>{idx + 1}</td>
                 <td style={{ padding: '8px 10px', border: '1px solid #e5e7eb', fontFamily: 'monospace', fontSize: 12, color: '#1f2937' }}>
                   {item.tracking_no || '-'}
@@ -139,21 +139,21 @@ export default function NotificationTemplate({
                 <td style={{ padding: '8px 10px', textAlign: 'center', border: '1px solid #e5e7eb', color: '#374151' }}>
                   {item.weight ? Number(item.weight).toFixed(2) : '-'}
                 </td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 600, color: '#15803d' }}>
+                <td style={{ padding: '8px 10px', textAlign: 'right', border: '1px solid #e5e7eb', fontWeight: 600, color: '#2A9ABE' }}>
                   {item.customer_fee ? formatCurrency(item.customer_fee) : '-'}
                 </td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr style={{ background: '#166534', color: '#fff', fontWeight: 700 }}>
-              <td colSpan={3} style={{ padding: '10px 10px', textAlign: 'right', border: '1px solid #15803d' }}>
+            <tr style={{ background: '#21809E', color: '#fff', fontWeight: 700 }}>
+              <td colSpan={3} style={{ padding: '10px 10px', textAlign: 'right', border: '1px solid #2A9ABE' }}>
                 Tong cong ({items.length} kien)
               </td>
-              <td style={{ padding: '10px 10px', textAlign: 'center', border: '1px solid #15803d' }}>
+              <td style={{ padding: '10px 10px', textAlign: 'center', border: '1px solid #2A9ABE' }}>
                 {totalWeight.toFixed(2)} kg
               </td>
-              <td style={{ padding: '10px 10px', textAlign: 'right', border: '1px solid #15803d' }}>
+              <td style={{ padding: '10px 10px', textAlign: 'right', border: '1px solid #2A9ABE' }}>
                 {formatCurrency(totalFee)}
               </td>
             </tr>
@@ -170,10 +170,10 @@ export default function NotificationTemplate({
       </div>
 
       {/* Footer */}
-      <div style={{ background: '#f0fdf4', borderTop: '1px solid #bbf7d0', padding: '14px 28px' }}>
+      <div style={{ background: '#ECF7FB', borderTop: '1px solid #D6EEF5', padding: '14px 28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 12, color: '#166534', fontWeight: 600 }}>{companyName}</div>
+            <div style={{ fontSize: 12, color: '#21809E', fontWeight: 600 }}>{companyName}</div>
             {hotline && (
               <div style={{ fontSize: 12, color: '#374151', marginTop: 2 }}>
                 Hotline: <strong>{hotline}</strong>
@@ -181,7 +181,7 @@ export default function NotificationTemplate({
             )}
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>Cam on quy khach!</div>
+            <div style={{ fontSize: 11, color: '#2A9ABE', fontWeight: 600 }}>Cam on quy khach!</div>
             <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>Thank you for your trust.</div>
           </div>
         </div>
