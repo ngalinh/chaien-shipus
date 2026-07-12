@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import {
   Users, UserPlus, Weight, Banknote, ArrowUpDown, TrendingUp, Calendar,
 } from 'lucide-react';
-import { formatCurrency } from '../utils.jsx';
+import { formatCurrency, todayInputValue } from '../utils.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -17,7 +17,7 @@ const PERIODS = [
 export default function Dashboard() {
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
-  const [endDate, setEndDate] = useState(() => dayjs().format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(todayInputValue);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef(null);
@@ -37,7 +37,7 @@ export default function Dashboard() {
       if (period === 'custom') {
         params = { start_date: startDate, end_date: endDate };
       } else if (period === 'month') {
-        params = { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: dayjs().format('YYYY-MM-DD') };
+        params = { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
       } else {
         params = { period };
       }
@@ -55,20 +55,22 @@ export default function Dashboard() {
     setPeriod(val);
     if (val === 'month') {
       setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
-      setEndDate(dayjs().format('YYYY-MM-DD'));
+      setEndDate(todayInputValue());
     } else if (val === '3m') {
       setStartDate(dayjs().subtract(3, 'month').format('YYYY-MM-DD'));
-      setEndDate(dayjs().format('YYYY-MM-DD'));
+      setEndDate(todayInputValue());
     } else if (val === '6m') {
       setStartDate(dayjs().subtract(6, 'month').format('YYYY-MM-DD'));
-      setEndDate(dayjs().format('YYYY-MM-DD'));
+      setEndDate(todayInputValue());
     } else if (val === '1y') {
       setStartDate(dayjs().subtract(1, 'year').format('YYYY-MM-DD'));
-      setEndDate(dayjs().format('YYYY-MM-DD'));
+      setEndDate(todayInputValue());
     }
   }
 
   const s = data?.summary || {};
+
+  const CARD_GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5';
 
   const cards = [
     { label: 'SL khách hàng',            value: s.total_customers,       icon: Users,       format: 'number' },
@@ -142,7 +144,7 @@ export default function Dashboard() {
                 type="date"
                 value={endDate}
                 min={startDate}
-                max={dayjs().format('YYYY-MM-DD')}
+                max={todayInputValue()}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="input-field w-auto py-1.5 text-sm"
               />
@@ -153,7 +155,7 @@ export default function Dashboard() {
 
       {/* Stat cards */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <div className={CARD_GRID}>
           {[...Array(5)].map((_, i) => (
             <div key={i} className="stat-card animate-pulse">
               <div className="w-11 h-11 rounded-tile bg-greige-100 mb-4" />
@@ -163,7 +165,7 @@ export default function Dashboard() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+        <div className={CARD_GRID}>
           {cards.map((card) => {
             const Icon = card.icon;
             return (
@@ -198,27 +200,20 @@ export default function Dashboard() {
               <div className="text-[13px] opacity-85 mt-2">Phí khách trả − Phí đối tác</div>
             </div>
           </div>
-          {s.total_receivable > 0 ? (
-            <div className="card p-7 flex flex-col justify-between gap-6">
-              <div className="flex items-center gap-2.5 text-[15px] font-semibold text-ink-500">
-                <Banknote className="w-5 h-5 text-primary-700" />
-                Tổng còn phải thu
+          <div className={`card p-7 flex flex-col ${s.total_receivable > 0 ? 'justify-between gap-6' : 'justify-center'}`}>
+            <div className="flex items-center gap-2.5 text-[15px] font-semibold text-ink-500">
+              <Banknote className="w-5 h-5 text-primary-700" />
+              Tổng còn phải thu
+            </div>
+            <div>
+              <div className="text-[36px] font-bold tracking-tight leading-none text-ink-900 mt-2">
+                {formatCurrency(s.total_receivable || 0)}
               </div>
-              <div>
-                <div className="text-[36px] font-bold tracking-tight leading-none text-ink-900">
-                  {formatCurrency(s.total_receivable)}
-                </div>
+              {s.total_receivable > 0 && (
                 <div className="text-[13px] text-ink-400 mt-2">Số tiền khách hàng chưa thanh toán</div>
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="card p-7 flex flex-col justify-center">
-              <div className="text-[15px] font-semibold text-ink-500">Tổng còn phải thu</div>
-              <div className="text-[36px] font-bold tracking-tight text-ink-900 mt-2 leading-none">
-                {formatCurrency(0)}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       )}
 

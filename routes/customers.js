@@ -1,20 +1,17 @@
 'use strict';
 
-const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
-const db      = require('../db');
+const express             = require('express');
+const multer              = require('multer');
+const path                = require('path');
+const fs                  = require('fs');
+const db                  = require('../db');
+const { imageFileFilter } = require('../lib/imageUpload');
 
 const router = express.Router();
 
 // ─── Multer config for CCCD images ───────────────────────────────────────────
 const cccdDir = path.join(__dirname, '..', 'uploads', 'cccd');
 if (!fs.existsSync(cccdDir)) fs.mkdirSync(cccdDir, { recursive: true });
-
-// Only allow real raster image extensions — never trust the client MIME alone
-// (it is spoofable, and a .svg/.html served back could enable stored XSS).
-const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 const cccdStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, cccdDir),
@@ -26,11 +23,7 @@ const cccdStorage = multer.diskStorage({
 const cccdUpload = multer({
   storage: cccdStorage,
   limits:  { fileSize: 10 * 1024 * 1024, files: 2 },
-  fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (/^image\//.test(file.mimetype) && ALLOWED_IMAGE_EXT.has(ext)) return cb(null, true);
-    cb(new Error('Only JPG, PNG or WEBP images are allowed'));
-  },
+  fileFilter: imageFileFilter,
 });
 
 // ─── Helper: default customer rate ("Khách lẻ") for new customers ─────────────
@@ -56,6 +49,16 @@ function withStatus(customer) {
     `SELECT MAX(import_date) AS latest FROM shipments WHERE customer_id = ?`
   ).get(customer.id);
   return { ...customer, status: computeStatus(row ? row.latest : null) };
+}
+
+// ─── Helper: fetch a customer row joined with their rate ──────────────────────
+function getCustomerWithRate(id) {
+  return db.prepare(`
+    SELECT c.*, cr.name AS rate_name, cr.rate_per_kg
+    FROM customers c
+    LEFT JOIN customer_rates cr ON cr.id = c.rate_id
+    WHERE c.id = ?
+  `).get(id);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -166,12 +169,7 @@ router.post('/', (req, res) => {
       rate_id   || defaultRateId(),
       warehouse || null,
     );
-    const customer = db.prepare(`
-      SELECT c.*, cr.name AS rate_name, cr.rate_per_kg
-      FROM customers c
-      LEFT JOIN customer_rates cr ON cr.id = c.rate_id
-      WHERE c.id = ?
-    `).get(info.lastInsertRowid);
+    const customer = getCustomerWithRate(info.lastInsertRowid);
     res.status(201).json({ ...customer, status: 'Inactive' });
   } catch (err) {
     if (err.message.includes('UNIQUE')) {
@@ -186,12 +184,7 @@ router.post('/', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.get('/:id', (req, res) => {
   try {
-    const customer = db.prepare(`
-      SELECT c.*, cr.name AS rate_name, cr.rate_per_kg
-      FROM customers c
-      LEFT JOIN customer_rates cr ON cr.id = c.rate_id
-      WHERE c.id = ?
-    `).get(parseInt(req.params.id));
+    const customer = getCustomerWithRate(parseInt(req.params.id));
 
     if (!customer) return res.status(404).json({ error: 'Customer not found' });
 
@@ -283,13 +276,7 @@ router.put('/:id', (req, res) => {
       parseInt(req.params.id),
     );
     if (info.changes === 0) return res.status(404).json({ error: 'Customer not found' });
-    const customer = db.prepare(`
-      SELECT c.*, cr.name AS rate_name, cr.rate_per_kg
-      FROM customers c
-      LEFT JOIN customer_rates cr ON cr.id = c.rate_id
-      WHERE c.id = ?
-    `).get(req.params.id);
-    res.json(withStatus(customer));
+    res.json(withStatus(getCustomerWithRate(parseInt(req.params.id))));
   } catch (err) {
     if (err.message.includes('UNIQUE')) {
       return res.status(409).json({ error: `Customer code '${req.body.code}' already exists` });

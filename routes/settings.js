@@ -1,20 +1,17 @@
 'use strict';
 
-const express = require('express');
-const multer  = require('multer');
-const path    = require('path');
-const fs      = require('fs');
-const db      = require('../db');
+const express             = require('express');
+const multer              = require('multer');
+const path                = require('path');
+const fs                  = require('fs');
+const db                  = require('../db');
+const { imageFileFilter } = require('../lib/imageUpload');
 
 const router = express.Router();
 
 // ─── Multer config for company logo ──────────────────────────────────────────
 const logoDir = path.join(__dirname, '..', 'uploads', 'logo');
 if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
-
-// Only allow real raster image extensions — never trust the client MIME alone
-// (it is spoofable, and a .svg/.html served back could enable stored XSS).
-const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
 const logoStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, logoDir),
@@ -26,12 +23,14 @@ const logoStorage = multer.diskStorage({
 const logoUpload = multer({
   storage: logoStorage,
   limits:  { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (/^image\//.test(file.mimetype) && ALLOWED_IMAGE_EXT.has(ext)) return cb(null, true);
-    cb(new Error('Only JPG, PNG or WEBP images are allowed'));
-  },
+  fileFilter: imageFileFilter,
 });
+
+// ─── Helper: read all company_info rows as a flat object ─────────────────────
+function readCompany() {
+  const rows = db.prepare('SELECT key, value FROM company_info').all();
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GET /api/settings  — combined snapshot of all settings
@@ -41,9 +40,7 @@ router.get('/', (_req, res) => {
     const rates        = db.prepare('SELECT * FROM customer_rates ORDER BY name').all();
     const warehouses   = db.prepare('SELECT * FROM partner_warehouses ORDER BY code').all();
     const bankAccounts = db.prepare('SELECT * FROM bank_accounts ORDER BY is_default DESC, bank_name').all();
-    const companyRows  = db.prepare('SELECT key, value FROM company_info').all();
-    const company      = Object.fromEntries(companyRows.map((r) => [r.key, r.value]));
-    res.json({ rates, warehouses, bank_accounts: bankAccounts, company });
+    res.json({ rates, warehouses, bank_accounts: bankAccounts, company: readCompany() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -252,9 +249,7 @@ router.delete('/bank-accounts/:id', (req, res) => {
 
 router.get('/company', (_req, res) => {
   try {
-    const rows    = db.prepare('SELECT key, value FROM company_info').all();
-    const company = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-    res.json(company);
+    res.json(readCompany());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -276,9 +271,7 @@ router.post('/company', (req, res) => {
       ['company_name', company_name],
       ['logo_path',    logo_path],
     ]);
-    const rows    = db.prepare('SELECT key, value FROM company_info').all();
-    const company = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-    res.json(company);
+    res.json(readCompany());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
