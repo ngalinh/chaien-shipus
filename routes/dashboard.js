@@ -80,11 +80,12 @@ router.get('/', (req, res) => {
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
 
-    // ── 4. Total VC fee (customer side) ───────────────────────────────────
+    // ── 4. Total VC fee (customer side) and gross margin ──────────────────
     const vcFeeRow = db.prepare(`
       SELECT
         ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2) AS total_vc_fee_customer,
-        ROUND(COALESCE(SUM(weight * partner_rate),              0), 2) AS total_vc_fee_partner
+        ROUND(COALESCE(SUM(weight * partner_rate),              0), 2) AS total_vc_fee_partner,
+        ROUND(COALESCE(SUM(weight * customer_rate + surcharge - weight * partner_rate), 0), 2) AS gross_margin
       FROM shipments
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
@@ -176,7 +177,7 @@ router.get('/', (req, res) => {
         total_weight:              Math.round((weightRow.total_weight || 0) * 100) / 100,
         total_vc_fee_customer:     vcFeeRow.total_vc_fee_customer,
         total_vc_fee_partner:      vcFeeRow.total_vc_fee_partner,
-        gross_margin:              Math.round((vcFeeRow.total_vc_fee_customer - vcFeeRow.total_vc_fee_partner) * 100) / 100,
+        gross_margin:              vcFeeRow.gross_margin,
         total_payments_received:   Math.round((paymentsRow.total_payments_received || 0) * 100) / 100,
         total_receivable:          receivableRow.total_receivable || 0,
       },

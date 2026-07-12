@@ -125,6 +125,7 @@ app.post('/deploy', express.raw({ type: '*/*' }), (req, res) => {
 const rootIndex  = path.join(__dirname, 'index.html');
 const clientDist = path.join(__dirname, 'client', 'dist');
 const staticRoot = fs.existsSync(rootIndex) ? __dirname : clientDist;
+const htmlFile   = fs.existsSync(rootIndex) ? rootIndex : path.join(clientDist, 'index.html');
 console.log(`[startup] static root: ${staticRoot}`);
 app.use(express.static(staticRoot, {
   setHeaders: (res, filePath) => {
@@ -138,9 +139,6 @@ app.use(express.static(staticRoot, {
   },
 }));
 app.get(/^(?!\/api).*/, (_req, res) => {
-  const htmlFile = fs.existsSync(rootIndex)
-    ? rootIndex
-    : path.join(clientDist, 'index.html');
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(htmlFile);
 });

@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import dayjs from 'dayjs';
-import { formatCurrency } from '../utils.jsx';
+import { formatCurrency, formatDate, todayInputValue } from '../utils.jsx';
 
 /**
  * NotificationTemplate
@@ -57,9 +56,14 @@ export default function NotificationTemplate({
     return () => clearTimeout(timer);
   }, []);
 
-  const totalWeight = items.reduce((s, i) => s + (parseFloat(i.weight) || 0), 0);
-  const totalFee = items.reduce((s, i) => s + (parseFloat(i.customer_fee) || 0), 0);
-  const displayDate = date ? dayjs(date).format('DD/MM/YYYY') : dayjs().format('DD/MM/YYYY');
+  const { totalWeight, totalFee } = items.reduce(
+    ({ totalWeight, totalFee }, i) => ({
+      totalWeight: totalWeight + (parseFloat(i.weight) || 0),
+      totalFee:    totalFee    + (parseFloat(i.customer_fee) || 0),
+    }),
+    { totalWeight: 0, totalFee: 0 }
+  );
+  const displayDate = formatDate(date) || formatDate(todayInputValue());
 
   // Brand palette — exact values from tailwind.config.js (ShipUS Verdant)
   const B = {
