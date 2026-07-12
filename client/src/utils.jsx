@@ -28,6 +28,114 @@ export function calcCustomerStatus(lastDate) {
   return 'inactive';
 }
 
+// ─── Fuzzy customer / warehouse matching for shipment import ───────────────────
+// The partner file writes customer names WITHOUT diacritics, in UPPERCASE, and
+// often uses a code fragment instead of the display name. We normalise both sides
+// (strip diacritics, uppercase, drop all non-alphanumerics) and match against the
+// customer NAME and every segment of the customer CODE.
+
+export function removeDiacritics(s) {
+  return (s || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
+export function normKey(s) {
+  return removeDiacritics(s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    let diag = prev[0];
+    prev[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const tmp = prev[j];
+      prev[j] = Math.min(
+        prev[j] + 1,
+        prev[j - 1] + 1,
+        diag + (a[i - 1] === b[j - 1] ? 0 : 1)
+      );
+      diag = tmp;
+    }
+  }
+  return prev[n];
+}
+
+// Build a lookup: each customer contributes several keys (name + code segments).
+export function buildCustomerIndex(customers) {
+  const list = customers.map((c) => {
+    const keys = new Set();
+    if (c.name) keys.add(normKey(c.name));
+    // code can hold several aliases split by "/" or newline; add whole line + last token
+    (c.code || '').split(/[\n/]/).forEach((seg) => {
+      const trimmed = seg.trim();
+      if (!trimmed) return;
+      keys.add(normKey(trimmed));
+      const tokens = trimmed.split(/\s+/);
+      if (tokens.length > 1) keys.add(normKey(tokens[tokens.length - 1]));
+    });
+    keys.delete('');
+    return { id: c.id, name: c.name, code: c.code, keys: [...keys] };
+  });
+  return list;
+}
+
+// Returns { status: 'auto'|'suggest'|'none', customerId, suggestions: [ids] }
+export function matchCustomer(raw, index) {
+  const R = normKey(raw);
+  if (!R) return { status: 'none', customerId: null, suggestions: [] };
+
+  const exact = index.filter((c) => c.keys.includes(R));
+  if (exact.length === 1) {
+    return { status: 'auto', customerId: exact[0].id, suggestions: [exact[0].id] };
+  }
+  if (exact.length > 1) {
+    // Ambiguous — several customers share this key. Force a manual pick.
+    return { status: 'suggest', customerId: null, suggestions: exact.map((c) => c.id) };
+  }
+
+  // Fuzzy: best distance across keys, with a bonus when one contains the other.
+  const scored = index.map((c) => {
+    let best = Infinity;
+    for (const k of c.keys) {
+      if (!k) continue;
+      let d = levenshtein(R, k);
+      if (k.length >= 4 && (k.includes(R) || R.includes(k))) {
+        d = Math.min(d, Math.abs(k.length - R.length) * 0.5);
+      }
+      if (d < best) best = d;
+    }
+    return { id: c.id, d: best };
+  }).sort((a, b) => a.d - b.d);
+
+  const threshold = Math.max(4, R.length * 0.5);
+  const near = scored.filter((s) => s.d <= threshold).slice(0, 6);
+  if (near.length) {
+    // Ranked hints, but never pre-selected — the user confirms the right customer.
+    return { status: 'suggest', customerId: null, suggestions: near.map((s) => s.id) };
+  }
+  // Nothing close — still surface the 3 nearest as weak hints, but pre-select none.
+  return { status: 'none', customerId: null, suggestions: scored.slice(0, 3).map((s) => s.id) };
+}
+
+// Match a partner file "Kho" code to a warehouse by code or alias list.
+export function matchWarehouse(code, warehouses) {
+  const C = normKey(code);
+  if (!C) return null;
+  for (const w of warehouses) {
+    if (normKey(w.code) === C) return w;
+    const aliases = (w.aliases || '').split(',').map((a) => normKey(a)).filter(Boolean);
+    if (aliases.includes(C)) return w;
+  }
+  return null;
+}
+
 export function StatusBadge({ status }) {
   const map = {
     active1: { label: 'Active 1m', cls: 'badge-active' },

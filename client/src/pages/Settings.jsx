@@ -541,7 +541,7 @@ function RatesSection({ rates, setRates }) {
 function WarehousesSection({ warehouses, setWarehouses }) {
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ code: '', name: '', rate_per_kg: '' });
+  const [form, setForm] = useState({ code: '', name: '', rate_per_kg: '', aliases: '' });
   const [editForm, setEditForm] = useState({});
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
@@ -555,9 +555,10 @@ function WarehousesSection({ warehouses, setWarehouses }) {
         code: form.code,
         name: form.name,
         rate_per_kg: parseFloat(form.rate_per_kg),
+        aliases: form.aliases,
       });
       setWarehouses((p) => [...p, res.data]);
-      setForm({ code: '', name: '', rate_per_kg: '' });
+      setForm({ code: '', name: '', rate_per_kg: '', aliases: '' });
       setAdding(false);
       toast('Đã thêm kho', 'success');
     } catch (err) {
@@ -574,6 +575,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
         code: editForm.code,
         name: editForm.name,
         rate_per_kg: parseFloat(editForm.rate_per_kg),
+        aliases: editForm.aliases,
       });
       setWarehouses((p) => p.map((w) => (w.id === id ? res.data : w)));
       setEditId(null);
@@ -619,6 +621,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
               <th>Mã kho</th>
               <th>Tên kho</th>
               <th>Cước (VND/kg)</th>
+              <th>Mã gộp (alias)</th>
               <th className="text-right">Thao tác</th>
             </tr>
           </thead>
@@ -653,6 +656,14 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                     step={1000}
                   />
                 </td>
+                <td>
+                  <input
+                    value={form.aliases}
+                    onChange={(e) => setForm((p) => ({ ...p, aliases: e.target.value }))}
+                    className="input-field py-1 text-sm uppercase"
+                    placeholder="OR,NH"
+                  />
+                </td>
                 <td className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
@@ -667,7 +678,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
             )}
             {warehouses.length === 0 && !adding ? (
               <tr>
-                <td colSpan={4} className="text-center py-6 text-gray-400">Chưa có kho nào</td>
+                <td colSpan={5} className="text-center py-6 text-gray-400">Chưa có kho nào</td>
               </tr>
             ) : (
               warehouses.map((w) => (
@@ -706,6 +717,18 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                       formatCurrency(w.rate_per_kg)
                     )}
                   </td>
+                  <td>
+                    {editId === w.id ? (
+                      <input
+                        value={editForm.aliases}
+                        onChange={(e) => setEditForm((p) => ({ ...p, aliases: e.target.value }))}
+                        className="input-field py-1 text-sm uppercase"
+                        placeholder="OR,NH"
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-gray-500">{w.aliases || '–'}</span>
+                    )}
+                  </td>
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       {editId === w.id ? (
@@ -720,7 +743,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                       ) : (
                         <>
                           <button
-                            onClick={() => { setEditId(w.id); setEditForm({ code: w.code, name: w.name, rate_per_kg: w.rate_per_kg }); }}
+                            onClick={() => { setEditId(w.id); setEditForm({ code: w.code, name: w.name, rate_per_kg: w.rate_per_kg, aliases: w.aliases || '' }); }}
                             className="btn-icon text-blue-500 hover:bg-blue-50"
                           >
                             <Edit2 className="w-4 h-4" />
