@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -20,12 +20,17 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState(() => dayjs().format('YYYY-MM-DD'));
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const abortRef = useRef(null);
 
   useEffect(() => {
     fetchStats();
   }, [period, startDate, endDate]);
 
   async function fetchStats() {
+    if (abortRef.current) abortRef.current.abort();
+    abortRef.current = new AbortController();
+    const { signal } = abortRef.current;
+
     setLoading(true);
     try {
       let params = {};
@@ -36,9 +41,10 @@ export default function Dashboard() {
       } else {
         params = { period };
       }
-      const res = await axios.get('/api/dashboard', { params });
+      const res = await axios.get('/api/dashboard', { params, signal });
       setData(res.data);
     } catch (err) {
+      if (axios.isCancel(err)) return;
       console.error('fetchStats:', err);
     } finally {
       setLoading(false);
