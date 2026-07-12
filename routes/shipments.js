@@ -86,8 +86,9 @@ router.get('/', (req, res) => {
 
 // ═════════════════════════════════════════════════════════════════════════════
 // POST /api/shipments/import
-// Import pre-parsed rows from client.
-// Body: { import_date, rows: [{ customer_name, warehouse_code, tracking_no, product, weight }] }
+// Import rows already resolved to customer_id / warehouse_id by the client.
+// Body: { import_date, rows: [{ customer_id, warehouse_id, tracking_no, product, weight }] }
+// Rates are re-read from the DB here — never trusted from the client.
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/import', (req, res) => {
   try {
@@ -100,13 +101,9 @@ router.post('/import', (req, res) => {
     const warnings = [];
     const inserted = [];
 
-    const allCustomers  = db.prepare('SELECT id, name, rate_id FROM customers').all();
-    const allWarehouses = db.prepare('SELECT id, code, rate_per_kg FROM partner_warehouses').all();
-    const allRates      = db.prepare('SELECT id, rate_per_kg FROM customer_rates').all();
-
-    const customerMap  = new Map(allCustomers.map((c) => [c.name.trim().toLowerCase(), c]));
-    const warehouseMap = new Map(allWarehouses.map((w) => [w.code.trim().toUpperCase(), w]));
-    const rateMap      = new Map(allRates.map((r) => [r.id, r.rate_per_kg]));
+    const rateMap      = new Map(db.prepare('SELECT id, rate_per_kg FROM customer_rates').all().map((r) => [r.id, r.rate_per_kg]));
+    const customerStmt = db.prepare('SELECT id, rate_id FROM customers WHERE id = ?');
+    const warehouseStmt = db.prepare('SELECT id, rate_per_kg FROM partner_warehouses WHERE id = ?');
 
     const insertStmt = db.prepare(`
       INSERT INTO shipments
@@ -116,19 +113,15 @@ router.post('/import', (req, res) => {
 
     const importAll = db.transaction(() => {
       for (const row of rows) {
-        const { customer_name, warehouse_code, tracking_no, product, weight } = row;
+        const { customer_id, warehouse_id, tracking_no, product, weight } = row;
 
-        const customer = customerMap.get((customer_name || '').trim().toLowerCase());
+        const customer = customer_id ? customerStmt.get(parseInt(customer_id)) : null;
         if (!customer) {
-          warnings.push(`Không tìm thấy khách hàng: "${customer_name}"`);
+          warnings.push(`Bỏ qua 1 kiện chưa chọn khách hàng (tracking: ${tracking_no || '–'})`);
           continue;
         }
 
-        const warehouse = warehouseMap.get((warehouse_code || '').trim().toUpperCase());
-        if (!warehouse) {
-          warnings.push(`Không tìm thấy kho: "${warehouse_code}"`);
-        }
-
+        const warehouse = warehouse_id ? warehouseStmt.get(parseInt(warehouse_id)) : null;
         const partnerRate  = warehouse ? warehouse.rate_per_kg : 0;
         const customerRate = customer.rate_id ? (rateMap.get(customer.rate_id) || 0) : 0;
         const warehouseId  = warehouse ? warehouse.id : null;

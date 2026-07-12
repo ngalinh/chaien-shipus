@@ -118,6 +118,9 @@ db.exec(`
 // ─── Idempotent migrations ────────────────────────────────────────────────────
 try { db.exec('ALTER TABLE customers ADD COLUMN email TEXT'); } catch { /* already exists */ }
 try { db.exec('ALTER TABLE customers ADD COLUMN warehouse TEXT'); } catch { /* already exists */ }
+// aliases: comma-separated partner sub-warehouse codes that map to this warehouse
+// (e.g. Hải An's US hubs "OR,NH" both bill at the HA rate)
+try { db.exec('ALTER TABLE partner_warehouses ADD COLUMN aliases TEXT'); } catch { /* already exists */ }
 
 // ─── Seed default data ────────────────────────────────────────────────────────
 
@@ -126,5 +129,12 @@ const insertDefault = db.prepare(
 );
 insertDefault.run('company_name', 'Chaien Shipus');
 insertDefault.run('logo_path', '');
+
+// Seed warehouse aliases + Lihaco partner (idempotent — runs once on first deploy)
+try {
+  db.prepare(`UPDATE partner_warehouses SET aliases = 'OR,NH' WHERE code = 'HA' AND aliases IS NULL`).run();
+  db.prepare(`INSERT OR IGNORE INTO partner_warehouses (code, name, rate_per_kg, aliases)
+              VALUES ('LHC', 'Lihaco', 220000, '')`).run();
+} catch { /* ignore */ }
 
 module.exports = db;
