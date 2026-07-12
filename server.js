@@ -19,6 +19,7 @@ const express = require('express');
 const cors    = require('cors');
 const path    = require('path');
 const fs      = require('fs');
+const crypto  = require('crypto');
 
 console.log('[startup] loading db...');
 let db;
@@ -41,9 +42,47 @@ const PORT = process.env.PORT || 5000;
 });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors());
+// Restrict CORS to the known BASSO frontend origin(s). Falls back to same-origin
+// only if ALLOWED_ORIGIN is unset (the app is served from the same origin anyway).
+const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://ai.basso.vn';
+app.use(cors({ origin: allowedOrigin }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// ─── HTTP Basic Auth gate ─────────────────────────────────────────────────────
+// The whole app (SPA, API, and uploaded files incl. sensitive CCCD images) is
+// served by this Express process, so a single Basic-auth gate protects everything.
+// The browser prompts once on first load and replays the credential on every
+// request — no login UI or frontend change needed.
+// Disabled automatically when AUTH_USER/AUTH_PASS are unset (e.g. local dev),
+// so a missing env never locks the app out; set both in the VPS .env to enable.
+const AUTH_USER = process.env.AUTH_USER;
+const AUTH_PASS = process.env.AUTH_PASS;
+
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a));
+  const bb = Buffer.from(String(b));
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
+}
+
+if (AUTH_USER && AUTH_PASS) {
+  app.use((req, res, next) => {
+    // The deploy webhook authenticates with its own token — let it through.
+    if (req.path === '/deploy') return next();
+
+    const [scheme, encoded] = (req.headers.authorization || '').split(' ');
+    if (scheme === 'Basic' && encoded) {
+      const [user, pass] = Buffer.from(encoded, 'base64').toString().split(':');
+      if (safeEqual(user, AUTH_USER) && safeEqual(pass, AUTH_PASS)) return next();
+    }
+    res.setHeader('WWW-Authenticate', 'Basic realm="ShipUS", charset="UTF-8"');
+    return res.status(401).send('Authentication required');
+  });
+  console.log('[startup] Basic auth ENABLED');
+} else {
+  console.log('[startup] Basic auth disabled (AUTH_USER/AUTH_PASS not set)');
+}
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -66,7 +105,7 @@ app.use('/api/dashboard',    require('./routes/dashboard'));
 const { exec } = require('child_process');
 app.post('/deploy', express.raw({ type: '*/*' }), (req, res) => {
   const token = req.headers['x-deploy-token'];
-  if (!token || token !== process.env.DEPLOY_TOKEN) {
+  if (!token || !process.env.DEPLOY_TOKEN || !safeEqual(token, process.env.DEPLOY_TOKEN)) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   res.json({ ok: true });
@@ -107,10 +146,13 @@ app.get(/^(?!\/api).*/, (_req, res) => {
 });
 
 // ─── Global error handler ─────────────────────────────────────────────────────
+// Log full details server-side, but never leak internal error strings (SQLite
+// messages, stack traces) to the client on unexpected 500s. Client-facing 4xx
+// validation errors set their own status and are passed through as-is.
 app.use((err, _req, res, _next) => {
   console.error('[ERROR]', err);
-  const status  = err.status || err.statusCode || 500;
-  const message = err.message || 'Internal server error';
+  const status = err.status || err.statusCode || 500;
+  const message = status < 500 ? (err.message || 'Bad request') : 'Internal server error';
   res.status(status).json({ error: message });
 });
 

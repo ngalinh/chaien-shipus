@@ -71,46 +71,11 @@ export default function Dashboard() {
   const s = data?.summary || {};
 
   const cards = [
-    {
-      label: 'SL khách hàng',
-      value: s.total_customers,
-      icon: Users,
-      color: 'bg-blue-50 text-blue-600',
-      border: 'border-blue-200',
-      format: 'number',
-    },
-    {
-      label: 'SL khách mới',
-      value: s.new_customers,
-      icon: UserPlus,
-      color: 'bg-primary-50 text-primary-600',
-      border: 'border-primary-200',
-      format: 'number',
-    },
-    {
-      label: 'Tổng cân nặng (kg)',
-      value: s.total_weight,
-      icon: Weight,
-      color: 'bg-purple-50 text-purple-600',
-      border: 'border-purple-200',
-      format: 'kg',
-    },
-    {
-      label: 'Tổng phí VC (khách trả)',
-      value: s.total_vc_fee_customer,
-      icon: Banknote,
-      color: 'bg-yellow-50 text-yellow-600',
-      border: 'border-yellow-200',
-      format: 'currency',
-    },
-    {
-      label: 'Tổng phí VC (trả đối tác)',
-      value: s.total_vc_fee_partner,
-      icon: ArrowUpDown,
-      color: 'bg-red-50 text-red-600',
-      border: 'border-red-200',
-      format: 'currency',
-    },
+    { label: 'SL khách hàng',            value: s.total_customers,       icon: Users,       format: 'number' },
+    { label: 'SL khách mới',             value: s.new_customers,         icon: UserPlus,    format: 'number' },
+    { label: 'Tổng cân nặng (kg)',       value: s.total_weight,          icon: Weight,      format: 'kg' },
+    { label: 'Tổng phí VC (khách trả)',  value: s.total_vc_fee_customer, icon: Banknote,    format: 'currency' },
+    { label: 'Tổng phí VC (trả đối tác)', value: s.total_vc_fee_partner, icon: ArrowUpDown, format: 'currency' },
   ];
 
   function renderValue(card) {
@@ -202,14 +167,16 @@ export default function Dashboard() {
           {cards.map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="stat-card">
+              <div key={card.label} className="stat-card flex flex-col">
                 <span className="w-11 h-11 rounded-tile bg-sand-100 text-primary-700 grid place-items-center">
                   <Icon className="w-[22px] h-[22px]" strokeWidth={1.8} />
                 </span>
-                <div className="text-[26px] font-bold text-ink-900 mt-4 leading-none">
+                <div
+                  className={`${card.format === 'currency' ? 'text-[20px]' : 'text-[26px]'} font-bold text-ink-900 mt-4 leading-none tabular-nums whitespace-nowrap`}
+                >
                   {renderValue(card)}
                 </div>
-                <div className="text-[13px] text-ink-500 mt-2 font-medium">{card.label}</div>
+                <div className="text-[13px] text-ink-500 mt-auto pt-2 font-medium">{card.label}</div>
               </div>
             );
           })}

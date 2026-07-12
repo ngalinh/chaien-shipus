@@ -12,10 +12,14 @@ const router = express.Router();
 const cccdDir = path.join(__dirname, '..', 'uploads', 'cccd');
 if (!fs.existsSync(cccdDir)) fs.mkdirSync(cccdDir, { recursive: true });
 
+// Only allow real raster image extensions — never trust the client MIME alone
+// (it is spoofable, and a .svg/.html served back could enable stored XSS).
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
 const cccdStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, cccdDir),
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `cccd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}${ext}`);
   },
 });
@@ -23,8 +27,9 @@ const cccdUpload = multer({
   storage: cccdStorage,
   limits:  { fileSize: 10 * 1024 * 1024, files: 2 },
   fileFilter: (_req, file, cb) => {
-    if (/^image\//.test(file.mimetype)) return cb(null, true);
-    cb(new Error('Only image files are allowed'));
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (/^image\//.test(file.mimetype) && ALLOWED_IMAGE_EXT.has(ext)) return cb(null, true);
+    cb(new Error('Only JPG, PNG or WEBP images are allowed'));
   },
 });
 
