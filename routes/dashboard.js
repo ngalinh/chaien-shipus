@@ -41,7 +41,7 @@ function resolveDateRange(query) {
 // ─── Helper: generate YYYY-MM labels between two date strings ─────────────────
 function monthsBetween(startDate, endDate) {
   const months = [];
-  const start  = new Date(startDate + '-01');
+  const start  = new Date(startDate.slice(0, 7) + '-01');
   const end    = new Date(endDate.slice(0, 7) + '-01');
   const cur    = new Date(start);
   while (cur <= end) {
@@ -84,7 +84,7 @@ router.get('/', (req, res) => {
     const vcFeeRow = db.prepare(`
       SELECT
         ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2) AS total_vc_fee_customer,
-        ROUND(COALESCE(SUM(weight * partner_rate  + surcharge), 0), 2) AS total_vc_fee_partner
+        ROUND(COALESCE(SUM(weight * partner_rate),              0), 2) AS total_vc_fee_partner
       FROM shipments
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
@@ -114,8 +114,8 @@ router.get('/', (req, res) => {
         COUNT(*)                                                           AS shipment_count,
         ROUND(COALESCE(SUM(weight), 0), 2)                                 AS total_weight,
         ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2)     AS total_vc_fee_customer,
-        ROUND(COALESCE(SUM(weight * partner_rate  + surcharge), 0), 2)     AS total_vc_fee_partner,
-        ROUND(COALESCE(SUM(weight * customer_rate - weight * partner_rate), 0), 2) AS gross_margin
+        ROUND(COALESCE(SUM(weight * partner_rate),               0), 2)     AS total_vc_fee_partner,
+        ROUND(COALESCE(SUM(weight * customer_rate + surcharge - weight * partner_rate), 0), 2) AS gross_margin
       FROM shipments
       WHERE import_date >= ? AND import_date <= ?
       GROUP BY strftime('%Y-%m', import_date)
@@ -159,7 +159,7 @@ router.get('/', (req, res) => {
         pw.code                                                         AS warehouse_code,
         pw.name                                                         AS warehouse_name,
         ROUND(SUM(s.weight), 2)                                         AS total_weight,
-        ROUND(SUM(s.weight * s.partner_rate + s.surcharge), 2)          AS total_partner_fee,
+        ROUND(SUM(s.weight * s.partner_rate), 2)                         AS total_partner_fee,
         COUNT(s.id)                                                     AS shipment_count
       FROM shipments s
       LEFT JOIN partner_warehouses pw ON pw.id = s.warehouse_id

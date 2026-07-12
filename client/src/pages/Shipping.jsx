@@ -356,7 +356,7 @@ export default function Shipping() {
                 <th>Mã KH</th>
                 <th>SL tracking</th>
                 <th>Tổng cân nặng</th>
-                <th>Tổng phí ship</th>
+                <th>Phí đối tác</th>
                 <th>Tổng phụ thu</th>
                 <th>Tổng phí VC</th>
                 <th>Mã vận đơn</th>
@@ -433,7 +433,7 @@ export default function Shipping() {
                                   <th className="px-3 py-2 text-left text-gray-500 font-semibold">Tracking #</th>
                                   <th className="px-3 py-2 text-left text-gray-500 font-semibold">Sản phẩm</th>
                                   <th className="px-3 py-2 text-left text-gray-500 font-semibold">Cân nặng</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phí ship</th>
+                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phí đối tác</th>
                                   <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phụ thu</th>
                                   <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phí VC</th>
                                 </tr>
