@@ -137,4 +137,11 @@ try {
               VALUES ('LHC', 'Lihaco', 220000, '')`).run();
 } catch { /* ignore */ }
 
+// Default every customer without a rate to "Khách lẻ" (new customers also default
+// to this rate — see routes/customers.js). Idempotent: only touches NULL rate_id.
+try {
+  const le = db.prepare(`SELECT id FROM customer_rates WHERE name = 'Khách lẻ' ORDER BY id LIMIT 1`).get();
+  if (le) db.prepare('UPDATE customers SET rate_id = ? WHERE rate_id IS NULL').run(le.id);
+} catch { /* ignore */ }
+
 module.exports = db;

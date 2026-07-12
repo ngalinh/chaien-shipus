@@ -28,6 +28,12 @@ const cccdUpload = multer({
   },
 });
 
+// ─── Helper: default customer rate ("Khách lẻ") for new customers ─────────────
+function defaultRateId() {
+  const r = db.prepare(`SELECT id FROM customer_rates WHERE name = 'Khách lẻ' ORDER BY id LIMIT 1`).get();
+  return r ? r.id : null;
+}
+
 // ─── Helper: compute customer activity status ─────────────────────────────────
 function computeStatus(latestImportDate) {
   if (!latestImportDate) return 'Inactive';
@@ -66,9 +72,10 @@ router.post('/import', (req, res) => {
   try {
   const checkStmt  = db.prepare('SELECT id FROM customers WHERE code = ?');
   const insertStmt = db.prepare(`
-    INSERT INTO customers (code, name, phone, email, address, channel, notes, warehouse)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO customers (code, name, phone, email, address, channel, notes, warehouse, rate_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const rateDefault = defaultRateId();
     db.exec('BEGIN');
     for (const [i, row] of rows.entries()) {
       const code = (row.code || '').trim();
@@ -91,6 +98,7 @@ router.post('/import', (req, res) => {
           row.channel   || null,
           row.notes     || null,
           row.warehouse || null,
+          rateDefault,
         );
         imported++;
       } catch (err) {
@@ -150,7 +158,7 @@ router.post('/', (req, res) => {
       address   || null,
       channel   || null,
       notes     || null,
-      rate_id   || null,
+      rate_id   || defaultRateId(),
       warehouse || null,
     );
     const customer = db.prepare(`
