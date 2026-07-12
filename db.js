@@ -127,7 +127,7 @@ try { db.exec('ALTER TABLE partner_warehouses ADD COLUMN aliases TEXT'); } catch
 const insertDefault = db.prepare(
   `INSERT OR IGNORE INTO company_info (key, value) VALUES (?, ?)`
 );
-insertDefault.run('company_name', 'Chaien Shipus');
+insertDefault.run('company_name', 'ShipUS');
 insertDefault.run('logo_path', '');
 
 // Seed warehouse aliases + Lihaco partner (idempotent — runs once on first deploy)
