@@ -12,10 +12,14 @@ const router = express.Router();
 const logoDir = path.join(__dirname, '..', 'uploads', 'logo');
 if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });
 
+// Only allow real raster image extensions — never trust the client MIME alone
+// (it is spoofable, and a .svg/.html served back could enable stored XSS).
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
 const logoStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, logoDir),
   filename:    (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `logo_${Date.now()}${ext}`);
   },
 });
@@ -23,8 +27,9 @@ const logoUpload = multer({
   storage: logoStorage,
   limits:  { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (/^image\//.test(file.mimetype)) return cb(null, true);
-    cb(new Error('Only image files are allowed'));
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (/^image\//.test(file.mimetype) && ALLOWED_IMAGE_EXT.has(ext)) return cb(null, true);
+    cb(new Error('Only JPG, PNG or WEBP images are allowed'));
   },
 });
 
