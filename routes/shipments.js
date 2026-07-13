@@ -289,7 +289,9 @@ router.get('/bao-khach', (req, res) => {
         ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)          AS total_vc_fee,
         bi.van_don_code,
         bi.notified_at,
-        bi.id                                                            AS batch_info_id
+        bi.id                                                            AS batch_info_id,
+        (SELECT COUNT(*) FROM notification_log nl
+          WHERE nl.batch_date = s.import_date AND nl.customer_id = s.customer_id) AS notify_count
       FROM shipments s
       LEFT JOIN customers c   ON c.id = s.customer_id
       LEFT JOIN batch_info bi ON bi.batch_date = s.import_date AND bi.customer_id = s.customer_id
@@ -371,16 +373,27 @@ router.post('/batch/notify', (req, res) => {
       return res.status(400).json({ error: 'batch_date and customer_id are required' });
     }
 
-    // Upsert batch_info and mark notified
-    db.prepare(`
-      INSERT INTO batch_info (batch_date, customer_id, notified_at)
-      VALUES (?, ?, datetime('now'))
-      ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
-    `).run(batch_date, parseInt(customer_id));
+    const cid = parseInt(customer_id);
 
-    const updated = db.prepare(
-      'SELECT * FROM batch_info WHERE batch_date = ? AND customer_id = ?'
-    ).get(batch_date, parseInt(customer_id));
+    // batch_info.notified_at = lần báo gần nhất; notification_log giữ toàn bộ lịch sử
+    const markNotified = db.transaction(() => {
+      db.prepare(`
+        INSERT INTO batch_info (batch_date, customer_id, notified_at)
+        VALUES (?, ?, datetime('now'))
+        ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
+      `).run(batch_date, cid);
+      db.prepare(
+        'INSERT INTO notification_log (batch_date, customer_id) VALUES (?, ?)'
+      ).run(batch_date, cid);
+    });
+    markNotified();
+
+    const updated = db.prepare(`
+      SELECT bi.*,
+             (SELECT COUNT(*) FROM notification_log nl
+               WHERE nl.batch_date = bi.batch_date AND nl.customer_id = bi.customer_id) AS notify_count
+      FROM batch_info bi WHERE bi.batch_date = ? AND bi.customer_id = ?
+    `).get(batch_date, cid);
 
     res.json(updated);
   } catch (err) {
