@@ -1,13 +1,33 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import dayjs from 'dayjs';
 import {
-  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight,
+  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen,
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '../utils.jsx';
+import { formatCurrency, formatDate, todayInputValue } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationTemplate from '../components/NotificationTemplate.jsx';
 import VanDonInlineEdit from '../components/VanDonInlineEdit.jsx';
+
+const PERIODS = [
+  { label: 'Trong tháng', value: 'month' },
+  { label: '3 tháng', value: '3m' },
+  { label: '6 tháng', value: '6m' },
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Tùy chỉnh', value: 'custom' },
+];
+
+function rangeFor(period, startDate, endDate) {
+  if (period === 'all') return {};
+  if (period === 'custom') return { start_date: startDate, end_date: endDate };
+  if (period === '3m') return { start_date: dayjs().subtract(3, 'month').format('YYYY-MM-DD'), end_date: todayInputValue() };
+  if (period === '6m') return { start_date: dayjs().subtract(6, 'month').format('YYYY-MM-DD'), end_date: todayInputValue() };
+  return { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
+}
+
+// Mã KH gộp nhiều alias (có xuống dòng) → gọn 1 dòng để hiển thị
+const cleanCode = (code) => (code || '').replace(/\s+/g, ' ').trim();
 
 export default function Shipping() {
   const [tab, setTab] = useState('incoming');
@@ -19,8 +39,13 @@ export default function Shipping() {
   const [editValues, setEditValues] = useState({});
   const [deleting, setDeleting] = useState(null);
   const [expandedBatch, setExpandedBatch] = useState(null);
+  const [collapsedDates, setCollapsedDates] = useState({});
   const [notifData, setNotifData] = useState(null);
   const [settings, setSettings] = useState({ company: {} });
+
+  const [period, setPeriod] = useState('month');
+  const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
+  const [endDate, setEndDate] = useState(todayInputValue);
 
   useEffect(() => {
     fetchSettings();
@@ -29,7 +54,7 @@ export default function Shipping() {
   useEffect(() => {
     if (tab === 'incoming') fetchShipments();
     else fetchNotifyBatches();
-  }, [tab]);
+  }, [tab, period, startDate, endDate]);
 
   async function fetchSettings() {
     try {
@@ -41,7 +66,7 @@ export default function Shipping() {
   async function fetchShipments() {
     setLoading(true);
     try {
-      const res = await axios.get('/api/shipments');
+      const res = await axios.get('/api/shipments', { params: rangeFor(period, startDate, endDate) });
       setShipments(res.data);
     } catch (err) {
       console.error('fetchShipments:', err);
@@ -53,14 +78,21 @@ export default function Shipping() {
   async function fetchNotifyBatches() {
     setLoading(true);
     try {
-      // /api/shipments/bao-khach returns aggregated batches with details
-      const res = await axios.get('/api/shipments/bao-khach');
+      const res = await axios.get('/api/shipments/bao-khach', { params: rangeFor(period, startDate, endDate) });
       setNotifyBatches(res.data);
     } catch (err) {
       console.error('fetchNotifyBatches:', err);
     } finally {
       setLoading(false);
     }
+  }
+
+  function handlePeriodChange(val) {
+    setPeriod(val);
+    if (val === '3m') setStartDate(dayjs().subtract(3, 'month').format('YYYY-MM-DD'));
+    else if (val === '6m') setStartDate(dayjs().subtract(6, 'month').format('YYYY-MM-DD'));
+    else if (val === 'month') setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
+    if (val !== 'custom') setEndDate(todayInputValue());
   }
 
   async function handleDelete(id) {
@@ -130,7 +162,6 @@ export default function Shipping() {
       return;
     }
 
-    // Mark batch as notified
     try {
       await axios.post('/api/shipments/batch/notify', {
         batch_date: batch.batch_date,
@@ -155,6 +186,25 @@ export default function Shipping() {
   function handleImported() {
     setImportModal(false);
     fetchShipments();
+  }
+
+  // Gom shipments theo ngày (đợt hàng về), mới nhất trước
+  const dateGroups = [];
+  {
+    const map = new Map();
+    for (const s of shipments) {
+      if (!map.has(s.import_date)) map.set(s.import_date, []);
+      map.get(s.import_date).push(s);
+    }
+    for (const [date, rows] of map) {
+      dateGroups.push({
+        date,
+        rows,
+        count: rows.length,
+        weight: rows.reduce((a, s) => a + (s.weight || 0), 0),
+        partnerFee: rows.reduce((a, s) => a + (s.weight || 0) * (s.partner_rate || 0), 0),
+      });
+    }
   }
 
   return (
@@ -189,160 +239,195 @@ export default function Shipping() {
         </button>
       </div>
 
-      {/* Tab: Hàng về */}
-      {tab === 'incoming' && (
-        <div className="table-container">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th className="w-24">Ngày tháng</th>
-                <th className="w-24">Mã KH</th>
-                <th className="w-14">Kho</th>
-                <th className="w-28">Tracking #</th>
-                <th>Sản phẩm</th>
-                <th className="w-20">Cân nặng</th>
-                <th className="w-24">Phụ thu</th>
-                <th className="w-28">Phí trả đối tác</th>
-                <th className="w-24">Ghi chú</th>
-                <th className="w-24 text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={10} className="text-center py-10 text-gray-400">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
-                      Đang tải...
-                    </div>
-                  </td>
-                </tr>
-              ) : shipments.length === 0 ? (
-                <tr>
-                  <td colSpan={10} className="text-center py-12 text-gray-400">
-                    Chưa có hàng về. Nhấn "Nhập kho" để thêm.
-                  </td>
-                </tr>
-              ) : (
-                shipments.map((s) => {
-                  const isEditing = editingId === s.id;
-                  return (
-                    <tr key={s.id} className={isEditing ? 'bg-yellow-50' : ''}>
-                      <td>{formatDate(s.import_date)}</td>
-                      <td>
-                        <div className="max-w-[110px]">
-                          <span className="font-mono text-sm text-primary-700">{s.customer_code}</span>
-                          {s.customer_name && <span className="text-xs text-gray-500 ml-1 truncate block" title={s.customer_name}>({s.customer_name})</span>}
-                        </div>
-                      </td>
-                      <td>{s.warehouse_code || '–'}</td>
-                      <td>
-                        {isEditing ? (
-                          <input
-                            value={editValues.tracking_no}
-                            onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
-                            className="input-field py-1 text-xs w-28"
-                          />
-                        ) : (
-                          <span className="font-mono text-xs">{s.tracking_no || '–'}</span>
-                        )}
-                      </td>
-                      <td>
-                        {isEditing ? (
-                          <input
-                            value={editValues.product}
-                            onChange={(e) => setEditValues((p) => ({ ...p, product: e.target.value }))}
-                            className="input-field py-1 text-xs w-28"
-                          />
-                        ) : (
-                          <span className="max-w-[120px] truncate block" title={s.product}>{s.product || '–'}</span>
-                        )}
-                      </td>
-                      <td>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={editValues.weight}
-                            onChange={(e) => setEditValues((p) => ({ ...p, weight: e.target.value }))}
-                            className="input-field py-1 text-xs w-20"
-                            step={0.01}
-                            min={0}
-                          />
-                        ) : (
-                          `${s.weight} kg`
-                        )}
-                      </td>
-                      <td>
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={editValues.surcharge}
-                            onChange={(e) => setEditValues((p) => ({ ...p, surcharge: e.target.value }))}
-                            className="input-field py-1 text-xs w-24"
-                            step={1000}
-                            min={0}
-                          />
-                        ) : (
-                          formatCurrency(s.surcharge)
-                        )}
-                      </td>
-                      <td>{formatCurrency(s.weight * s.partner_rate)}</td>
-                      <td>
-                        {isEditing ? (
-                          <input
-                            value={editValues.notes}
-                            onChange={(e) => setEditValues((p) => ({ ...p, notes: e.target.value }))}
-                            className="input-field py-1 text-xs w-28"
-                          />
-                        ) : (
-                          <div className="max-w-[140px] truncate text-gray-500 text-xs" title={s.notes}>{s.notes || '–'}</div>
-                        )}
-                      </td>
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {isEditing ? (
-                            <>
-                              <button
-                                onClick={() => saveEdit(s.id)}
-                                className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700"
-                              >
-                                Lưu
-                              </button>
-                              <button
-                                onClick={cancelEdit}
-                                className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300"
-                              >
-                                Hủy
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => startEdit(s)}
-                                className="btn-icon text-blue-500 hover:bg-blue-50"
-                                title="Chỉnh sửa"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(s.id)}
-                                disabled={deleting === s.id}
-                                className="btn-icon text-red-500 hover:bg-red-50 disabled:opacity-50"
-                                title="Xóa"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      {/* Date filter */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5">
+          <Calendar className="w-4 h-4" />
+          Khoảng thời gian:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {PERIODS.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => handlePeriodChange(p.value)}
+              className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-150 ${
+                period === p.value
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
+        {period === 'custom' && (
+          <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-ink-500 font-semibold">Từ:</label>
+              <input type="date" value={startDate} max={endDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="input-field w-auto py-1.5 text-sm" />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-ink-500 font-semibold">Đến:</label>
+              <input type="date" value={endDate} min={startDate} max={todayInputValue()}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="input-field w-auto py-1.5 text-sm" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tab: Hàng về — gom theo đợt (ngày) */}
+      {tab === 'incoming' && (
+        loading ? (
+          <div className="table-container p-12 text-center text-ink-400">
+            <div className="inline-flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+              Đang tải...
+            </div>
+          </div>
+        ) : dateGroups.length === 0 ? (
+          <div className="table-container p-14 text-center">
+            <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
+            <p className="text-ink-500 font-medium">Chưa có hàng về trong khoảng này</p>
+            <p className="text-ink-400 text-sm mt-1">Nhấn "Nhập kho" để thêm đợt hàng mới.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {dateGroups.map((g) => {
+              const isCollapsed = collapsedDates[g.date];
+              return (
+                <div key={g.date} className="card overflow-hidden">
+                  {/* Đợt header */}
+                  <button
+                    onClick={() => setCollapsedDates((p) => ({ ...p, [g.date]: !p[g.date] }))}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors text-left"
+                  >
+                    {isCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400" /> : <ChevronDown className="w-4 h-4 text-ink-400" />}
+                    <span className="text-[15px] font-bold text-ink-900">Đợt {formatDate(g.date)}</span>
+                    <span className="text-sm text-ink-400">
+                      {g.count} kiện · {g.weight.toFixed(2)} kg · phí đối tác {formatCurrency(g.partnerFee)}
+                    </span>
+                  </button>
+
+                  {!isCollapsed && (
+                    <div className="table-container rounded-none shadow-none border-t border-greige-100">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Mã KH</th>
+                            <th>Kho</th>
+                            <th>Tracking #</th>
+                            <th>Sản phẩm</th>
+                            <th className="text-right">Cân nặng</th>
+                            <th className="text-right">Phụ thu</th>
+                            <th className="text-right">Phí trả đối tác</th>
+                            <th>Ghi chú</th>
+                            <th className="text-right">Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {g.rows.map((s) => {
+                            const isEditing = editingId === s.id;
+                            return (
+                              <tr key={s.id} className={isEditing ? 'bg-primary-50/40' : ''}>
+                                <td>
+                                  <div className="max-w-[160px]">
+                                    <span className="font-mono text-sm text-primary-700 truncate block" title={cleanCode(s.customer_code)}>
+                                      {cleanCode(s.customer_code)}
+                                    </span>
+                                    {s.customer_name && (
+                                      <span className="text-xs text-ink-400 truncate block" title={s.customer_name}>{s.customer_name}</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>{s.warehouse_code || '–'}</td>
+                                <td>
+                                  {isEditing ? (
+                                    <input value={editValues.tracking_no}
+                                      onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
+                                      className="input-field py-1 text-xs w-28" />
+                                  ) : (
+                                    <span className="font-mono text-xs">{s.tracking_no || '–'}</span>
+                                  )}
+                                </td>
+                                <td>
+                                  {isEditing ? (
+                                    <input value={editValues.product}
+                                      onChange={(e) => setEditValues((p) => ({ ...p, product: e.target.value }))}
+                                      className="input-field py-1 text-xs w-28" />
+                                  ) : (
+                                    <span className="max-w-[140px] truncate block" title={s.product}>{s.product || '–'}</span>
+                                  )}
+                                </td>
+                                <td className="text-right tabular-nums">
+                                  {isEditing ? (
+                                    <input type="number" value={editValues.weight}
+                                      onChange={(e) => setEditValues((p) => ({ ...p, weight: e.target.value }))}
+                                      className="input-field py-1 text-xs w-20 text-right" step={0.01} min={0} />
+                                  ) : (
+                                    `${s.weight} kg`
+                                  )}
+                                </td>
+                                <td className="text-right tabular-nums">
+                                  {isEditing ? (
+                                    <input type="number" value={editValues.surcharge}
+                                      onChange={(e) => setEditValues((p) => ({ ...p, surcharge: e.target.value }))}
+                                      className="input-field py-1 text-xs w-24 text-right" step={1000} min={0} />
+                                  ) : (
+                                    formatCurrency(s.surcharge)
+                                  )}
+                                </td>
+                                <td className="text-right tabular-nums">{formatCurrency(s.weight * s.partner_rate)}</td>
+                                <td>
+                                  {isEditing ? (
+                                    <input value={editValues.notes}
+                                      onChange={(e) => setEditValues((p) => ({ ...p, notes: e.target.value }))}
+                                      className="input-field py-1 text-xs w-28" />
+                                  ) : (
+                                    <div className="max-w-[140px] truncate text-ink-400 text-xs" title={s.notes}>{s.notes || '–'}</div>
+                                  )}
+                                </td>
+                                <td className="text-right">
+                                  <div className="flex items-center justify-end gap-1">
+                                    {isEditing ? (
+                                      <>
+                                        <button onClick={() => saveEdit(s.id)}
+                                          className="text-xs px-2.5 py-1 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-600">
+                                          Lưu
+                                        </button>
+                                        <button onClick={cancelEdit}
+                                          className="text-xs px-2.5 py-1 bg-greige-100 text-ink-500 rounded-full font-semibold hover:bg-greige-200">
+                                          Hủy
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <button onClick={() => startEdit(s)} aria-label="Chỉnh sửa"
+                                          className="btn-icon text-primary-600 hover:bg-primary-50" title="Chỉnh sửa">
+                                          <Edit2 className="w-4 h-4" />
+                                        </button>
+                                        <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} aria-label="Xóa"
+                                          className="btn-icon text-[#C2453F] hover:bg-[#F8E1E0] disabled:opacity-50" title="Xóa">
+                                          <Trash2 className="w-4 h-4" />
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
       )}
 
       {/* Tab: Báo khách */}
@@ -354,11 +439,11 @@ export default function Shipping() {
                 <th className="w-8"></th>
                 <th>Ngày tháng</th>
                 <th>Mã KH</th>
-                <th>SL tracking</th>
-                <th>Tổng cân nặng</th>
-                <th>Phí đối tác</th>
-                <th>Tổng phụ thu</th>
-                <th>Tổng phí VC</th>
+                <th className="text-right">SL tracking</th>
+                <th className="text-right">Tổng cân nặng</th>
+                <th className="text-right">Phí đối tác</th>
+                <th className="text-right">Tổng phụ thu</th>
+                <th className="text-right">Tổng phí VC</th>
                 <th>Mã vận đơn</th>
                 <th>Thao tác</th>
               </tr>
@@ -366,17 +451,18 @@ export default function Shipping() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-10 text-gray-400">
+                  <td colSpan={10} className="text-center py-10 text-ink-400">
                     <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                       Đang tải...
                     </div>
                   </td>
                 </tr>
               ) : notifyBatches.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-gray-400">
-                    Chưa có dữ liệu
+                  <td colSpan={10} className="text-center py-14 text-ink-400">
+                    <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
+                    Chưa có lô hàng nào trong khoảng này
                   </td>
                 </tr>
               ) : (
@@ -389,67 +475,74 @@ export default function Shipping() {
                       className={`cursor-pointer hover:bg-primary-50 ${batch.notified_at ? 'opacity-75' : ''}`}
                       onClick={() => setExpandedBatch(isOpen ? null : bKey)}
                     >
-                      <td className="text-center text-gray-400">
+                      <td className="text-center text-ink-400">
                         {isOpen ? <ChevronDown className="w-4 h-4 inline" /> : <ChevronRight className="w-4 h-4 inline" />}
                       </td>
-                      <td className="font-medium">{formatDate(batch.batch_date)}</td>
+                      <td className="font-medium whitespace-nowrap">{formatDate(batch.batch_date)}</td>
                       <td>
-                        <span className="font-mono text-primary-700">{batch.customer_code}</span>
-                        <span className="text-xs text-gray-500 ml-1">({batch.customer_name})</span>
+                        <div className="max-w-[160px]">
+                          <span className="font-mono text-primary-700 truncate block" title={cleanCode(batch.customer_code)}>{cleanCode(batch.customer_code)}</span>
+                          <span className="text-xs text-ink-400 truncate block" title={batch.customer_name}>{batch.customer_name}</span>
+                        </div>
                       </td>
-                      <td>{batch.tracking_count}</td>
-                      <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
-                      <td>{formatCurrency(batch.total_partner_fee)}</td>
-                      <td>{formatCurrency(batch.total_surcharge)}</td>
-                      <td className="font-semibold text-primary-700">{formatCurrency(batch.total_vc_fee)}</td>
+                      <td className="text-right tabular-nums">{batch.tracking_count}</td>
+                      <td className="text-right tabular-nums">{Number(batch.total_weight || 0).toFixed(2)} kg</td>
+                      <td className="text-right tabular-nums">{formatCurrency(batch.total_partner_fee)}</td>
+                      <td className="text-right tabular-nums">{formatCurrency(batch.total_surcharge)}</td>
+                      <td className="text-right font-semibold text-primary-700 tabular-nums">{formatCurrency(batch.total_vc_fee)}</td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <VanDonInlineEdit
                           value={batch.van_don_code || ''}
                           onSave={(v) => updateVanDon(batch, v)}
                         />
                       </td>
-                      <td onClick={(e) => e.stopPropagation()}>
+                      <td onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
                         <button
                           onClick={() => triggerNotification(batch)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full ${
                             batch.notified_at
-                              ? 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              : 'bg-primary-600 text-white hover:bg-primary-700'
+                              ? 'bg-greige-100 text-ink-500 hover:bg-greige-200'
+                              : 'bg-primary-500 text-white hover:bg-primary-600'
                           }`}
                         >
                           <Bell className="w-3.5 h-3.5" />
                           {batch.notified_at ? 'Gửi lại' : 'Thông báo'}
                         </button>
+                        {batch.notify_count > 0 && (
+                          <span className="block text-[11px] text-ink-400 mt-1" title={`Lần cuối: ${batch.notified_at ? dayjs(batch.notified_at).format('DD/MM/YYYY HH:mm') : ''}`}>
+                            Đã báo {batch.notify_count} lần
+                          </span>
+                        )}
                       </td>
                     </tr>,
                     isOpen && (
                       <tr key={`${bKey}-detail`} className="expand-row">
                         <td colSpan={10} className="bg-primary-50/50 p-0">
-                          <div className="px-8 py-3">
-                            <table className="w-full text-xs border-collapse">
+                          <div className="px-8 py-3 overflow-x-auto">
+                            <table className="w-full text-xs border-collapse min-w-[560px]">
                               <thead>
                                 <tr className="bg-white">
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">STT</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Tracking #</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Sản phẩm</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Cân nặng</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phí đối tác</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phụ thu</th>
-                                  <th className="px-3 py-2 text-left text-gray-500 font-semibold">Phí VC</th>
+                                  <th className="px-3 py-2 text-left text-ink-400 font-semibold">STT</th>
+                                  <th className="px-3 py-2 text-left text-ink-400 font-semibold">Tracking #</th>
+                                  <th className="px-3 py-2 text-left text-ink-400 font-semibold">Sản phẩm</th>
+                                  <th className="px-3 py-2 text-right text-ink-400 font-semibold">Cân nặng</th>
+                                  <th className="px-3 py-2 text-right text-ink-400 font-semibold">Phí đối tác</th>
+                                  <th className="px-3 py-2 text-right text-ink-400 font-semibold">Phụ thu</th>
+                                  <th className="px-3 py-2 text-right text-ink-400 font-semibold">Phí VC</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {(batch.details || []).map((s, idx) => {
                                   const vcFee = s.phi_vc || (s.weight * s.customer_rate + s.surcharge);
                                   return (
-                                    <tr key={s.id} className="border-t border-gray-100 hover:bg-white">
-                                      <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
+                                    <tr key={s.id} className="border-t border-greige-100 hover:bg-white">
+                                      <td className="px-3 py-2 text-ink-400">{idx + 1}</td>
                                       <td className="px-3 py-2 font-mono">{s.tracking_no || '–'}</td>
-                                      <td className="px-3 py-2 max-w-[160px] truncate">{s.product || '–'}</td>
-                                      <td className="px-3 py-2">{s.weight} kg</td>
-                                      <td className="px-3 py-2">{formatCurrency(s.weight * s.partner_rate)}</td>
-                                      <td className="px-3 py-2">{formatCurrency(s.surcharge)}</td>
-                                      <td className="px-3 py-2 font-semibold text-primary-700">{formatCurrency(vcFee)}</td>
+                                      <td className="px-3 py-2 max-w-[160px] truncate" title={s.product}>{s.product || '–'}</td>
+                                      <td className="px-3 py-2 text-right tabular-nums">{s.weight} kg</td>
+                                      <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(s.weight * s.partner_rate)}</td>
+                                      <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(s.surcharge)}</td>
+                                      <td className="px-3 py-2 text-right font-semibold text-primary-700 tabular-nums">{formatCurrency(vcFee)}</td>
                                     </tr>
                                   );
                                 })}
@@ -487,7 +580,6 @@ export default function Shipping() {
             onRendered={() => {
               toast('Đã tải xuống ảnh thông báo', 'success');
               setNotifData(null);
-              // Refresh to update notified_at status
               fetchNotifyBatches();
             }}
           />
@@ -496,4 +588,3 @@ export default function Shipping() {
     </div>
   );
 }
-

@@ -115,6 +115,16 @@ db.exec(`
   );
 `);
 
+// Log mỗi lần báo khách (giữ lịch sử nhiều lần, không đè như batch_info.notified_at)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS notification_log (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_date  TEXT    NOT NULL,
+    customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    notified_at DATETIME NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
 // ─── Idempotent migrations ────────────────────────────────────────────────────
 try { db.exec('ALTER TABLE customers ADD COLUMN email TEXT'); } catch { /* already exists */ }
 try { db.exec('ALTER TABLE customers ADD COLUMN warehouse TEXT'); } catch { /* already exists */ }

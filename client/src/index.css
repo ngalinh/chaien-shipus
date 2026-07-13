@@ -13,6 +13,22 @@
     @apply bg-greige-200 text-ink-900;
     font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   }
+
+  /* Visible keyboard focus on every interactive element (accessibility) */
+  button:focus-visible,
+  a:focus-visible,
+  [role='button']:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
@@ -22,7 +38,6 @@
 
   .data-table {
     @apply min-w-full;
-    table-layout: fixed;
   }
 
   .data-table thead {
@@ -30,7 +45,7 @@
   }
 
   .data-table th {
-    @apply px-4 pt-4 pb-3 text-left text-[11px] font-bold text-ink-400 uppercase tracking-wider whitespace-nowrap;
+    @apply px-4 pt-4 pb-3 text-left text-xs font-bold text-ink-400 uppercase tracking-wide whitespace-nowrap;
   }
 
   .data-table td {
