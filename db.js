@@ -125,6 +125,20 @@ db.exec(`
   );
 `);
 
+// Backfill 1 dòng log cho các lô đã báo trước khi có notification_log (idempotent)
+try {
+  db.exec(`
+    INSERT INTO notification_log (batch_date, customer_id, notified_at)
+    SELECT bi.batch_date, bi.customer_id, bi.notified_at
+    FROM batch_info bi
+    WHERE bi.notified_at IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM notification_log nl
+        WHERE nl.batch_date = bi.batch_date AND nl.customer_id = bi.customer_id
+      );
+  `);
+} catch { /* ignore */ }
+
 // ─── Idempotent migrations ────────────────────────────────────────────────────
 try { db.exec('ALTER TABLE customers ADD COLUMN email TEXT'); } catch { /* already exists */ }
 try { db.exec('ALTER TABLE customers ADD COLUMN warehouse TEXT'); } catch { /* already exists */ }
