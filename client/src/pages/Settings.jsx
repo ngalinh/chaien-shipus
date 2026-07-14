@@ -216,7 +216,7 @@ function ImportCustomersSection() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FileSpreadsheet className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-gray-900">Import danh sách khách hàng</h2>
+          <h2 className="text-base font-semibold text-ink-900">Import danh sách khách hàng</h2>
         </div>
         <button onClick={downloadTemplate} className="btn-secondary text-sm py-1.5">
           <Download className="w-4 h-4" />
@@ -413,7 +413,7 @@ function RatesSection({ rates, setRates }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <Truck className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-gray-900">Cước vận chuyển – Khách hàng</h2>
+          <h2 className="text-base font-semibold text-ink-900">Cước vận chuyển – Khách hàng</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
@@ -467,7 +467,7 @@ function RatesSection({ rates, setRates }) {
             )}
             {rates.length === 0 && !adding ? (
               <tr>
-                <td colSpan={3} className="text-center py-6 text-gray-400">Chưa có gói cước nào</td>
+                <td colSpan={3} className="text-center py-6 text-ink-400">Chưa có gói cước nào</td>
               </tr>
             ) : (
               rates.map((r) => (
@@ -606,7 +606,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <Warehouse className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-gray-900">Cước vận chuyển – Đối tác (Kho)</h2>
+          <h2 className="text-base font-semibold text-ink-900">Cước vận chuyển – Đối tác (Kho)</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
@@ -678,7 +678,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
             )}
             {warehouses.length === 0 && !adding ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-gray-400">Chưa có kho nào</td>
+                <td colSpan={5} className="text-center py-6 text-ink-400">Chưa có kho nào</td>
               </tr>
             ) : (
               warehouses.map((w) => (
@@ -842,7 +842,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-gray-900">Tài khoản ngân hàng</h2>
+          <h2 className="text-base font-semibold text-ink-900">Tài khoản ngân hàng</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
@@ -911,7 +911,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
             )}
             {bankAccounts.length === 0 && !adding ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-gray-400">Chưa có tài khoản nào</td>
+                <td colSpan={5} className="text-center py-6 text-ink-400">Chưa có tài khoản nào</td>
               </tr>
             ) : (
               bankAccounts.map((b) => (
@@ -1061,7 +1061,7 @@ function CompanySection({ company, setCompany }) {
     <section className="card p-5">
       <div className="flex items-center gap-2 mb-5">
         <Building2 className="w-5 h-5 text-primary-600" />
-        <h2 className="text-base font-semibold text-gray-900">Thông tin công ty</h2>
+        <h2 className="text-base font-semibold text-ink-900">Thông tin công ty</h2>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4 max-w-md">

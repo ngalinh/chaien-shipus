@@ -125,6 +125,7 @@ export default function Layout() {
         <header className="flex items-center gap-4 bg-white rounded-card shadow-card px-4 lg:px-5 py-3 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
+            aria-label="Mở menu"
             className="lg:hidden p-2 rounded-full text-ink-500 hover:bg-greige-100"
           >
             <Menu className="w-5 h-5" />
@@ -149,7 +150,7 @@ export default function Layout() {
           </div>
 
           <div className="ml-auto flex items-center gap-3">
-            <button className="relative w-10 h-10 rounded-full bg-white shadow-pill text-ink-700 grid place-items-center hover:bg-greige-50">
+            <button aria-label="Thông báo" className="relative w-10 h-10 rounded-full bg-white shadow-pill text-ink-700 grid place-items-center hover:bg-greige-50">
               <Bell className="w-[18px] h-[18px]" />
               <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#C2453F] border-2 border-white" />
             </button>

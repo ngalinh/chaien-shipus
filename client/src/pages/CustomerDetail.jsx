@@ -301,12 +301,12 @@ export default function CustomerDetail() {
       {tab === 'batches' && (
         <div>
           {batchesLoading ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-ink-400">
               <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               Đang tải...
             </div>
           ) : batches.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">Chưa có hàng về</div>
+            <div className="text-center py-12 text-ink-400">Chưa có hàng về</div>
           ) : (
             <div className="table-container">
               <table className="data-table">
@@ -337,7 +337,7 @@ export default function CustomerDetail() {
                         className="cursor-pointer hover:bg-primary-50"
                         onClick={() => toggleBatch(bKey)}
                       >
-                        <td className="text-center text-gray-400">
+                        <td className="text-center text-ink-400">
                           {isOpen ? <ChevronDown className="w-4 h-4 inline" /> : <ChevronRight className="w-4 h-4 inline" />}
                         </td>
                         <td className="font-medium">{formatDate(batch.batch_date)}</td>
@@ -378,11 +378,11 @@ export default function CustomerDetail() {
                       isOpen && (
                         <tr key={`${bKey}-expand`} className="expand-row">
                           <td colSpan={9} className="bg-primary-50/50 p-0">
-                            <div className="px-6 py-3">
-                              <table className="w-full text-sm border-collapse">
+                            <div className="px-6 py-3 overflow-x-auto">
+                              <table className="min-w-[640px] w-full text-sm border-collapse">
                                 <thead>
                                   <tr className="bg-white">
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold w-8">
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold w-8">
                                       <input
                                         type="checkbox"
                                         checked={allSel}
@@ -390,21 +390,21 @@ export default function CustomerDetail() {
                                         className="rounded"
                                       />
                                     </th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold w-8">STT</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Tracking #</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Sản phẩm</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Cân nặng</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Phí ship</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Phụ thu</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Phí VC</th>
-                                    <th className="px-3 py-2 text-left text-xs text-gray-500 font-semibold">Ghi chú</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold w-8">STT</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Tracking #</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Sản phẩm</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Cân nặng</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phí ship</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phụ thu</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phí VC</th>
+                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Ghi chú</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {details.map((s, idx) => {
                                     const vcFee = s.phi_vc || (s.weight * s.customer_rate + s.surcharge);
                                     return (
-                                      <tr key={s.id} className="border-t border-gray-100 hover:bg-white">
+                                      <tr key={s.id} className="border-t border-greige-100 hover:bg-white">
                                         <td className="px-3 py-2">
                                           <input
                                             type="checkbox"
@@ -413,14 +413,14 @@ export default function CustomerDetail() {
                                             className="rounded"
                                           />
                                         </td>
-                                        <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
+                                        <td className="px-3 py-2 text-ink-400">{idx + 1}</td>
                                         <td className="px-3 py-2 font-mono text-xs">{s.tracking_no || '–'}</td>
                                         <td className="px-3 py-2 max-w-[160px] truncate" title={s.product}>{s.product || '–'}</td>
                                         <td className="px-3 py-2">{s.weight} kg</td>
                                         <td className="px-3 py-2">{formatCurrency(s.weight * s.partner_rate)}</td>
                                         <td className="px-3 py-2">{formatCurrency(s.surcharge)}</td>
                                         <td className="px-3 py-2 font-semibold text-primary-700">{formatCurrency(vcFee)}</td>
-                                        <td className="px-3 py-2 text-gray-500 text-xs">{s.notes || '–'}</td>
+                                        <td className="px-3 py-2 text-ink-400 text-xs">{s.notes || '–'}</td>
                                       </tr>
                                     );
                                   })}
@@ -443,12 +443,12 @@ export default function CustomerDetail() {
       {tab === 'transactions' && (
         <div>
           {txLoading ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-ink-400">
               <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
               Đang tải...
             </div>
           ) : txList.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">Chưa có giao dịch nào</div>
+            <div className="text-center py-12 text-ink-400">Chưa có giao dịch nào</div>
           ) : (
             <>
               {/* Summary */}
