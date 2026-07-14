@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -46,6 +47,9 @@ export default function Shipping() {
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(todayInputValue);
+
+  const [searchParams] = useSearchParams();
+  const q = (searchParams.get('q') || '').trim().toLowerCase();
 
   useEffect(() => {
     fetchSettings();
@@ -188,11 +192,27 @@ export default function Shipping() {
     fetchShipments();
   }
 
+  // Lọc theo ô tìm kiếm (mã KH / tên KH / tracking #)
+  const matchShipment = (s) =>
+    !q ||
+    cleanCode(s.customer_code).toLowerCase().includes(q) ||
+    (s.customer_name || '').toLowerCase().includes(q) ||
+    (s.tracking_no || '').toLowerCase().includes(q);
+
+  const filteredShipments = shipments.filter(matchShipment);
+
+  const filteredBatches = notifyBatches.filter((b) =>
+    !q ||
+    cleanCode(b.customer_code).toLowerCase().includes(q) ||
+    (b.customer_name || '').toLowerCase().includes(q) ||
+    (b.van_don_code || '').toLowerCase().includes(q) ||
+    (b.details || []).some((d) => (d.tracking_no || '').toLowerCase().includes(q)));
+
   // Gom shipments theo ngày (đợt hàng về), mới nhất trước
   const dateGroups = [];
   {
     const map = new Map();
-    for (const s of shipments) {
+    for (const s of filteredShipments) {
       if (!map.has(s.import_date)) map.set(s.import_date, []);
       map.get(s.import_date).push(s);
     }
@@ -290,8 +310,8 @@ export default function Shipping() {
         ) : dateGroups.length === 0 ? (
           <div className="table-container p-14 text-center">
             <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-            <p className="text-ink-500 font-medium">Chưa có hàng về trong khoảng này</p>
-            <p className="text-ink-400 text-sm mt-1">Nhấn "Nhập kho" để thêm đợt hàng mới.</p>
+            <p className="text-ink-500 font-medium">{q ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
+            <p className="text-ink-400 text-sm mt-1">{q ? 'Thử từ khóa khác hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -333,14 +353,18 @@ export default function Shipping() {
                             return (
                               <tr key={s.id} className={isEditing ? 'bg-primary-50/40' : ''}>
                                 <td>
-                                  <div className="max-w-[160px]">
-                                    <span className="font-mono text-sm text-primary-700 truncate block" title={cleanCode(s.customer_code)}>
+                                  <Link
+                                    to={`/customers/${s.customer_id}`}
+                                    className="block max-w-[160px] group"
+                                    title={`Xem hồ sơ ${cleanCode(s.customer_code)}`}
+                                  >
+                                    <span className="font-mono text-sm text-primary-700 group-hover:underline truncate block">
                                       {cleanCode(s.customer_code)}
                                     </span>
                                     {s.customer_name && (
-                                      <span className="text-xs text-ink-400 truncate block" title={s.customer_name}>{s.customer_name}</span>
+                                      <span className="text-xs text-ink-400 truncate block">{s.customer_name}</span>
                                     )}
-                                  </div>
+                                  </Link>
                                 </td>
                                 <td>{s.warehouse_code || '–'}</td>
                                 <td>
@@ -458,15 +482,15 @@ export default function Shipping() {
                     </div>
                   </td>
                 </tr>
-              ) : notifyBatches.length === 0 ? (
+              ) : filteredBatches.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="text-center py-14 text-ink-400">
                     <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-                    Chưa có lô hàng nào trong khoảng này
+                    {q ? 'Không tìm thấy lô hàng khớp' : 'Chưa có lô hàng nào trong khoảng này'}
                   </td>
                 </tr>
               ) : (
-                notifyBatches.map((batch) => {
+                filteredBatches.map((batch) => {
                   const bKey = `${batch.customer_id}-${batch.batch_date}`;
                   const isOpen = expandedBatch === bKey;
                   return [
@@ -479,11 +503,15 @@ export default function Shipping() {
                         {isOpen ? <ChevronDown className="w-4 h-4 inline" /> : <ChevronRight className="w-4 h-4 inline" />}
                       </td>
                       <td className="font-medium whitespace-nowrap">{formatDate(batch.batch_date)}</td>
-                      <td>
-                        <div className="max-w-[160px]">
-                          <span className="font-mono text-primary-700 truncate block" title={cleanCode(batch.customer_code)}>{cleanCode(batch.customer_code)}</span>
-                          <span className="text-xs text-ink-400 truncate block" title={batch.customer_name}>{batch.customer_name}</span>
-                        </div>
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <Link
+                          to={`/customers/${batch.customer_id}`}
+                          className="block max-w-[160px] group"
+                          title={`Xem hồ sơ ${cleanCode(batch.customer_code)}`}
+                        >
+                          <span className="font-mono text-primary-700 group-hover:underline truncate block">{cleanCode(batch.customer_code)}</span>
+                          <span className="text-xs text-ink-400 truncate block">{batch.customer_name}</span>
+                        </Link>
                       </td>
                       <td className="text-right tabular-nums">{batch.tracking_count}</td>
                       <td className="text-right tabular-nums">{Number(batch.total_weight || 0).toFixed(2)} kg</td>

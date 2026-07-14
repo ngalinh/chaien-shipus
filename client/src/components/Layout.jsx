@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, NavLink, Link, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import {
   LayoutDashboard,
   Users,
@@ -43,13 +44,19 @@ function Wordmark() {
 function Sidebar({ onNavigate }) {
   return (
     <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 pt-6 pb-4">
+      {/* Logo → Dashboard */}
+      <NavLink
+        to="/"
+        end
+        onClick={onNavigate}
+        aria-label="Về Dashboard"
+        className="flex items-center gap-3 px-5 pt-6 pb-4 rounded-tile hover:opacity-80 transition-opacity"
+      >
         <span className="w-11 h-11 rounded-tile bg-primary-100 grid place-items-center flex-shrink-0">
           <Mark size={26} />
         </span>
         <Wordmark />
-      </div>
+      </NavLink>
 
       {/* Navigation */}
       <nav className="flex-1 px-3.5 py-2 space-y-1 overflow-y-auto">
@@ -88,6 +95,24 @@ function Sidebar({ onNavigate }) {
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [username, setUsername] = useState('Admin');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
+
+  useEffect(() => {
+    axios.get('/api/me')
+      .then((res) => { if (res.data?.username) setUsername(res.data.username); })
+      .catch(() => { /* keep default */ });
+  }, []);
+
+  function handleSearch(value) {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value) next.set('q', value);
+      else next.delete('q');
+      return next;
+    }, { replace: true });
+  }
 
   return (
     <div className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5">
@@ -135,19 +160,30 @@ export default function Layout() {
           <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md bg-greige-50 rounded-full px-4 py-2.5">
             <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
             <input
-              placeholder="Tìm kiếm…"
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Tìm theo mã KH, tracking #…"
               className="border-none outline-none bg-transparent text-sm w-full text-ink-900 placeholder-ink-400"
             />
+            {query && (
+              <button
+                onClick={() => handleSearch('')}
+                aria-label="Xóa tìm kiếm"
+                className="text-ink-400 hover:text-ink-900 flex-shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
-          {/* Mobile wordmark */}
-          <div className="flex items-center gap-2 sm:hidden">
+          {/* Mobile wordmark → Dashboard */}
+          <Link to="/" aria-label="Về Dashboard" className="flex items-center gap-2 sm:hidden">
             <Mark size={22} />
             <span className="text-[15px] font-extrabold tracking-wide">
               <span className="text-ink-900">SHIP</span>
               <span className="text-primary-500">US</span>
             </span>
-          </div>
+          </Link>
 
           <div className="ml-auto flex items-center gap-3">
             <button aria-label="Thông báo" className="relative w-10 h-10 rounded-full bg-white shadow-pill text-ink-700 grid place-items-center hover:bg-greige-50">
@@ -155,11 +191,11 @@ export default function Layout() {
               <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#C2453F] border-2 border-white" />
             </button>
             <div className="flex items-center gap-2.5 pl-1">
-              <span className="w-10 h-10 rounded-full bg-ink-900 text-white grid place-items-center font-bold">
-                A
+              <span className="w-10 h-10 rounded-full bg-ink-900 text-white grid place-items-center font-bold uppercase">
+                {username.charAt(0) || 'A'}
               </span>
               <div className="hidden sm:block leading-tight">
-                <div className="text-sm font-bold text-ink-900">Admin</div>
+                <div className="text-sm font-bold text-ink-900">{username}</div>
                 <div className="text-xs text-ink-400 whitespace-nowrap">Quản trị viên</div>
               </div>
             </div>
