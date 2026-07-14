@@ -100,7 +100,7 @@ export default function Layout() {
   const query = searchParams.get('q') || '';
 
   useEffect(() => {
-    axios.get('/api/me')
+    axios.get('/api/settings/me')
       .then((res) => { if (res.data?.username) setUsername(res.data.username); })
       .catch(() => { /* keep default */ });
   }, []);
