@@ -136,6 +136,28 @@ export function matchWarehouse(code, warehouses) {
   return null;
 }
 
+// Nhãn trạng thái thanh toán từng lô (paid_status từ backend, FIFO theo sổ cái khách)
+export const PAID_FILTERS = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'unpaid', label: 'Chưa TT' },
+  { value: 'partial', label: 'TT một phần' },
+  { value: 'paid', label: 'Đã TT' },
+];
+
+export function PaidBadge({ status }) {
+  const map = {
+    paid:    { label: 'Đã TT',       cls: 'bg-green-100 text-green-700' },
+    partial: { label: 'TT một phần', cls: 'bg-amber-100 text-amber-700' },
+    unpaid:  { label: 'Chưa TT',     cls: 'bg-red-100 text-[#C2453F]' },
+  };
+  const s = map[status] || map.unpaid;
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${s.cls}`}>
+      {s.label}
+    </span>
+  );
+}
+
 export function StatusBadge({ status }) {
   const map = {
     active1: { label: 'Active 1m', cls: 'badge-active' },

@@ -2,6 +2,7 @@
 
 const express = require('express');
 const db      = require('../db');
+const { computePaidStatus } = require('../lib/paidStatus');
 
 const router = express.Router();
 
@@ -76,6 +77,13 @@ router.get('/', (req, res) => {
       ${where}
       ORDER BY s.import_date DESC, s.id DESC
     `).all(...params);
+
+    // Trạng thái thanh toán theo lô (import_date + customer_id) — FIFO trên sổ cái khách
+    const paidMap = computePaidStatus(rows.map((r) => r.customer_id));
+    for (const r of rows) {
+      const info = paidMap.get(`${r.import_date}|${r.customer_id}`);
+      r.paid_status = info ? info.status : 'unpaid';
+    }
 
     res.json(rows);
   } catch (err) {
@@ -312,10 +320,17 @@ router.get('/bao-khach', (req, res) => {
       ORDER BY s.id
     `);
 
-    const result = batches.map((b) => ({
-      ...b,
-      details: detailStmt.all(b.batch_date, b.customer_id),
-    }));
+    const paidMap = computePaidStatus(batches.map((b) => b.customer_id));
+    const result = batches.map((b) => {
+      const info = paidMap.get(`${b.batch_date}|${b.customer_id}`);
+      return {
+        ...b,
+        paid_status: info ? info.status : 'unpaid',
+        paid_amount: info ? info.paid_amount : 0,
+        remaining_amount: info ? info.remaining_amount : Math.round(b.total_vc_fee || 0),
+        details: detailStmt.all(b.batch_date, b.customer_id),
+      };
+    });
 
     res.json(result);
   } catch (err) {

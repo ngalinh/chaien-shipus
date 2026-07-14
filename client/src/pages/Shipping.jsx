@@ -3,12 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
-  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen,
+  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CalendarDays, Users,
 } from 'lucide-react';
-import { formatCurrency, formatDate, todayInputValue } from '../utils.jsx';
+import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
-import NotificationTemplate from '../components/NotificationTemplate.jsx';
+import NotificationModal from '../components/NotificationModal.jsx';
 import VanDonInlineEdit from '../components/VanDonInlineEdit.jsx';
 
 const PERIODS = [
@@ -50,6 +50,9 @@ export default function Shipping() {
 
   const [searchParams] = useSearchParams();
   const q = (searchParams.get('q') || '').trim().toLowerCase();
+
+  const [groupMode, setGroupMode] = useState('date'); // 'date' | 'customer'
+  const [ttFilter, setTtFilter] = useState('all');    // all | unpaid | partial | paid
 
   useEffect(() => {
     fetchSettings();
@@ -192,12 +195,13 @@ export default function Shipping() {
     fetchShipments();
   }
 
-  // Lọc theo ô tìm kiếm (mã KH / tên KH / tracking #)
+  // Lọc theo ô tìm kiếm (mã KH / tên KH / tracking #) + tình trạng thanh toán
   const matchShipment = (s) =>
-    !q ||
-    cleanCode(s.customer_code).toLowerCase().includes(q) ||
-    (s.customer_name || '').toLowerCase().includes(q) ||
-    (s.tracking_no || '').toLowerCase().includes(q);
+    (!q ||
+      cleanCode(s.customer_code).toLowerCase().includes(q) ||
+      (s.customer_name || '').toLowerCase().includes(q) ||
+      (s.tracking_no || '').toLowerCase().includes(q)) &&
+    (ttFilter === 'all' || (s.paid_status || 'unpaid') === ttFilter);
 
   const filteredShipments = shipments.filter(matchShipment);
 
@@ -208,21 +212,24 @@ export default function Shipping() {
     (b.van_don_code || '').toLowerCase().includes(q) ||
     (b.details || []).some((d) => (d.tracking_no || '').toLowerCase().includes(q)));
 
-  // Gom shipments theo ngày (đợt hàng về), mới nhất trước
-  const dateGroups = [];
+  // Gom shipments theo Ngày (đợt hàng về) hoặc theo Khách hàng
+  const groups = [];
   {
     const map = new Map();
     for (const s of filteredShipments) {
-      if (!map.has(s.import_date)) map.set(s.import_date, []);
-      map.get(s.import_date).push(s);
+      const key = groupMode === 'customer' ? s.customer_id : s.import_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
     }
-    for (const [date, rows] of map) {
-      dateGroups.push({
-        date,
+    for (const [key, rows] of map) {
+      groups.push({
+        key,
         rows,
         count: rows.length,
         weight: rows.reduce((a, s) => a + (s.weight || 0), 0),
         partnerFee: rows.reduce((a, s) => a + (s.weight || 0) * (s.partner_rate || 0), 0),
+        title: groupMode === 'customer' ? (cleanCode(rows[0].customer_code) || `#${key}`) : `Đợt ${formatDate(key)}`,
+        subtitle: groupMode === 'customer' ? (rows[0].customer_name || '') : '',
       });
     }
   }
@@ -298,7 +305,42 @@ export default function Shipping() {
         )}
       </div>
 
-      {/* Tab: Hàng về — gom theo đợt (ngày) */}
+      {/* Toolbar: nhóm theo + lọc tình trạng TT (chỉ tab Hàng về) */}
+      {tab === 'incoming' && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-semibold text-ink-500">Nhóm theo:</span>
+            <div className="inline-flex gap-1 p-1 bg-white rounded-full shadow-pill">
+              <button
+                onClick={() => setGroupMode('date')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full transition-colors ${groupMode === 'date' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+              >
+                <CalendarDays className="w-4 h-4" /> Ngày
+              </button>
+              <button
+                onClick={() => setGroupMode('customer')}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full transition-colors ${groupMode === 'customer' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+              >
+                <Users className="w-4 h-4" /> Khách hàng
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-semibold text-ink-500">Tình trạng TT:</span>
+            <select
+              value={ttFilter}
+              onChange={(e) => setTtFilter(e.target.value)}
+              className="input-field w-auto py-1.5 text-sm"
+            >
+              {PAID_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Hàng về — gom theo đợt (ngày) hoặc theo khách */}
       {tab === 'incoming' && (
         loading ? (
           <div className="table-container p-12 text-center text-ink-400">
@@ -307,25 +349,26 @@ export default function Shipping() {
               Đang tải...
             </div>
           </div>
-        ) : dateGroups.length === 0 ? (
+        ) : groups.length === 0 ? (
           <div className="table-container p-14 text-center">
             <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-            <p className="text-ink-500 font-medium">{q ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
-            <p className="text-ink-400 text-sm mt-1">{q ? 'Thử từ khóa khác hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
+            <p className="text-ink-500 font-medium">{(q || ttFilter !== 'all') ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
+            <p className="text-ink-400 text-sm mt-1">{(q || ttFilter !== 'all') ? 'Thử đổi bộ lọc hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {dateGroups.map((g) => {
-              const isCollapsed = collapsedDates[g.date];
+            {groups.map((g) => {
+              const isCollapsed = collapsedDates[g.key];
               return (
-                <div key={g.date} className="card overflow-hidden">
-                  {/* Đợt header */}
+                <div key={g.key} className="card overflow-hidden">
+                  {/* Group header */}
                   <button
-                    onClick={() => setCollapsedDates((p) => ({ ...p, [g.date]: !p[g.date] }))}
+                    onClick={() => setCollapsedDates((p) => ({ ...p, [g.key]: !p[g.key] }))}
                     className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors text-left"
                   >
                     {isCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400" /> : <ChevronDown className="w-4 h-4 text-ink-400" />}
-                    <span className="text-[15px] font-bold text-ink-900">Đợt {formatDate(g.date)}</span>
+                    <span className="text-[15px] font-bold text-ink-900">{g.title}</span>
+                    {g.subtitle && <span className="text-sm text-ink-400">· {g.subtitle}</span>}
                     <span className="text-sm text-ink-400">
                       {g.count} kiện · {g.weight.toFixed(2)} kg · phí đối tác {formatCurrency(g.partnerFee)}
                     </span>
@@ -343,6 +386,7 @@ export default function Shipping() {
                             <th className="text-right">Cân nặng</th>
                             <th className="text-right">Phụ thu</th>
                             <th className="text-right">Phí trả đối tác</th>
+                            <th>Tình trạng TT</th>
                             <th>Ghi chú</th>
                             <th className="text-right">Thao tác</th>
                           </tr>
@@ -404,6 +448,7 @@ export default function Shipping() {
                                   )}
                                 </td>
                                 <td className="text-right tabular-nums">{formatCurrency(s.weight * s.partner_rate)}</td>
+                                <td><PaidBadge status={s.paid_status} /></td>
                                 <td>
                                   {isEditing ? (
                                     <input value={editValues.notes}
@@ -593,25 +638,13 @@ export default function Shipping() {
         <ImportModal onClose={() => setImportModal(false)} onImported={handleImported} />
       )}
 
-      {/* Notification generator */}
+      {/* Notification popup: xem trước + Copy ảnh / Tải về */}
       {notifData && (
-        <div className="fixed -left-[9999px] top-0 z-[-1]">
-          <NotificationTemplate
-            customerName={notifData.customerName}
-            date={notifData.date}
-            items={notifData.items}
-            companyName={settings.company?.company_name || 'ShipUS'}
-            companyLogo={settings.company?.logo_path || undefined}
-            hotline={settings.company?.hotline}
-            autoDownload={true}
-            fileName={notifData.fileName}
-            onRendered={() => {
-              toast('Đã tải xuống ảnh thông báo', 'success');
-              setNotifData(null);
-              fetchNotifyBatches();
-            }}
-          />
-        </div>
+        <NotificationModal
+          notifData={notifData}
+          company={settings.company}
+          onClose={() => { setNotifData(null); fetchNotifyBatches(); }}
+        />
       )}
     </div>
   );
