@@ -9,6 +9,23 @@ const { imageFileFilter } = require('../lib/imageUpload');
 
 const router = express.Router();
 
+// Tên tài khoản đang đăng nhập (từ HTTP Basic Auth). 'Admin' khi dev/không bật auth.
+// Đặt dưới /api/settings vì nginx (dashbroad.conf) chỉ whitelist các prefix /api/<resource>
+// đã có sẵn tới :5000; endpoint /api mới ở top-level sẽ rơi vào catch-all sang backend khác.
+router.get('/me', (req, res) => {
+  const AUTH_USER = process.env.AUTH_USER;
+  let username = 'Admin';
+  if (AUTH_USER) {
+    const [scheme, encoded] = (req.headers.authorization || '').split(' ');
+    if (scheme === 'Basic' && encoded) {
+      username = Buffer.from(encoded, 'base64').toString().split(':')[0] || AUTH_USER;
+    } else {
+      username = AUTH_USER;
+    }
+  }
+  res.json({ username });
+});
+
 // ─── Multer config for company logo ──────────────────────────────────────────
 const logoDir = path.join(__dirname, '..', 'uploads', 'logo');
 if (!fs.existsSync(logoDir)) fs.mkdirSync(logoDir, { recursive: true });

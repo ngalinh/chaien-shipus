@@ -95,20 +95,6 @@ app.use('/api', (_req, res, next) => {
   next();
 });
 
-// Current logged-in account (from Basic Auth); falls back to 'Admin' in local dev.
-app.get('/api/me', (req, res) => {
-  let username = 'Admin';
-  if (AUTH_USER) {
-    const [scheme, encoded] = (req.headers.authorization || '').split(' ');
-    if (scheme === 'Basic' && encoded) {
-      username = Buffer.from(encoded, 'base64').toString().split(':')[0] || AUTH_USER;
-    } else {
-      username = AUTH_USER;
-    }
-  }
-  res.json({ username });
-});
-
 app.use('/api/settings',     require('./routes/settings'));
 app.use('/api/customers',    require('./routes/customers'));
 app.use('/api/shipments',    require('./routes/shipments'));
