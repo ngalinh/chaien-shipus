@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, Link, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import {
   LayoutDashboard,
   Users,
@@ -100,9 +99,16 @@ export default function Layout() {
   const query = searchParams.get('q') || '';
 
   useEffect(() => {
-    axios.get('/api/settings/me')
-      .then((res) => { if (res.data?.username) setUsername(res.data.username); })
-      .catch(() => { /* keep default */ });
+    // Tên user lấy từ phiên đăng nhập chung của nền tảng BASSO: localStorage `ai_chat_user`
+    // (dùng chung mọi bot /b/{id}/). Chaien cùng origin với ai.basso.vn nên đọc trực tiếp.
+    try {
+      const raw = localStorage.getItem('ai_chat_user') || sessionStorage.getItem('ai_chat_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        const display = u?.name || u?.username;
+        if (display) setUsername(display);
+      }
+    } catch { /* keep default 'Admin' */ }
   }, []);
 
   function handleSearch(value) {
