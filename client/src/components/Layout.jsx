@@ -4,18 +4,21 @@ import {
   LayoutDashboard,
   Users,
   Truck,
+  Receipt,
   Settings,
   Menu,
   X,
   Bell,
   ChevronRight,
+  ExternalLink,
   Search,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/customers', label: 'Khách hàng', icon: Users },
   { to: '/shipping', label: 'Vận chuyển', icon: Truck },
+  { to: '/customers', label: 'Khách hàng', icon: Users },
+  { to: '/transactions', label: 'Giao dịch', icon: Receipt },
   { to: '/settings', label: 'Cài đặt', icon: Settings },
 ];
 
@@ -85,8 +88,16 @@ function Sidebar({ onNavigate }) {
       </nav>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-greige-100">
-        <p className="text-ink-400 text-xs font-semibold">ShipUS v1.0</p>
+      <div className="px-3.5 py-4 border-t border-greige-100 space-y-1.5">
+        <a
+          href="https://ai.basso.vn/admin/dashboard.html"
+          onClick={onNavigate}
+          className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-[14.5px] font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 transition-colors"
+        >
+          <ExternalLink className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
+          <span className="flex-1">AI Basso</span>
+        </a>
+        <p className="text-ink-400 text-xs font-semibold px-2 pt-1">ShipUS v1.0</p>
       </div>
     </div>
   );

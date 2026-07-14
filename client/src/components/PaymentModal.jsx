@@ -5,6 +5,7 @@ import { toast } from './Toast.jsx';
 import { formatCurrency, todayInputValue } from '../utils.jsx';
 
 export default function PaymentModal({ customerId, batchDate, amount, onClose, onSaved }) {
+  const needsCustomerPick = !customerId;
   const [form, setForm] = useState({
     payment_date: todayInputValue(),
     amount: amount || '',
@@ -12,10 +13,17 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
     content: '',
   });
   const [bankAccounts, setBankAccounts] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [pickedCustomerId, setPickedCustomerId] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchBankAccounts();
+    if (needsCustomerPick) {
+      axios.get('/api/customers')
+        .then((res) => setCustomers(res.data || []))
+        .catch(() => { /* ignore */ });
+    }
   }, []);
 
   useEffect(() => {
@@ -49,10 +57,15 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
       toast('Số tiền phải lớn hơn 0', 'warning');
       return;
     }
+    const cid = customerId || (pickedCustomerId ? parseInt(pickedCustomerId) : null);
+    if (!cid) {
+      toast('Vui lòng chọn khách hàng', 'warning');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
-        customer_id: customerId,
+        customer_id: cid,
         payment_date: form.payment_date,
         amount: amt,
         bank_account_id: form.bank_account_id ? parseInt(form.bank_account_id) : null,
@@ -85,6 +98,26 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
 
         <form onSubmit={handleSubmit}>
           <div className="modal-body">
+            {/* Customer picker — chỉ hiện khi mở từ ngữ cảnh không có khách sẵn */}
+            {needsCustomerPick && (
+              <div>
+                <label className="label">Khách hàng</label>
+                <select
+                  value={pickedCustomerId}
+                  onChange={(e) => setPickedCustomerId(e.target.value)}
+                  className="input-field"
+                  required
+                >
+                  <option value="">-- Chọn khách hàng --</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code}{c.name ? ` — ${c.name}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* Date */}
             <div>
               <label className="label">Ngày tháng</label>

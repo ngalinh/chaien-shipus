@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -10,14 +10,15 @@ import {
 import { formatCurrency, formatDate, StatusBadge, calcCustomerStatus } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
-import NotificationTemplate from '../components/NotificationTemplate.jsx';
+import NotificationModal from '../components/NotificationModal.jsx';
 import VanDonInlineEdit from '../components/VanDonInlineEdit.jsx';
 
 export default function CustomerDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState('batches');
+  const [tab, setTab] = useState(searchParams.get('tab') === 'transactions' ? 'transactions' : 'batches');
 
   // Hàng về tab state
   const [batches, setBatches] = useState([]);
@@ -514,24 +515,13 @@ export default function CustomerDetail() {
         />
       )}
 
-      {/* Notification image generator */}
+      {/* Notification popup: xem trước + Copy ảnh / Tải về */}
       {notifData && (
-        <div className="fixed -left-[9999px] top-0 z-[-1]">
-          <NotificationTemplate
-            customerName={notifData.customerName}
-            date={notifData.date}
-            items={notifData.items}
-            companyName={settings.company?.company_name || 'Chaien Shipus'}
-            companyLogo={settings.company?.logo_path || undefined}
-            hotline={settings.company?.hotline}
-            autoDownload={true}
-            fileName={notifData.fileName}
-            onRendered={() => {
-              toast('Đã tải xuống phiếu báo hàng về', 'success');
-              setNotifData(null);
-            }}
-          />
-        </div>
+        <NotificationModal
+          notifData={notifData}
+          company={settings.company}
+          onClose={() => setNotifData(null)}
+        />
       )}
 
       {/* Lightbox */}

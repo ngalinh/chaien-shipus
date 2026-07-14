@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import Customers from './pages/Customers.jsx';
 import CustomerDetail from './pages/CustomerDetail.jsx';
 import Shipping from './pages/Shipping.jsx';
+import Transactions from './pages/Transactions.jsx';
 import Settings from './pages/Settings.jsx';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/customers" element={<Customers />} />
         <Route path="/customers/:id" element={<CustomerDetail />} />
         <Route path="/shipping" element={<Shipping />} />
+        <Route path="/transactions" element={<Transactions />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
