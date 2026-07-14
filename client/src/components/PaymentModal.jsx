@@ -76,7 +76,7 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
         <div className="modal-header">
           <div className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Ghi nhận thanh toán</h2>
+            <h2 className="text-lg font-semibold text-ink-900">Ghi nhận thanh toán</h2>
           </div>
           <button onClick={onClose} className="btn-icon">
             <X className="w-5 h-5" />
@@ -106,9 +106,11 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
                 name="amount"
                 value={form.amount}
                 onChange={handleField}
+                onFocus={(e) => e.target.select()}
                 className="input-field"
                 min={0}
                 step={1000}
+                autoFocus
                 required
               />
               {form.amount > 0 && (

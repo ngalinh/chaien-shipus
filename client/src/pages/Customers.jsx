@@ -126,7 +126,7 @@ export default function Customers() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} className="text-center py-10 text-gray-400">
+                <td colSpan={10} className="text-center py-10 text-ink-400">
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                     Đang tải...
@@ -135,7 +135,7 @@ export default function Customers() {
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-center py-12 text-gray-400">
+                <td colSpan={10} className="text-center py-12 text-ink-400">
                   {search ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'}
                 </td>
               </tr>
@@ -167,8 +167,8 @@ export default function Customers() {
                         </span>
                       ) : '–'}
                     </td>
-                    <td><div className="max-w-[140px] truncate text-gray-500" title={c.notes}>{c.notes || '–'}</div></td>
-                    <td className="text-gray-500">{formatDate(c.created_at)}</td>
+                    <td><div className="max-w-[140px] truncate text-ink-400" title={c.notes}>{c.notes || '–'}</div></td>
+                    <td className="text-ink-400">{formatDate(c.created_at)}</td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
