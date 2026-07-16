@@ -239,8 +239,8 @@ export default function Shipping() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Vận chuyển</h1>
-          <p className="text-[15px] text-ink-500 mt-1.5">Quản lý hàng về và báo khách</p>
+          <h1 className="text-page font-bold text-ink-900 leading-tight">Vận chuyển</h1>
+          <p className="text-body-md text-ink-500 mt-1.5">Quản lý hàng về và báo khách</p>
         </div>
         {tab === 'incoming' && (
           <button onClick={() => setImportModal(true)} className="btn-primary">
@@ -277,11 +277,12 @@ export default function Shipping() {
             <button
               key={p.value}
               onClick={() => handlePeriodChange(p.value)}
-              className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-150 ${
+              className={`px-4 py-2 text-sm font-semibold rounded-full ${
                 period === p.value
                   ? 'bg-primary-500 text-white'
                   : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
               }`}
+              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
             >
               {p.label}
             </button>
@@ -313,13 +314,15 @@ export default function Shipping() {
             <div className="inline-flex gap-1 p-1 bg-white rounded-full shadow-pill">
               <button
                 onClick={() => setGroupMode('date')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full transition-colors ${groupMode === 'date' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'date' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
               >
                 <CalendarDays className="w-4 h-4" /> Ngày
               </button>
               <button
                 onClick={() => setGroupMode('customer')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full transition-colors ${groupMode === 'customer' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'customer' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
               >
                 <Users className="w-4 h-4" /> Khách hàng
               </button>
@@ -367,7 +370,7 @@ export default function Shipping() {
                     className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors text-left"
                   >
                     {isCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400" /> : <ChevronDown className="w-4 h-4 text-ink-400" />}
-                    <span className="text-[15px] font-bold text-ink-900">{g.title}</span>
+                    <span className="text-body-md font-bold text-ink-900">{g.title}</span>
                     {g.subtitle && <span className="text-sm text-ink-400">· {g.subtitle}</span>}
                     <span className="text-sm text-ink-400">
                       {g.count} kiện · {g.weight.toFixed(2)} kg · phí đối tác {formatCurrency(g.partnerFee)}
@@ -478,7 +481,7 @@ export default function Shipping() {
                                           <Edit2 className="w-4 h-4" />
                                         </button>
                                         <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} aria-label="Xóa"
-                                          className="btn-icon text-[#C2453F] hover:bg-[#F8E1E0] disabled:opacity-50" title="Xóa">
+                                          className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50" title="Xóa">
                                           <Trash2 className="w-4 h-4" />
                                         </button>
                                       </>
@@ -582,7 +585,7 @@ export default function Shipping() {
                           {batch.notified_at ? 'Gửi lại' : 'Thông báo'}
                         </button>
                         {batch.notify_count > 0 && (
-                          <span className="block text-[11px] text-ink-400 mt-1" title={`Lần cuối: ${batch.notified_at ? dayjs(batch.notified_at).format('DD/MM/YYYY HH:mm') : ''}`}>
+                          <span className="block text-2xs text-ink-400 mt-1" title={`Lần cuối: ${batch.notified_at ? dayjs(batch.notified_at).format('DD/MM/YYYY HH:mm') : ''}`}>
                             Đã báo {batch.notify_count} lần
                           </span>
                         )}

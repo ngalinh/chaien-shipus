@@ -56,8 +56,8 @@ export default function Transactions() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Giao dịch</h1>
-          <p className="text-[15px] text-ink-500 mt-1.5">Tổng hợp thanh toán & công nợ của khách</p>
+          <h1 className="text-page font-bold text-ink-900 leading-tight">Giao dịch</h1>
+          <p className="text-body-md text-ink-500 mt-1.5">Tổng hợp thanh toán & công nợ của khách</p>
         </div>
         <button onClick={() => setPayModal(true)} className="btn-primary">
           <Plus className="w-4 h-4" />
@@ -73,11 +73,11 @@ export default function Transactions() {
         </div>
         <div className="card p-4">
           <div className="text-sm text-ink-500">Tổng phí VC (chi phí)</div>
-          <div className="text-2xl font-bold text-[#C2453F] mt-1">{formatCurrency(totalDebit)}</div>
+          <div className="text-2xl font-bold text-danger-600 mt-1">{formatCurrency(totalDebit)}</div>
         </div>
         <div className="card p-4">
           <div className="text-sm text-ink-500">Chênh lệch (đã thu − phí)</div>
-          <div className={`text-2xl font-bold mt-1 ${balance >= 0 ? 'text-green-700' : 'text-orange-600'}`}>
+          <div className={`text-2xl font-bold mt-1 ${balance >= 0 ? 'text-success-700' : 'text-warning-500'}`}>
             {formatCurrency(balance)}
           </div>
         </div>
@@ -94,11 +94,12 @@ export default function Transactions() {
             <button
               key={p.value}
               onClick={() => setPeriod(p.value)}
-              className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-150 ${
+              className={`px-4 py-2 text-sm font-semibold rounded-full ${
                 period === p.value
                   ? 'bg-primary-500 text-white'
                   : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
               }`}
+              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
             >
               {p.label}
             </button>
@@ -150,8 +151,8 @@ export default function Transactions() {
                     {t.customer_name && <div className="text-xs text-ink-400 truncate max-w-[160px]">{t.customer_name}</div>}
                   </td>
                   <td className="max-w-[320px]"><span className="truncate block" title={t.description}>{t.description || '–'}</span></td>
-                  <td className="text-right tabular-nums text-green-700 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '–'}</td>
-                  <td className="text-right tabular-nums text-[#C2453F] font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '–'}</td>
+                  <td className="text-right tabular-nums text-success-700 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '–'}</td>
+                  <td className="text-right tabular-nums text-danger-600 font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '–'}</td>
                 </tr>
               ))
             )}

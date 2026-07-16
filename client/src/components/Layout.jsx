@@ -15,11 +15,11 @@ import {
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/shipping', label: 'Vận chuyển', icon: Truck },
-  { to: '/customers', label: 'Khách hàng', icon: Users },
-  { to: '/transactions', label: 'Giao dịch', icon: Receipt },
-  { to: '/settings', label: 'Cài đặt', icon: Settings },
+  { to: '/',             label: 'Dashboard',   icon: LayoutDashboard, end: true },
+  { to: '/shipping',     label: 'Vận chuyển',  icon: Truck },
+  { to: '/customers',    label: 'Khách hàng',  icon: Users },
+  { to: '/transactions', label: 'Giao dịch',   icon: Receipt },
+  { to: '/settings',     label: 'Cài đặt',     icon: Settings },
 ];
 
 function Mark({ size = 28 }) {
@@ -34,11 +34,11 @@ function Mark({ size = 28 }) {
 function Wordmark() {
   return (
     <div>
-      <div className="text-[19px] font-extrabold tracking-wide leading-none">
+      <div className="text-wordmark font-extrabold tracking-wide leading-none">
         <span className="text-ink-900">SHIP</span>
         <span className="text-primary-500">US</span>
       </div>
-      <div className="text-xs text-ink-400 mt-1">Quản lý vận chuyển</div>
+      <div className="text-2xs text-ink-400 mt-1">Quản lý vận chuyển</div>
     </div>
   );
 }
@@ -52,7 +52,8 @@ function Sidebar({ onNavigate }) {
         end
         onClick={onNavigate}
         aria-label="Về Dashboard"
-        className="flex items-center gap-3 px-5 pt-6 pb-4 rounded-tile hover:opacity-80 transition-opacity"
+        className="flex items-center gap-3 px-5 pt-7 pb-5 hover:opacity-80"
+        style={{ transition: 'opacity 150ms ease-out' }}
       >
         <span className="w-11 h-11 rounded-tile bg-primary-100 grid place-items-center flex-shrink-0">
           <Mark size={26} />
@@ -61,7 +62,7 @@ function Sidebar({ onNavigate }) {
       </NavLink>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3.5 py-2 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3.5 py-2 space-y-0.5 overflow-y-auto">
         {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -69,35 +70,37 @@ function Sidebar({ onNavigate }) {
             end={end}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3.5 py-3 rounded-tile text-[14.5px] font-semibold transition-all duration-150 ${
+              `flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold ${
                 isActive
                   ? 'bg-primary-500 text-white shadow-pill'
                   : 'text-ink-500 hover:bg-greige-50 hover:text-ink-900'
               }`
             }
+            style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
           >
             {({ isActive }) => (
               <>
                 <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2.1 : 1.9} />
                 <span className="flex-1">{label}</span>
-                {isActive && <ChevronRight className="w-4 h-4" />}
+                {isActive && <ChevronRight className="w-4 h-4 opacity-70" />}
               </>
             )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3.5 py-4 border-t border-greige-100 space-y-1.5">
+      {/* Sidebar footer */}
+      <div className="px-3.5 py-4 border-t border-greige-100 space-y-1">
         <a
           href="https://ai.basso.vn/admin/dashboard.html"
           onClick={onNavigate}
-          className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-[14.5px] font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 transition-colors"
+          className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900"
+          style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
         >
           <ExternalLink className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
           <span className="flex-1">AI Basso</span>
         </a>
-        <p className="text-ink-400 text-xs font-semibold px-2 pt-1">ShipUS v1.0</p>
+        <p className="text-2xs text-ink-400 font-semibold px-3.5 pt-1">ShipUS v1.0</p>
       </div>
     </div>
   );
@@ -105,13 +108,12 @@ function Sidebar({ onNavigate }) {
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [username, setUsername] = useState('Admin');
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
 
   useEffect(() => {
-    // Tên user lấy từ phiên đăng nhập chung của nền tảng BASSO: localStorage `ai_chat_user`
-    // (dùng chung mọi bot /b/{id}/). Chaien cùng origin với ai.basso.vn nên đọc trực tiếp.
     try {
       const raw = localStorage.getItem('ai_chat_user') || sessionStorage.getItem('ai_chat_user');
       if (raw) {
@@ -119,7 +121,7 @@ export default function Layout() {
         const display = u?.name || u?.username;
         if (display) setUsername(display);
       }
-    } catch { /* keep default 'Admin' */ }
+    } catch { /* keep default */ }
   }, []);
 
   function handleSearch(value) {
@@ -141,20 +143,21 @@ export default function Layout() {
         />
       )}
 
-      {/* Sidebar — floating white card on desktop, drawer on mobile */}
+      {/* Sidebar */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-30 w-64 bg-white flex flex-col
-          transform transition-transform duration-300 ease-in-out
           lg:relative lg:translate-x-0 lg:flex-shrink-0
           lg:rounded-frame lg:shadow-card lg:sticky lg:top-5 lg:self-start
           lg:h-[calc(100vh-40px)]
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
+        style={{ transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1)' }}
       >
         <button
           onClick={() => setSidebarOpen(false)}
           className="lg:hidden absolute top-4 right-4 text-ink-400 hover:text-ink-900 p-1"
+          aria-label="Đóng menu"
         >
           <X className="w-5 h-5" />
         </button>
@@ -162,18 +165,19 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 gap-5 lg:h-[calc(100vh-40px)] p-4 lg:p-0">
+      <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)] p-4 lg:p-0">
         {/* Top bar */}
-        <header className="flex items-center gap-4 bg-white rounded-card shadow-card px-4 lg:px-5 py-3 flex-shrink-0">
+        <header className="flex items-center gap-3 bg-white rounded-card shadow-card px-4 lg:px-5 py-3 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Mở menu"
             className="lg:hidden p-2 rounded-full text-ink-500 hover:bg-greige-100"
+            style={{ transition: 'background-color 150ms ease-out' }}
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Search pill */}
+          {/* Search pill — desktop */}
           <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md bg-greige-50 rounded-full px-4 py-2.5">
             <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
             <input
@@ -193,31 +197,65 @@ export default function Layout() {
             )}
           </div>
 
-          {/* Mobile wordmark → Dashboard */}
+          {/* Mobile wordmark */}
           <Link to="/" aria-label="Về Dashboard" className="flex items-center gap-2 sm:hidden">
             <Mark size={22} />
-            <span className="text-[15px] font-extrabold tracking-wide">
+            <span className="text-body-md font-extrabold tracking-wide">
               <span className="text-ink-900">SHIP</span>
               <span className="text-primary-500">US</span>
             </span>
           </Link>
 
-          <div className="ml-auto flex items-center gap-3">
-            <button aria-label="Thông báo" className="relative w-10 h-10 rounded-full bg-white shadow-pill text-ink-700 grid place-items-center hover:bg-greige-50">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#C2453F] border-2 border-white" />
+          <div className="ml-auto flex items-center gap-2">
+            {/* Mobile search toggle */}
+            <button
+              onClick={() => setSearchOpen((v) => !v)}
+              aria-label="Tìm kiếm"
+              className="sm:hidden p-2 rounded-full text-ink-500 hover:bg-greige-100"
+              style={{ transition: 'background-color 150ms ease-out' }}
+            >
+              <Search className="w-5 h-5" />
             </button>
+
+            <button
+              aria-label="Thông báo"
+              className="relative w-10 h-10 rounded-full bg-white shadow-pill text-ink-700 grid place-items-center hover:bg-greige-50"
+              style={{ transition: 'background-color 150ms ease-out' }}
+            >
+              <Bell className="w-[18px] h-[18px]" />
+              <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-danger-600 border-2 border-white" />
+            </button>
+
             <div className="flex items-center gap-2.5 pl-1">
-              <span className="w-10 h-10 rounded-full bg-ink-900 text-white grid place-items-center font-bold uppercase">
+              <span className="w-10 h-10 rounded-full bg-ink-900 text-white grid place-items-center font-bold uppercase text-sm">
                 {username.charAt(0) || 'A'}
               </span>
               <div className="hidden sm:block leading-tight">
                 <div className="text-sm font-bold text-ink-900">{username}</div>
-                <div className="text-xs text-ink-400 whitespace-nowrap">Quản trị viên</div>
+                <div className="text-2xs text-ink-400 whitespace-nowrap">Quản trị viên</div>
               </div>
             </div>
           </div>
         </header>
+
+        {/* Mobile search bar — expands below topbar when toggled */}
+        {searchOpen && (
+          <div className="sm:hidden flex items-center gap-2 bg-white rounded-card shadow-card px-4 py-3 flex-shrink-0">
+            <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Tìm theo mã KH, tracking #…"
+              className="border-none outline-none bg-transparent text-sm w-full text-ink-900 placeholder-ink-400"
+            />
+            {query && (
+              <button onClick={() => handleSearch('')} aria-label="Xóa" className="text-ink-400 hover:text-ink-900">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto min-w-0">

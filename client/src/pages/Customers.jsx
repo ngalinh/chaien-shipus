@@ -85,8 +85,8 @@ export default function Customers() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Khách hàng</h1>
-          <p className="text-[15px] text-ink-500 mt-1.5">{customers.length} khách hàng</p>
+          <h1 className="text-page font-bold text-ink-900 leading-tight">Khách hàng</h1>
+          <p className="text-body-md text-ink-500 mt-1.5">{customers.length} khách hàng</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 bg-white rounded-full shadow-pill px-4 py-2.5">
@@ -173,7 +173,7 @@ export default function Customers() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openEdit(c)}
-                          className="btn-icon text-blue-500 hover:bg-blue-50"
+                          className="btn-icon text-primary-600 hover:bg-primary-100"
                           title="Chỉnh sửa"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -181,7 +181,7 @@ export default function Customers() {
                         <button
                           onClick={() => handleDelete(c.id)}
                           disabled={deleting === c.id}
-                          className="btn-icon text-red-500 hover:bg-red-50 disabled:opacity-50"
+                          className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
                           title="Xóa"
                         >
                           <Trash2 className="w-4 h-4" />

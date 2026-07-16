@@ -70,14 +70,12 @@ export default function Dashboard() {
 
   const s = data?.summary || {};
 
-  const CARD_GRID = 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5';
-
-  const cards = [
-    { label: 'SL khách hàng',            value: s.total_customers,       icon: Users,       format: 'number' },
-    { label: 'SL khách mới',             value: s.new_customers,         icon: UserPlus,    format: 'number' },
-    { label: 'Tổng cân nặng (kg)',       value: s.total_weight,          icon: Weight,      format: 'kg' },
-    { label: 'Tổng phí VC (khách trả)',  value: s.total_vc_fee_customer, icon: Banknote,    format: 'currency' },
-    { label: 'Tổng phí VC (trả đối tác)', value: s.total_vc_fee_partner, icon: ArrowUpDown, format: 'currency' },
+  const supportingCards = [
+    { label: 'SL khách hàng',             value: s.total_customers,       icon: Users,       format: 'number' },
+    { label: 'SL khách mới',              value: s.new_customers,         icon: UserPlus,    format: 'number' },
+    { label: 'Tổng cân nặng (kg)',        value: s.total_weight,          icon: Weight,      format: 'kg' },
+    { label: 'Phí VC (khách trả)',        value: s.total_vc_fee_customer, icon: Banknote,    format: 'currency' },
+    { label: 'Phí VC (trả đối tác)',     value: s.total_vc_fee_partner,  icon: ArrowUpDown, format: 'currency' },
   ];
 
   function renderValue(card) {
@@ -94,8 +92,8 @@ export default function Dashboard() {
     <div className="p-6 space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Dashboard</h1>
-        <p className="text-[15px] text-ink-500 mt-1.5">Tổng quan hoạt động kinh doanh</p>
+        <h1 className="text-page font-bold text-ink-900 leading-tight">Dashboard</h1>
+        <p className="text-body-md text-ink-500 mt-1.5">Tổng quan hoạt động kinh doanh</p>
       </div>
 
       {/* Filter bar */}
@@ -110,11 +108,12 @@ export default function Dashboard() {
               <button
                 key={p.value}
                 onClick={() => handlePeriodChange(p.value)}
-                className={`px-4 py-2 text-sm font-semibold rounded-full transition-colors duration-150 ${
+                className={`px-4 py-2 text-sm font-semibold rounded-full ${
                   period === p.value
                     ? 'bg-primary-500 text-white'
                     : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
                 }`}
+                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
               >
                 {p.label}
               </button>
@@ -153,83 +152,91 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Stat cards */}
+      {/* Hero metrics — gross margin + receivable first */}
       {loading ? (
-        <div className={CARD_GRID}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {[0, 1].map((i) => (
+            <div key={i} className="card p-7 animate-pulse min-h-[140px]">
+              <div className="h-4 bg-greige-100 rounded w-1/3 mb-6" />
+              <div className="h-10 bg-greige-100 rounded w-2/3 mb-2" />
+              <div className="h-3 bg-greige-100 rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      ) : data ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="bg-primary-500 text-white rounded-card p-7 flex flex-col justify-between gap-6 min-h-[140px]">
+            <div className="flex items-center gap-2.5 text-body-md font-semibold opacity-95">
+              <TrendingUp className="w-5 h-5" />
+              Lợi nhuận gộp
+            </div>
+            <div>
+              <div className="text-display-lg font-bold tracking-tight leading-none">
+                {formatCurrency(s.gross_margin || 0)}
+              </div>
+              <div className="text-micro opacity-85 mt-2">Phí khách trả − Phí đối tác</div>
+            </div>
+          </div>
+          <div className={`card p-7 flex flex-col min-h-[140px] ${s.total_receivable > 0 ? 'justify-between gap-6' : 'justify-center'}`}>
+            <div className="flex items-center gap-2.5 text-body-md font-semibold text-ink-500">
+              <Banknote className="w-5 h-5 text-primary-700" />
+              Tổng còn phải thu
+            </div>
+            <div>
+              <div className="text-display-lg font-bold tracking-tight leading-none text-ink-900 mt-2">
+                {formatCurrency(s.total_receivable || 0)}
+              </div>
+              {s.total_receivable > 0 && (
+                <div className="text-micro text-ink-400 mt-2">Số tiền khách hàng chưa thanh toán</div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Supporting stats — compact 2-5 col grid */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="stat-card animate-pulse">
-              <div className="w-11 h-11 rounded-tile bg-greige-100 mb-4" />
-              <div className="h-6 bg-greige-100 rounded w-2/3 mb-2" />
+            <div key={i} className="card !p-4 animate-pulse">
+              <div className="w-9 h-9 rounded-tile bg-greige-100 mb-3" />
+              <div className="h-5 bg-greige-100 rounded w-2/3 mb-1.5" />
               <div className="h-3 bg-greige-100 rounded w-3/4" />
             </div>
           ))}
         </div>
       ) : (
-        <div className={CARD_GRID}>
-          {cards.map((card) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {supportingCards.map((card) => {
             const Icon = card.icon;
             return (
-              <div key={card.label} className="stat-card flex flex-col">
-                <span className="w-11 h-11 rounded-tile bg-sand-100 text-primary-700 grid place-items-center">
-                  <Icon className="w-[22px] h-[22px]" strokeWidth={1.8} />
+              <div key={card.label} className="card !p-4 flex flex-col">
+                <span className="w-9 h-9 rounded-tile bg-sand-100 text-primary-700 grid place-items-center mb-3 flex-shrink-0">
+                  <Icon className="w-[18px] h-[18px]" strokeWidth={1.8} />
                 </span>
-                <div
-                  className={`${card.format === 'currency' ? 'text-[20px]' : 'text-[26px]'} font-bold text-ink-900 mt-4 leading-none tabular-nums whitespace-nowrap`}
-                >
+                <div className={`${card.format === 'currency' ? 'text-display-sm' : 'text-lg'} font-bold text-ink-900 leading-none tabular-nums whitespace-nowrap`}>
                   {renderValue(card)}
                 </div>
-                <div className="text-[13px] text-ink-500 mt-auto pt-2 font-medium">{card.label}</div>
+                <div className="text-2xs text-ink-500 mt-auto pt-2 font-medium leading-tight">{card.label}</div>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Gross profit highlight */}
-      {!loading && data && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="bg-primary-500 text-white rounded-card p-7 flex flex-col justify-between gap-6">
-            <div className="flex items-center gap-2.5 text-[15px] font-semibold opacity-95">
-              <TrendingUp className="w-5 h-5" />
-              Lợi nhuận gộp
-            </div>
-            <div>
-              <div className="text-[36px] font-bold tracking-tight leading-none">
-                {formatCurrency(s.gross_margin || 0)}
-              </div>
-              <div className="text-[13px] opacity-85 mt-2">Phí khách trả − Phí đối tác</div>
-            </div>
-          </div>
-          <div className={`card p-7 flex flex-col ${s.total_receivable > 0 ? 'justify-between gap-6' : 'justify-center'}`}>
-            <div className="flex items-center gap-2.5 text-[15px] font-semibold text-ink-500">
-              <Banknote className="w-5 h-5 text-primary-700" />
-              Tổng còn phải thu
-            </div>
-            <div>
-              <div className="text-[36px] font-bold tracking-tight leading-none text-ink-900 mt-2">
-                {formatCurrency(s.total_receivable || 0)}
-              </div>
-              {s.total_receivable > 0 && (
-                <div className="text-[13px] text-ink-400 mt-2">Số tiền khách hàng chưa thanh toán</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Top customers */}
       {!loading && data?.top_customers?.length > 0 && (
         <div className="card p-6">
-          <h3 className="text-[17px] font-bold text-ink-900 mb-4">Top khách hàng (theo phí VC)</h3>
+          <h3 className="text-section font-bold text-ink-900 mb-4">Top khách hàng (theo phí VC)</h3>
           <div className="space-y-1">
             {data.top_customers.slice(0, 5).map((c, idx) => (
               <div key={c.customer_id} className="flex items-center gap-3 py-2 border-t border-greige-100 first:border-t-0">
-                <div className="w-7 h-7 rounded-full bg-sand-100 text-primary-700 text-xs font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-sand-100 text-primary-700 text-2xs font-bold flex items-center justify-center flex-shrink-0">
                   {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-ink-900 truncate">{c.customer_name}</div>
-                  <div className="text-xs text-ink-400">{c.customer_code} · {c.total_weight} kg · {c.shipment_count} kiện</div>
+                  <div className="text-2xs text-ink-400">{c.customer_code} · {c.total_weight} kg · {c.shipment_count} kiện</div>
                 </div>
                 <div className="text-sm font-bold text-primary-700 flex-shrink-0">
                   {formatCurrency(c.total_vc_fee)}

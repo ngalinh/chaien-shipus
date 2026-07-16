@@ -146,9 +146,9 @@ export const PAID_FILTERS = [
 
 export function PaidBadge({ status }) {
   const map = {
-    paid:    { label: 'Đã TT',       cls: 'bg-green-100 text-green-700' },
-    partial: { label: 'TT một phần', cls: 'bg-amber-100 text-amber-700' },
-    unpaid:  { label: 'Chưa TT',     cls: 'bg-red-100 text-[#C2453F]' },
+    paid:    { label: 'Đã TT',       cls: 'bg-success-100 text-success-700' },
+    partial: { label: 'TT một phần', cls: 'bg-warning-100 text-warning-700' },
+    unpaid:  { label: 'Chưa TT',     cls: 'bg-danger-100 text-danger-600' },
   };
   const s = map[status] || map.unpaid;
   return (
