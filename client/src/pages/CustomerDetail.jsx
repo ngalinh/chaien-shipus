@@ -263,8 +263,8 @@ export default function CustomerDetail() {
           {[
             { label: 'Tổng kg', value: `${Number(stats.total_kg || 0).toFixed(2)} kg`, icon: Weight, color: 'text-purple-600' },
             { label: 'Tổng cước VC', value: formatCurrency(stats.total_vc_fee || 0), icon: Banknote, color: 'text-primary-600' },
-            { label: 'Đã thanh toán', value: formatCurrency(stats.paid || 0), icon: CheckCircle, color: 'text-blue-600' },
-            { label: 'Còn lại', value: formatCurrency(stats.remaining || 0), icon: CreditCard, color: 'text-red-600' },
+            { label: 'Đã thanh toán', value: formatCurrency(stats.paid || 0), icon: CheckCircle, color: 'text-success-700' },
+            { label: 'Còn lại', value: formatCurrency(stats.remaining || 0), icon: CreditCard, color: 'text-danger-600' },
             { label: 'SL đã giao', value: stats.shipped_count || 0, icon: Package, color: 'text-gray-600' },
             { label: 'SL chưa giao', value: stats.pending_count || 0, icon: Clock, color: 'text-orange-600' },
           ].map((stat) => {
@@ -368,7 +368,7 @@ export default function CustomerDetail() {
                                 batchDate: batch.batch_date,
                                 amount: batch.total_vc_fee,
                               })}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded hover:bg-blue-100"
+                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded hover:bg-primary-100"
                             >
                               <CreditCard className="w-3.5 h-3.5" />
                               Thanh toán
@@ -455,17 +455,17 @@ export default function CustomerDetail() {
               {/* Summary */}
               {txData && (
                 <div className="flex gap-4 mb-4 flex-wrap">
-                  <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm">
-                    <span className="text-gray-500">Tổng chi phí: </span>
-                    <span className="font-semibold text-red-700">{formatCurrency(txData.total_debit)}</span>
+                  <div className="bg-danger-50 border border-danger-200 rounded-lg px-4 py-2 text-sm">
+                    <span className="text-ink-500">Tổng chi phí: </span>
+                    <span className="font-semibold text-danger-700">{formatCurrency(txData.total_debit)}</span>
                   </div>
                   <div className="bg-primary-50 border border-primary-200 rounded-lg px-4 py-2 text-sm">
-                    <span className="text-gray-500">Đã thanh toán: </span>
+                    <span className="text-ink-500">Đã thanh toán: </span>
                     <span className="font-semibold text-primary-700">{formatCurrency(txData.total_credit)}</span>
                   </div>
-                  <div className={`border rounded-lg px-4 py-2 text-sm ${txData.net_balance >= 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
-                    <span className="text-gray-500">Số dư: </span>
-                    <span className={`font-semibold ${txData.net_balance >= 0 ? 'text-green-700' : 'text-orange-700'}`}>{formatCurrency(txData.net_balance)}</span>
+                  <div className={`border rounded-lg px-4 py-2 text-sm ${txData.net_balance >= 0 ? 'bg-success-50 border-success-200' : 'bg-warning-50 border-warning-200'}`}>
+                    <span className="text-ink-500">Số dư: </span>
+                    <span className={`font-semibold ${txData.net_balance >= 0 ? 'text-success-700' : 'text-warning-700'}`}>{formatCurrency(txData.net_balance)}</span>
                   </div>
                 </div>
               )}
@@ -485,13 +485,13 @@ export default function CustomerDetail() {
                       <tr key={tx.id}>
                         <td>{formatDate(tx.trans_date)}</td>
                         <td>{tx.description || '–'}</td>
-                        <td className="text-right text-green-700 font-medium">
+                        <td className="text-right text-success-700 font-medium">
                           {tx.credit > 0 ? formatCurrency(tx.credit) : '–'}
                         </td>
-                        <td className="text-right text-red-600 font-medium">
+                        <td className="text-right text-danger-600 font-medium">
                           {tx.debit > 0 ? formatCurrency(tx.debit) : '–'}
                         </td>
-                        <td className={`text-right font-semibold ${(tx.running_balance || 0) >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                        <td className={`text-right font-semibold ${(tx.running_balance || 0) >= 0 ? 'text-success-700' : 'text-danger-600'}`}>
                           {formatCurrency(tx.running_balance || 0)}
                         </td>
                       </tr>

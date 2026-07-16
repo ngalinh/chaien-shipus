@@ -1,3 +1,4 @@
+/* Hallmark · macrostructure: App Shell (sidebar) · tone: utilitarian · anchor hue: cyan */
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap");
 
 @tailwind base;
@@ -14,11 +15,11 @@
     font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   }
 
-  /* Visible keyboard focus on every interactive element (accessibility) */
+  /* Focus ring — ring-offset-transparent avoids wrong-color gap on non-white surfaces */
   button:focus-visible,
   a:focus-visible,
   [role='button']:focus-visible {
-    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-transparent;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -38,6 +39,7 @@
 
   .data-table {
     @apply min-w-full;
+    table-layout: fixed;
   }
 
   .data-table thead {
@@ -45,7 +47,7 @@
   }
 
   .data-table th {
-    @apply px-4 pt-4 pb-3 text-left text-xs font-bold text-ink-400 uppercase tracking-wide whitespace-nowrap;
+    @apply px-4 pt-4 pb-3 text-left text-2xs font-bold text-ink-400 uppercase tracking-wider whitespace-nowrap;
   }
 
   .data-table td {
@@ -53,7 +55,8 @@
   }
 
   .data-table tbody tr {
-    @apply border-t border-greige-100 hover:bg-greige-50 transition-colors duration-100;
+    @apply border-t border-greige-100 hover:bg-greige-50;
+    transition: background-color 100ms ease-out;
   }
 
   .expand-row {
@@ -62,22 +65,28 @@
 
   .btn-primary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-full font-semibold text-sm
-           shadow-pill hover:bg-primary-600 active:scale-[.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+           shadow-pill hover:bg-primary-600 active:scale-[.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: background-color 150ms ease-out, box-shadow 150ms ease-out;
   }
 
   .btn-secondary {
     @apply inline-flex items-center gap-2 px-5 py-2.5 bg-primary-100 text-primary-700 rounded-full font-semibold text-sm
-           hover:bg-sand-200 active:scale-[.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+           hover:bg-sand-200 active:scale-[.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+    transition: background-color 150ms ease-out;
   }
 
   .btn-danger {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-[#F8E1E0] text-[#C2453F] rounded-full font-semibold text-xs
-           hover:brightness-95 active:scale-[.98] transition-all duration-150;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-danger-100 text-danger-600 rounded-full font-semibold text-xs
+           hover:bg-danger-200 active:scale-[.98];
+    transition: background-color 150ms ease-out;
   }
 
   .btn-icon {
     @apply inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-400
-           hover:bg-greige-100 hover:text-ink-700 transition-colors duration-150;
+           hover:bg-greige-100 hover:text-ink-700;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
   }
 
   .input-field {
@@ -99,8 +108,9 @@
     @apply bg-white rounded-card shadow-card p-5;
   }
 
+  /* Semantic badges — all tokens, no inline hex */
   .badge-active {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#DCF3E7] text-[#2F855A];
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-success-100 text-success-700;
   }
 
   .badge-warning {
@@ -108,7 +118,7 @@
   }
 
   .badge-orange {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FBE9D7] text-[#B4691E];
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-warning-100 text-warning-700;
   }
 
   .badge-inactive {
@@ -136,7 +146,8 @@
   }
 
   .tab-btn {
-    @apply px-5 py-2.5 text-sm font-semibold rounded-full transition-colors duration-150;
+    @apply px-5 py-2.5 text-sm font-semibold rounded-full;
+    transition: background-color 150ms ease-out, color 150ms ease-out;
   }
 
   .tab-btn-active {
@@ -168,31 +179,21 @@
 
 /* Toast animations */
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
 }
 
 @keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 .toast-enter {
-  animation: slideInRight 0.3s ease-out;
+  animation: slideInRight 0.25s ease-out;
 }
 
 .toast-exit {
-  animation: fadeOut 0.3s ease-in forwards;
+  animation: fadeOut 0.25s ease-in forwards;
 }
 
 /* Expand row animation */
@@ -201,12 +202,6 @@
 }
 
 @keyframes expandDown {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

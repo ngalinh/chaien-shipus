@@ -47,8 +47,8 @@ export default function Settings() {
     <div className="p-6 space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-[28px] font-bold text-ink-900 leading-tight">Cài đặt</h1>
-        <p className="text-[15px] text-ink-500 mt-1.5">Quản lý cấu hình hệ thống</p>
+        <h1 className="text-page font-bold text-ink-900 leading-tight">Cài đặt</h1>
+        <p className="text-body-md text-ink-500 mt-1.5">Quản lý cấu hình hệ thống</p>
       </div>
 
       {/* Section 1: Customer Rates */}
@@ -512,14 +512,14 @@ function RatesSection({ rates, setRates }) {
                         <>
                           <button
                             onClick={() => { setEditId(r.id); setEditForm({ name: r.name, rate_per_kg: r.rate_per_kg }); }}
-                            className="btn-icon text-blue-500 hover:bg-blue-50"
+                            className="btn-icon text-primary-600 hover:bg-primary-100"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(r.id)}
                             disabled={deleting === r.id}
-                            className="btn-icon text-red-500 hover:bg-red-50 disabled:opacity-50"
+                            className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -744,14 +744,14 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                         <>
                           <button
                             onClick={() => { setEditId(w.id); setEditForm({ code: w.code, name: w.name, rate_per_kg: w.rate_per_kg, aliases: w.aliases || '' }); }}
-                            className="btn-icon text-blue-500 hover:bg-blue-50"
+                            className="btn-icon text-primary-600 hover:bg-primary-100"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(w.id)}
                             disabled={deleting === w.id}
-                            className="btn-icon text-red-500 hover:bg-red-50 disabled:opacity-50"
+                            className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -979,14 +979,14 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                         <>
                           <button
                             onClick={() => { setEditId(b.id); setEditForm({ bank_name: b.bank_name, account_number: b.account_number, account_holder: b.account_holder, is_default: !!b.is_default }); }}
-                            className="btn-icon text-blue-500 hover:bg-blue-50"
+                            className="btn-icon text-primary-600 hover:bg-primary-100"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(b.id)}
                             disabled={deleting === b.id}
-                            className="btn-icon text-red-500 hover:bg-red-50 disabled:opacity-50"
+                            className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

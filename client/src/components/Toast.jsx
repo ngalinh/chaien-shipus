@@ -42,17 +42,17 @@ export function ToastProvider({ children }) {
 
 function ToastItem({ toast: t, onRemove }) {
   const icons = {
-    success: <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />,
-    error: <XCircle className="w-5 h-5 text-red-500 flex-shrink-0" />,
-    info: <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />,
-    warning: <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0" />,
+    success: <CheckCircle className="w-5 h-5 text-success-500 flex-shrink-0" />,
+    error: <XCircle className="w-5 h-5 text-danger-600 flex-shrink-0" />,
+    info: <AlertCircle className="w-5 h-5 text-primary-600 flex-shrink-0" />,
+    warning: <AlertCircle className="w-5 h-5 text-warning-500 flex-shrink-0" />,
   };
 
   const colors = {
-    success: 'border-green-200 bg-green-50',
-    error: 'border-red-200 bg-red-50',
-    info: 'border-blue-200 bg-blue-50',
-    warning: 'border-yellow-200 bg-yellow-50',
+    success: 'border-success-200 bg-success-50',
+    error: 'border-danger-200 bg-danger-50',
+    info: 'border-primary-200 bg-primary-50',
+    warning: 'border-warning-200 bg-warning-50',
   };
 
   return (
