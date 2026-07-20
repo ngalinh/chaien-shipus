@@ -9,3 +9,4 @@ client/dist/
 .env
 index.html
 assets/
+test_webapp.py
