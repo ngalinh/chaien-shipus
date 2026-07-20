@@ -13,8 +13,6 @@ import VanDonInlineEdit from '../components/VanDonInlineEdit.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
-  { label: '3 tháng', value: '3m' },
-  { label: '6 tháng', value: '6m' },
   { label: 'Tất cả', value: 'all' },
   { label: 'Tùy chỉnh', value: 'custom' },
 ];
@@ -22,8 +20,6 @@ const PERIODS = [
 function rangeFor(period, startDate, endDate) {
   if (period === 'all') return {};
   if (period === 'custom') return { start_date: startDate, end_date: endDate };
-  if (period === '3m') return { start_date: dayjs().subtract(3, 'month').format('YYYY-MM-DD'), end_date: todayInputValue() };
-  if (period === '6m') return { start_date: dayjs().subtract(6, 'month').format('YYYY-MM-DD'), end_date: todayInputValue() };
   return { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
 }
 
@@ -266,82 +262,84 @@ export default function Shipping() {
         </button>
       </div>
 
-      {/* Date filter */}
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5">
-          <Calendar className="w-4 h-4" />
-          Khoảng thời gian:
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {PERIODS.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => handlePeriodChange(p.value)}
-              className={`px-4 py-2 text-sm font-semibold rounded-full ${
-                period === p.value
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
-              }`}
-              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        {period === 'custom' && (
-          <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-ink-500 font-semibold">Từ:</label>
-              <input type="date" value={startDate} max={endDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="input-field w-auto py-1.5 text-sm" />
+      {/* Toolbar: nhóm theo + lọc tình trạng TT (trái) • khoảng thời gian (phải) */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        {tab === 'incoming' && (
+          <>
+            <div className="flex items-center gap-2.5">
+              <span className="text-sm font-semibold text-ink-500">Nhóm theo:</span>
+              <div className="inline-flex gap-1 p-1 bg-white rounded-full shadow-pill">
+                <button
+                  onClick={() => setGroupMode('date')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'date' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                  style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
+                >
+                  <CalendarDays className="w-4 h-4" /> Ngày
+                </button>
+                <button
+                  onClick={() => setGroupMode('customer')}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'customer' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                  style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
+                >
+                  <Users className="w-4 h-4" /> Khách hàng
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-ink-500 font-semibold">Đến:</label>
-              <input type="date" value={endDate} min={startDate} max={todayInputValue()}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="input-field w-auto py-1.5 text-sm" />
+            <div className="flex items-center gap-2.5">
+              <span className="text-sm font-semibold text-ink-500">Tình trạng TT:</span>
+              <select
+                value={ttFilter}
+                onChange={(e) => setTtFilter(e.target.value)}
+                className="input-field w-auto py-1.5 text-sm"
+              >
+                {PAID_FILTERS.map((f) => (
+                  <option key={f.value} value={f.value}>{f.label}</option>
+                ))}
+              </select>
             </div>
-          </div>
+          </>
         )}
-      </div>
 
-      {/* Toolbar: nhóm theo + lọc tình trạng TT (chỉ tab Hàng về) */}
-      {tab === 'incoming' && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold text-ink-500">Nhóm theo:</span>
-            <div className="inline-flex gap-1 p-1 bg-white rounded-full shadow-pill">
+        {/* Date filter */}
+        <div className="flex flex-wrap items-center gap-2.5 sm:ml-auto">
+          <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5">
+            <Calendar className="w-4 h-4" />
+            Khoảng thời gian:
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {PERIODS.map((p) => (
               <button
-                onClick={() => setGroupMode('date')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'date' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
+                key={p.value}
+                onClick={() => handlePeriodChange(p.value)}
+                className={`px-4 py-2 text-sm font-semibold rounded-full ${
+                  period === p.value
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
+                }`}
                 style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
               >
-                <CalendarDays className="w-4 h-4" /> Ngày
+                {p.label}
               </button>
-              <button
-                onClick={() => setGroupMode('customer')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'customer' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
-                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-              >
-                <Users className="w-4 h-4" /> Khách hàng
-              </button>
+            ))}
+          </div>
+          {period === 'custom' && (
+            <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-ink-500 font-semibold">Từ:</label>
+                <input type="date" value={startDate} max={endDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="input-field w-auto py-1.5 text-sm" />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-ink-500 font-semibold">Đến:</label>
+                <input type="date" value={endDate} min={startDate} max={todayInputValue()}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="input-field w-auto py-1.5 text-sm" />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold text-ink-500">Tình trạng TT:</span>
-            <select
-              value={ttFilter}
-              onChange={(e) => setTtFilter(e.target.value)}
-              className="input-field w-auto py-1.5 text-sm"
-            >
-              {PAID_FILTERS.map((f) => (
-                <option key={f.value} value={f.value}>{f.label}</option>
-              ))}
-            </select>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Tab: Hàng về — gom theo đợt (ngày) hoặc theo khách */}
       {tab === 'incoming' && (
