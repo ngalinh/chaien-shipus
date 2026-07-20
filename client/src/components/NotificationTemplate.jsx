@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { formatDate, todayInputValue } from '../utils.jsx';
 
@@ -11,6 +11,7 @@ import { formatDate, todayInputValue } from '../utils.jsx';
  *   - date: string (YYYY-MM-DD or display)
  *   - items: [{ tracking_no, product, weight, customer_fee }]
  *   - companyName: string
+ *   - bank: { bank_name, account_number, account_holder } | null
  *   - onRendered: (dataUrl) => void
  *   - autoDownload: bool
  *   - fileName: string
@@ -18,6 +19,44 @@ import { formatDate, todayInputValue } from '../utils.jsx';
 
 // Design chỉ định dấu phẩy ngăn cách hàng nghìn: 1,080,000 đ
 const fmtMoney = (v) => (v == null || isNaN(v) ? '0 đ' : Number(v).toLocaleString('en-US') + ' đ');
+
+// Bỏ dấu tiếng Việt cho nội dung chuyển khoản (memo ngân hàng nên là ASCII)
+const noAccent = (s) =>
+  (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+
+// Map tên ngân hàng (free text) → mã VietQR. Không khớp → không có QR, chỉ hiện STK dạng chữ.
+const VIETQR_BANKS = {
+  vietcombank: 'VCB', vcb: 'VCB',
+  techcombank: 'TCB', tcb: 'TCB',
+  vietinbank: 'ICB', vietin: 'ICB',
+  agribank: 'VBA',
+  bidv: 'BIDV',
+  mbbank: 'MB', quandoi: 'MB', mb: 'MB',
+  acb: 'ACB',
+  vpbank: 'VPB', vpb: 'VPB',
+  sacombank: 'STB', stb: 'STB',
+  tpbank: 'TPB', tpb: 'TPB',
+  vib: 'VIB',
+  shb: 'SHB',
+  hdbank: 'HDB',
+  ocb: 'OCB',
+  msb: 'MSB',
+  eximbank: 'EIB',
+  scb: 'SCB',
+  lpbank: 'LPB', lienvietpostbank: 'LPB',
+  seabank: 'SEAB',
+  namabank: 'NAB',
+  abbank: 'ABB',
+};
+
+// Chọn mã ngân hàng: so khớp key dài trước để tránh "vietcombank" chứa "mb" bị nhận nhầm là MB.
+function vietqrBankCode(name) {
+  const norm = noAccent(name || '').toLowerCase().replace(/[^a-z]/g, '');
+  if (!norm) return null;
+  const keys = Object.keys(VIETQR_BANKS).sort((a, b) => b.length - a.length);
+  for (const k of keys) if (norm.includes(k)) return VIETQR_BANKS[k];
+  return null;
+}
 
 const GRID = {
   display: 'grid',
@@ -30,14 +69,49 @@ export default function NotificationTemplate({
   date,
   items = [],
   companyName = 'ShipUS',
+  bank = null,
   onRendered,
   autoDownload = false,
   fileName = 'thong-bao-hang-ve.png',
 }) {
   const ref = useRef(null);
 
+  const { totalWeight, totalFee } = items.reduce(
+    ({ totalWeight, totalFee }, i) => ({
+      totalWeight: totalWeight + (parseFloat(i.weight) || 0),
+      totalFee:    totalFee    + (parseFloat(i.customer_fee) || 0),
+    }),
+    { totalWeight: 0, totalFee: 0 }
+  );
+
+  // QR VietQR: chỉ tạo khi map được mã ngân hàng. Nội dung CK = tên khách (bỏ dấu).
+  const bankCode = bank ? vietqrBankCode(bank.bank_name) : null;
+  const transferNote = noAccent(customerName || '').toUpperCase().trim();
+  const qrSrc = bankCode
+    ? `https://img.vietqr.io/image/${bankCode}-${bank.account_number}-qr_only.png` +
+      `?amount=${Math.round(totalFee)}&addInfo=${encodeURIComponent(transferNote)}`
+    : null;
+
+  // Tải QR về dataURL trước khi chụp (tránh ảnh ngoài bị taint/CORS trong html2canvas).
+  // qr.done=false ⇒ hoãn chụp cho tới khi QR sẵn sàng (hoặc lỗi).
+  const [qr, setQr] = useState({ done: !qrSrc, url: null });
   useEffect(() => {
-    if (!ref.current) return;
+    if (!qrSrc) { setQr({ done: true, url: null }); return; }
+    let alive = true;
+    fetch(qrSrc)
+      .then((r) => r.blob())
+      .then((b) => new Promise((res) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.readAsDataURL(b);
+      }))
+      .then((url) => alive && setQr({ done: true, url }))
+      .catch(() => alive && setQr({ done: true, url: null }));
+    return () => { alive = false; };
+  }, [qrSrc]);
+
+  useEffect(() => {
+    if (!ref.current || !qr.done) return;
     const timer = setTimeout(async () => {
       try {
         // Đợi Be Vietnam Pro / JetBrains Mono tải xong, tránh chụp ảnh với font fallback
@@ -64,15 +138,8 @@ export default function NotificationTemplate({
       }
     }, 200);
     return () => clearTimeout(timer);
-  }, []);
+  }, [qr.done]);
 
-  const { totalWeight, totalFee } = items.reduce(
-    ({ totalWeight, totalFee }, i) => ({
-      totalWeight: totalWeight + (parseFloat(i.weight) || 0),
-      totalFee:    totalFee    + (parseFloat(i.customer_fee) || 0),
-    }),
-    { totalWeight: 0, totalFee: 0 }
-  );
   const displayDate = formatDate(date) || formatDate(todayInputValue());
 
   const FONT = "'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif";
@@ -203,6 +270,49 @@ export default function NotificationTemplate({
           </div>
           <div style={{ fontSize: 34, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(totalFee)}</div>
         </div>
+
+        {/* ── Thông tin chuyển khoản + QR ── */}
+        {bank && (
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 28,
+              marginTop: 22, padding: '24px 30px',
+              background: '#f5fafc', border: '1px solid #e2edf2', borderRadius: 14,
+            }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700, color: '#14556e', marginBottom: 14 }}>
+                Thông tin chuyển khoản
+              </div>
+              {[
+                ['Ngân hàng', bank.bank_name],
+                ['Số tài khoản', bank.account_number, true],
+                ['Chủ tài khoản', (bank.account_holder || '').toUpperCase()],
+                ['Nội dung', transferNote],
+              ].map(([label, value, mono]) => (
+                <div key={label} style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+                  <div style={{ width: 118, flex: 'none', fontSize: 13.5, color: '#6b8494' }}>{label}</div>
+                  <div style={{
+                    fontSize: mono ? 18 : 15, fontWeight: mono ? 700 : 600,
+                    color: '#0f2e42', fontFamily: mono ? MONO : FONT,
+                    letterSpacing: mono ? 0.5 : 0, wordBreak: 'break-word',
+                  }}>
+                    {value || '–'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {qr.url && (
+              <div style={{ flex: 'none', textAlign: 'center' }}>
+                <img
+                  src={qr.url} width={158} height={158} alt="QR chuyển khoản"
+                  style={{ display: 'block', borderRadius: 12, border: '1px solid #d7e6ec', background: '#fff', padding: 6 }}
+                />
+                <div style={{ fontSize: 12, color: '#6b8494', marginTop: 8 }}>Quét mã để thanh toán</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
