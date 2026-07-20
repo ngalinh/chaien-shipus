@@ -62,6 +62,7 @@ const GRID = {
   display: 'grid',
   gridTemplateColumns: '54px 1fr 108px 96px 128px',
   alignItems: 'center',
+  textAlign: 'center',
 };
 
 export default function NotificationTemplate({
@@ -216,8 +217,8 @@ export default function NotificationTemplate({
             <div>STT</div>
             <div>Tracking #</div>
             <div>Sản phẩm</div>
-            <div style={{ textAlign: 'right' }}>Cân nặng</div>
-            <div style={{ textAlign: 'right' }}>Phí VC</div>
+            <div>Cân nặng</div>
+            <div>Phí VC</div>
           </div>
 
           {items.map((item, idx) => (
@@ -234,10 +235,10 @@ export default function NotificationTemplate({
                 {item.tracking_no || '–'}
               </div>
               <div style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
-              <div style={{ textAlign: 'right', fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
                 {item.weight ? Number(item.weight).toFixed(2) : '–'}
               </div>
-              <div style={{ textAlign: 'right', fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
+              <div style={{ fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
                 {item.customer_fee ? fmtMoney(item.customer_fee) : '–'}
               </div>
             </div>
@@ -247,8 +248,8 @@ export default function NotificationTemplate({
             <div style={{ gridColumn: '1 / 4', textAlign: 'left', fontSize: 15, fontWeight: 600, color: '#ffffff' }}>
               Tổng cộng ({items.length} kiện hàng)
             </div>
-            <div style={{ textAlign: 'right', fontSize: 16, fontWeight: 700, color: '#fff' }}>{totalWeight.toFixed(2)}</div>
-            <div style={{ textAlign: 'right', fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(totalFee)}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{totalWeight.toFixed(2)}</div>
+            <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(totalFee)}</div>
           </div>
         </div>
 
