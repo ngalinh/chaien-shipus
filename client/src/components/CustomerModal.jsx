@@ -383,7 +383,7 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
                 <option value="">-- Chọn gói cước --</option>
                 {rates.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name} ({Number(r.rate_per_kg).toLocaleString('vi-VN')} đ/kg)
+                    {r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')} đ/kg)
                   </option>
                 ))}
               </select>

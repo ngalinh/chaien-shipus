@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 
 export function formatCurrency(value) {
   if (value == null || isNaN(value)) return '0 đ';
-  return Number(value).toLocaleString('vi-VN') + ' đ';
+  return Number(value).toLocaleString('en-US') + ' đ';
 }
 
 export function formatDate(dateStr) {
