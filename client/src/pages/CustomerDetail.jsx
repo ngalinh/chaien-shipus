@@ -233,7 +233,7 @@ export default function CustomerDetail() {
               </span>
               {customer.rate_name && (
                 <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
-                  {customer.rate_name} ({Number(customer.rate_per_kg || 0).toLocaleString('vi-VN')} đ/kg)
+                  {customer.rate_name} ({Number(customer.rate_per_kg || 0).toLocaleString('en-US')} đ/kg)
                 </span>
               )}
             </div>
