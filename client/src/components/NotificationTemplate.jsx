@@ -1,27 +1,35 @@
 import { useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import { formatCurrency, formatDate, todayInputValue } from '../utils.jsx';
+import { formatDate, todayInputValue } from '../utils.jsx';
 
 /**
- * NotificationTemplate
+ * NotificationTemplate — phiếu báo hàng về theo design handoff "Thông báo hàng về".
+ * Card 820px cố định, render ẩn rồi chụp thành PNG (html2canvas) để copy/gửi khách.
+ *
  * Props:
  *   - customerName: string
  *   - date: string (YYYY-MM-DD or display)
  *   - items: [{ tracking_no, product, weight, customer_fee }]
  *   - companyName: string
- *   - companyLogo: string (URL)
- *   - hotline: string
  *   - onRendered: (dataUrl) => void
  *   - autoDownload: bool
  *   - fileName: string
  */
+
+// Design chỉ định dấu phẩy ngăn cách hàng nghìn: 1,080,000 đ
+const fmtMoney = (v) => (v == null || isNaN(v) ? '0 đ' : Number(v).toLocaleString('en-US') + ' đ');
+
+const GRID = {
+  display: 'grid',
+  gridTemplateColumns: '54px 1fr 108px 78px 128px',
+  alignItems: 'center',
+};
+
 export default function NotificationTemplate({
   customerName,
   date,
   items = [],
   companyName = 'ShipUS',
-  companyLogo,
-  hotline,
   onRendered,
   autoDownload = false,
   fileName = 'thong-bao-hang-ve.png',
@@ -32,6 +40,8 @@ export default function NotificationTemplate({
     if (!ref.current) return;
     const timer = setTimeout(async () => {
       try {
+        // Đợi Be Vietnam Pro / JetBrains Mono tải xong, tránh chụp ảnh với font fallback
+        await document.fonts.ready;
         const canvas = await html2canvas(ref.current, {
           scale: 2,
           useCORS: true,
@@ -65,181 +75,147 @@ export default function NotificationTemplate({
   );
   const displayDate = formatDate(date) || formatDate(todayInputValue());
 
-  // Brand palette — exact values from tailwind.config.js (ShipUS Verdant)
-  const B = {
-    950:  '#0E3547',
-    900:  '#16506A',
-    800:  '#1A6580',
-    700:  '#21809E',
-    600:  '#2A9ABE',
-    500:  '#3AAFD3',
-    100:  '#D6EEF5',
-    50:   '#ECF7FB',
-    ink:  '#16242C',
-    ink5: '#586A74',
-    ink4: '#93A0A8',
-  };
-
-  // Plus Jakarta Sans is loaded by the app and supports Vietnamese diacritics.
-  const FONT = "'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif";
-
-  const cell = (extra = {}) => ({
-    padding: '9px 12px',
-    borderBottom: `1px solid ${B[100]}`,
-    ...extra,
-  });
-  const headCell = (extra = {}) => ({
-    padding: '10px 12px',
-    color: '#fff',
-    fontWeight: 600,
-    borderBottom: 'none',
-    ...extra,
-  });
+  const FONT = "'Be Vietnam Pro', 'Segoe UI', Arial, sans-serif";
+  const MONO = "'JetBrains Mono', monospace";
 
   return (
     <div
       ref={ref}
       style={{
-        width: 660,
-        background: '#F7FAFB',
+        width: 820,
         fontFamily: FONT,
-        borderRadius: 16,
+        background: '#ffffff',
+        color: '#0f2e42',
         overflow: 'hidden',
-        boxShadow: '0 8px 40px rgba(14,53,71,0.18)',
+        borderRadius: 18,
+        boxShadow: '0 24px 60px -24px rgba(15,46,66,0.45)',
       }}
     >
       {/* ── Header ───────────────────────────────────────────────────── */}
-      <div style={{ background: `linear-gradient(135deg, ${B[950]} 0%, ${B[800]} 100%)`, padding: '22px 28px 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {companyLogo ? (
-              <img
-                src={companyLogo}
-                alt="logo"
-                crossOrigin="anonymous"
-                style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'contain', background: '#fff', padding: 5 }}
-              />
-            ) : (
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: B[600], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: '#fff', fontWeight: 800, fontSize: 20, letterSpacing: '-1px' }}>S</span>
-              </div>
-            )}
-            <div>
-              <div style={{ color: '#fff', fontWeight: 800, fontSize: 22, letterSpacing: '-0.5px', lineHeight: 1.1 }}>
-                {companyName}
-              </div>
-              <div style={{ color: B[100], fontSize: 11.5, marginTop: 4 }}>
-                Dịch vụ vận chuyển hàng hóa quốc tế
-              </div>
+      <div style={{ background: 'linear-gradient(120deg, #0a2030 0%, #123a52 55%, #1c5876 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 26, padding: '32px 44px' }}>
+          <div
+            style={{
+              width: 66, height: 66, flex: 'none', borderRadius: 16,
+              background: 'linear-gradient(150deg, #4bb4d6, #2f93b8)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 8px 20px -6px rgba(47,147,184,0.7)',
+            }}
+          >
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="#fff">
+              <path d="M2.5 19h19v2h-19zM22.07 9.64c-.21-.8-1.04-1.28-1.84-1.06L14.92 10 8 3.57 6.09 4.08l4.15 7.18-4.83 1.29-1.91-1.5-1.45.39 2.51 4.35 1.4-.38 15.55-4.16c.81-.23 1.28-1.05 1.06-1.85z" />
+            </svg>
+          </div>
+          <div style={{ flex: 1, borderLeft: '1px solid rgba(255,255,255,0.14)', paddingLeft: 26 }}>
+            <div style={{ fontSize: 25, fontWeight: 800, color: '#fff', lineHeight: 1 }}>THÔNG BÁO HÀNG VỀ</div>
+            <div style={{ fontSize: 14, color: '#9fc4d6', marginTop: 9 }}>
+              {companyName} · Kính gửi{' '}
+              <span style={{ fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>{customerName}</span>
             </div>
           </div>
-          <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 10, padding: '8px 14px', textAlign: 'right' }}>
-            <div style={{ color: B[100], fontSize: 10, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>
-              Ngày thông báo
+          <div style={{ flex: 'none', textAlign: 'right' }}>
+            <div style={{ fontSize: 11, letterSpacing: 2, color: '#7fabc2', fontWeight: 600, textTransform: 'uppercase' }}>
+              {displayDate}
             </div>
-            <div style={{ color: '#fff', fontWeight: 700, fontSize: 16, marginTop: 2 }}>{displayDate}</div>
+            <div
+              style={{
+                display: 'inline-block', marginTop: 9,
+                background: 'rgba(75,180,214,0.18)', border: '1px solid rgba(75,180,214,0.5)',
+                padding: '7px 18px', borderRadius: 999, fontSize: 14, fontWeight: 700, color: '#9fe0f2',
+              }}
+            >
+              {items.length} kiện
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Title stripe ─────────────────────────────────────────────── */}
-      <div style={{ background: B[600], padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: 1, textTransform: 'uppercase' }}>
-            Thông báo hàng về
-          </div>
-          <div style={{ color: B[50], fontSize: 13, marginTop: 3 }}>
-            Kính gửi: <strong style={{ color: '#fff' }}>{customerName}</strong>
-          </div>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: 20, padding: '4px 12px', color: '#fff', fontSize: 12, fontWeight: 700 }}>
-          {items.length} kiện
-        </div>
+        <div style={{ height: 4, background: 'linear-gradient(90deg, #4bb4d6, #2f93b8)' }} />
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────── */}
-      <div style={{ background: '#fff', padding: '20px 28px 4px' }}>
-        <p style={{ fontSize: 13, color: B.ink5, margin: '0 0 18px', lineHeight: 1.65 }}>
+      <div style={{ padding: '34px 44px 40px' }}>
+        <p style={{ fontSize: 15.5, lineHeight: 1.65, color: '#3f5a6b', margin: '0 0 26px' }}>
           {companyName} xin thông báo lô hàng của quý khách đã về kho và sẵn sàng giao nhận.
           Vui lòng kiểm tra thông tin chi tiết bên dưới:
         </p>
 
         {/* ── Table ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: B[800] }}>
-              <th style={headCell({ textAlign: 'center', width: 36, borderRadius: '8px 0 0 0' })}>STT</th>
-              <th style={headCell({ textAlign: 'left' })}>Tracking #</th>
-              <th style={headCell({ textAlign: 'left' })}>Sản phẩm</th>
-              <th style={headCell({ textAlign: 'center', width: 60 })}>KG</th>
-              <th style={headCell({ textAlign: 'right', width: 120, borderRadius: '0 8px 0 0' })}>Phí VC</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, idx) => (
-              <tr key={idx} style={{ background: idx % 2 === 1 ? B[50] : '#fff' }}>
-                <td style={cell({ textAlign: 'center', color: B.ink4, fontSize: 12 })}>{idx + 1}</td>
-                <td style={cell({ fontFamily: 'monospace', fontSize: 12, color: B.ink })}>
-                  {item.tracking_no || '–'}
-                </td>
-                <td style={cell({ color: B.ink5, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
-                  {item.product || '–'}
-                </td>
-                <td style={cell({ textAlign: 'center', color: B.ink, fontWeight: 600 })}>
-                  {item.weight ? Number(item.weight).toFixed(2) : '–'}
-                </td>
-                <td style={cell({ textAlign: 'right', color: B[700], fontWeight: 700 })}>
-                  {item.customer_fee ? formatCurrency(item.customer_fee) : '–'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr style={{ background: B[800] }}>
-              <td colSpan={3} style={{ padding: '11px 12px', textAlign: 'right', color: B[100], fontSize: 12, fontWeight: 600 }}>
-                Tổng cộng ({items.length} kiện hàng)
-              </td>
-              <td style={{ padding: '11px 12px', textAlign: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
-                {totalWeight.toFixed(2)}
-              </td>
-              <td style={{ padding: '11px 12px', textAlign: 'right', color: '#fff', fontWeight: 800, fontSize: 15 }}>
-                {formatCurrency(totalFee)}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+        <div style={{ border: '1px solid #e2edf2', borderRadius: 14, overflow: 'hidden' }}>
+          <div
+            style={{
+              ...GRID, padding: '15px 22px', background: '#2f93b8',
+              fontSize: 12, letterSpacing: 1, textTransform: 'uppercase', fontWeight: 700, color: '#ffffff',
+            }}
+          >
+            <div>STT</div>
+            <div>Tracking #</div>
+            <div>Sản phẩm</div>
+            <div style={{ textAlign: 'right' }}>KG</div>
+            <div style={{ textAlign: 'right' }}>Phí VC</div>
+          </div>
 
-      {/* ── Amount due (the single most important number) ─────────────── */}
-      <div style={{ background: '#fff', padding: '16px 28px 22px' }}>
-        <div style={{ background: B[50], border: `1px solid ${B[100]}`, borderLeft: `5px solid ${B[600]}`, borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {items.map((item, idx) => (
+            <div
+              key={idx}
+              style={{
+                ...GRID, padding: '16px 22px',
+                background: idx % 2 === 0 ? '#ffffff' : '#f5fafc',
+                borderTop: '1px solid #eef4f7',
+              }}
+            >
+              <div style={{ fontSize: 15, color: '#90a6b3', fontWeight: 500 }}>{idx + 1}</div>
+              <div style={{ fontFamily: MONO, fontSize: 14, color: '#1a3a4d', letterSpacing: -0.2, wordBreak: 'break-all' }}>
+                {item.tracking_no || '–'}
+              </div>
+              <div style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
+              <div style={{ textAlign: 'right', fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
+                {item.weight ? Number(item.weight).toFixed(2) : '–'}
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
+                {item.customer_fee ? fmtMoney(item.customer_fee) : '–'}
+              </div>
+            </div>
+          ))}
+
+          <div style={{ ...GRID, padding: '18px 22px', background: '#2f93b8' }}>
+            <div style={{ gridColumn: '1 / 4', textAlign: 'left', fontSize: 15, fontWeight: 600, color: '#ffffff' }}>
+              Tổng cộng ({items.length} kiện hàng)
+            </div>
+            <div style={{ textAlign: 'right', fontSize: 16, fontWeight: 700, color: '#fff' }}>{totalWeight.toFixed(2)}</div>
+            <div style={{ textAlign: 'right', fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(totalFee)}</div>
+          </div>
+        </div>
+
+        {/* ── Payment callout ── */}
+        <div
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24,
+            marginTop: 26, padding: '26px 30px', background: '#eaf4f8',
+            borderLeft: '5px solid #2f93b8', borderRadius: 12,
+          }}
+        >
           <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: B[700], textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div style={{ fontSize: 13, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: 700, color: '#14556e' }}>
               Số tiền cần thanh toán
             </div>
-            <div style={{ fontSize: 11.5, color: B.ink5, marginTop: 4 }}>
+            <div style={{ fontSize: 14.5, color: '#4a6577', marginTop: 6 }}>
               Vui lòng thanh toán phí vận chuyển trước khi nhận hàng.
             </div>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: B[900], whiteSpace: 'nowrap', letterSpacing: '-0.5px' }}>
-            {formatCurrency(totalFee)}
-          </div>
+          <div style={{ fontSize: 34, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(totalFee)}</div>
         </div>
       </div>
 
       {/* ── Footer ───────────────────────────────────────────────────── */}
-      <div style={{ background: B[50], borderTop: `2px solid ${B[100]}`, padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 14, color: B[900] }}>{companyName}</div>
-          {hotline && (
-            <div style={{ fontSize: 12, color: B.ink5, marginTop: 3 }}>
-              Hotline: <strong style={{ color: B[700] }}>{hotline}</strong>
-            </div>
-          )}
-        </div>
+      <div
+        style={{
+          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
+          padding: '24px 44px', borderTop: '1px solid #edf3f6',
+        }}
+      >
+        <div style={{ fontSize: 19, fontWeight: 800, color: '#0f2e42' }}>{companyName}</div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: B[600] }}>Cảm ơn quý khách!</div>
-          <div style={{ fontSize: 11, color: B.ink4, marginTop: 2 }}>Thank you for your trust.</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: '#1c7ea3' }}>Cảm ơn quý khách!</div>
+          <div style={{ fontSize: 13, color: '#90a6b3', marginTop: 3 }}>Thank you for your trust.</div>
         </div>
       </div>
     </div>

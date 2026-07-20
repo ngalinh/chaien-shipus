@@ -53,7 +53,7 @@ export default function NotificationModal({ notifData, company = {}, onClose }) 
         <div className="modal-body">
           <div className="max-h-[60vh] overflow-y-auto rounded-lg bg-greige-50 p-3 flex justify-center">
             {dataUrl ? (
-              <img src={dataUrl} alt="Phiếu báo" className="w-full max-w-[520px] rounded-lg shadow-card" />
+              <img src={dataUrl} alt="Phiếu báo" className="w-full max-w-[600px] rounded-lg shadow-card" />
             ) : (
               <div className="py-16 text-center text-ink-400">
                 <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -86,8 +86,6 @@ export default function NotificationModal({ notifData, company = {}, onClose }) 
           date={notifData.date}
           items={notifData.items}
           companyName={company.company_name || 'ShipUS'}
-          companyLogo={company.logo_path || undefined}
-          hotline={company.hotline}
           autoDownload={false}
           onRendered={(url) => setDataUrl(url)}
         />
