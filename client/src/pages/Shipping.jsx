@@ -648,6 +648,7 @@ export default function Shipping() {
         <NotificationModal
           notifData={notifData}
           company={settings.company}
+          bank={(settings.bank_accounts || []).find((b) => b.is_default) || (settings.bank_accounts || [])[0] || null}
           onClose={() => { setNotifData(null); fetchNotifyBatches(); }}
         />
       )}

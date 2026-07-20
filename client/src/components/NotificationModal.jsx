@@ -10,9 +10,10 @@ import { toast } from './Toast.jsx';
  * Props:
  *   - notifData: { customerName, date, items, fileName }
  *   - company:   { company_name, logo_path, hotline }
+ *   - bank:      { bank_name, account_number, account_holder } | null
  *   - onClose:   () => void
  */
-export default function NotificationModal({ notifData, company = {}, onClose }) {
+export default function NotificationModal({ notifData, company = {}, bank = null, onClose }) {
   const [dataUrl, setDataUrl] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -53,7 +54,7 @@ export default function NotificationModal({ notifData, company = {}, onClose }) 
         <div className="modal-body">
           <div className="max-h-[60vh] overflow-y-auto rounded-lg bg-greige-50 p-3 flex justify-center">
             {dataUrl ? (
-              <img src={dataUrl} alt="Phiếu báo" className="w-full max-w-[600px] rounded-lg shadow-card" />
+              <img src={dataUrl} alt="Phiếu báo" className="w-full max-w-[600px] self-start rounded-lg shadow-card" />
             ) : (
               <div className="py-16 text-center text-ink-400">
                 <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -86,6 +87,7 @@ export default function NotificationModal({ notifData, company = {}, onClose }) 
           date={notifData.date}
           items={notifData.items}
           companyName={company.company_name || 'ShipUS'}
+          bank={bank}
           autoDownload={false}
           onRendered={(url) => setDataUrl(url)}
         />
