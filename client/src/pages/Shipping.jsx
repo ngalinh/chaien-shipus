@@ -377,19 +377,20 @@ export default function Shipping() {
 
                   {!isCollapsed && (
                     <div className="table-container rounded-none shadow-none border-t border-greige-100">
-                      <table className="data-table">
+                      <table className="data-table w-full min-w-[1100px]">
                         <thead>
                           <tr>
-                            <th>Mã KH</th>
-                            <th>Kho</th>
+                            <th className="w-36">Mã KH</th>
+                            {groupMode === 'customer' && <th className="w-28">Ngày nhập</th>}
+                            <th className="w-16">Kho</th>
                             <th>Tracking #</th>
-                            <th>Sản phẩm</th>
-                            <th className="text-right">Cân nặng</th>
-                            <th className="text-right">Phụ thu</th>
-                            <th className="text-right">Phí trả đối tác</th>
-                            <th>Tình trạng TT</th>
-                            <th>Ghi chú</th>
-                            <th className="text-right">Thao tác</th>
+                            <th className="w-28">Sản phẩm</th>
+                            <th className="w-24 text-right">Cân nặng</th>
+                            <th className="w-24 text-right">Phụ thu</th>
+                            <th className="w-36 text-right">Phí trả đối tác</th>
+                            <th className="w-32">Tình trạng TT</th>
+                            <th className="w-28">Ghi chú</th>
+                            <th className="w-24 text-right">Thao tác</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -411,6 +412,7 @@ export default function Shipping() {
                                     )}
                                   </Link>
                                 </td>
+                                {groupMode === 'customer' && <td className="tabular-nums">{formatDate(s.import_date)}</td>}
                                 <td>{s.warehouse_code || '–'}</td>
                                 <td>
                                   {isEditing ? (
@@ -418,14 +420,14 @@ export default function Shipping() {
                                       onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
                                       className="input-field py-1 text-xs w-28" />
                                   ) : (
-                                    <span className="font-mono text-xs">{s.tracking_no || '–'}</span>
+                                    <span className="font-mono text-xs truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
                                   )}
                                 </td>
                                 <td>
                                   {isEditing ? (
                                     <input value={editValues.product}
                                       onChange={(e) => setEditValues((p) => ({ ...p, product: e.target.value }))}
-                                      className="input-field py-1 text-xs w-28" />
+                                      className="input-field py-1 text-xs w-full" />
                                   ) : (
                                     <span className="max-w-[140px] truncate block" title={s.product}>{s.product || '–'}</span>
                                   )}
@@ -434,7 +436,7 @@ export default function Shipping() {
                                   {isEditing ? (
                                     <input type="number" value={editValues.weight}
                                       onChange={(e) => setEditValues((p) => ({ ...p, weight: e.target.value }))}
-                                      className="input-field py-1 text-xs w-20 text-right" step={0.01} min={0} />
+                                      className="input-field py-1 text-xs w-full text-right" step={0.01} min={0} />
                                   ) : (
                                     `${s.weight} kg`
                                   )}
@@ -443,7 +445,7 @@ export default function Shipping() {
                                   {isEditing ? (
                                     <input type="number" value={editValues.surcharge}
                                       onChange={(e) => setEditValues((p) => ({ ...p, surcharge: e.target.value }))}
-                                      className="input-field py-1 text-xs w-24 text-right" step={1000} min={0} />
+                                      className="input-field py-1 text-xs w-full text-right" step={1000} min={0} />
                                   ) : (
                                     formatCurrency(s.surcharge)
                                   )}
@@ -454,7 +456,7 @@ export default function Shipping() {
                                   {isEditing ? (
                                     <input value={editValues.notes}
                                       onChange={(e) => setEditValues((p) => ({ ...p, notes: e.target.value }))}
-                                      className="input-field py-1 text-xs w-28" />
+                                      className="input-field py-1 text-xs w-full" />
                                   ) : (
                                     <div className="max-w-[140px] truncate text-ink-400 text-xs" title={s.notes}>{s.notes || '–'}</div>
                                   )}
