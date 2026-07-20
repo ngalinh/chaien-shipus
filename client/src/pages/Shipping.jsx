@@ -380,7 +380,7 @@ export default function Shipping() {
                       <table className="data-table w-full min-w-[1100px]">
                         <thead>
                           <tr>
-                            <th className="w-36">Mã KH</th>
+                            {groupMode !== 'customer' && <th className="w-36">Mã KH</th>}
                             {groupMode === 'customer' && <th className="w-28">Ngày nhập</th>}
                             <th className="w-16">Kho</th>
                             <th>Tracking #</th>
@@ -398,20 +398,22 @@ export default function Shipping() {
                             const isEditing = editingId === s.id;
                             return (
                               <tr key={s.id} className={isEditing ? 'bg-primary-50/40' : ''}>
-                                <td>
-                                  <Link
-                                    to={`/customers/${s.customer_id}`}
-                                    className="block max-w-[160px] group"
-                                    title={`Xem hồ sơ ${cleanCode(s.customer_code)}`}
-                                  >
-                                    <span className="font-mono text-sm text-primary-700 group-hover:underline truncate block">
-                                      {cleanCode(s.customer_code)}
-                                    </span>
-                                    {s.customer_name && (
-                                      <span className="text-xs text-ink-400 truncate block">{s.customer_name}</span>
-                                    )}
-                                  </Link>
-                                </td>
+                                {groupMode !== 'customer' && (
+                                  <td>
+                                    <Link
+                                      to={`/customers/${s.customer_id}`}
+                                      className="block max-w-[160px] group"
+                                      title={`Xem hồ sơ ${cleanCode(s.customer_code)}`}
+                                    >
+                                      <span className="font-mono text-sm text-primary-700 group-hover:underline truncate block">
+                                        {cleanCode(s.customer_code)}
+                                      </span>
+                                      {s.customer_name && (
+                                        <span className="text-xs text-ink-400 truncate block">{s.customer_name}</span>
+                                      )}
+                                    </Link>
+                                  </td>
+                                )}
                                 {groupMode === 'customer' && <td className="tabular-nums">{formatDate(s.import_date)}</td>}
                                 <td>{s.warehouse_code || '–'}</td>
                                 <td>
