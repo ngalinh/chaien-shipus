@@ -187,9 +187,10 @@ export default function NotificationTemplate({
             </div>
             <div
               style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, marginTop: 9,
+                display: 'inline-block', marginTop: 9, textAlign: 'center',
                 background: 'rgba(75,180,214,0.18)', border: '1px solid rgba(75,180,214,0.5)',
-                padding: '7px 18px', borderRadius: 999, fontSize: 14, fontWeight: 700, color: '#9fe0f2',
+                padding: '0 18px', height: 30, lineHeight: '28px', borderRadius: 999,
+                fontSize: 14, fontWeight: 700, color: '#9fe0f2',
               }}
             >
               {items.length} kiện
@@ -269,7 +270,7 @@ export default function NotificationTemplate({
               Vui lòng thanh toán phí vận chuyển trước khi nhận hàng.
             </div>
           </div>
-          <div style={{ fontSize: 31, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(totalFee)}</div>
+          <div style={{ fontSize: 29, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(totalFee)}</div>
         </div>
 
         {/* ── Thông tin chuyển khoản + QR ── */}
