@@ -9,7 +9,6 @@ import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS } 
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
-import VanDonInlineEdit from '../components/VanDonInlineEdit.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -139,25 +138,6 @@ export default function Shipping() {
     setEditValues({});
   }
 
-  async function updateVanDon(batch, value) {
-    try {
-      await axios.put('/api/shipments/batch', {
-        batch_date: batch.batch_date,
-        customer_id: batch.customer_id,
-        van_don_code: value,
-      });
-      setNotifyBatches((prev) =>
-        prev.map((b) =>
-          b.batch_date === batch.batch_date && b.customer_id === batch.customer_id
-            ? { ...b, van_don_code: value }
-            : b
-        )
-      );
-    } catch (err) {
-      toast(err.response?.data?.error || 'Không thể cập nhật mã vận đơn', 'error');
-    }
-  }
-
   async function triggerNotification(batch) {
     const details = batch.details || [];
     if (details.length === 0) {
@@ -223,7 +203,6 @@ export default function Shipping() {
         rows,
         count: rows.length,
         weight: rows.reduce((a, s) => a + (s.weight || 0), 0),
-        partnerFee: rows.reduce((a, s) => a + (s.weight || 0) * (s.partner_rate || 0), 0),
         title: groupMode === 'customer' ? (cleanCode(rows[0].customer_code) || `#${key}`) : `Đợt ${formatDate(key)}`,
         subtitle: groupMode === 'customer' ? (rows[0].customer_name || '') : '',
       });
@@ -371,7 +350,7 @@ export default function Shipping() {
                     <span className="text-body-md font-bold text-ink-900">{g.title}</span>
                     {g.subtitle && <span className="text-sm text-ink-400">· {g.subtitle}</span>}
                     <span className="text-sm text-ink-400">
-                      {g.count} kiện · {g.weight.toFixed(2)} kg · phí đối tác {formatCurrency(g.partnerFee)}
+                      {g.count} kiện · {g.weight.toFixed(2)} kg
                     </span>
                   </button>
 
@@ -387,7 +366,6 @@ export default function Shipping() {
                             <th className="w-28">Sản phẩm</th>
                             <th className="w-24 text-right">Cân nặng</th>
                             <th className="w-24 text-right">Phụ thu</th>
-                            <th className="w-36 text-right">Phí trả đối tác</th>
                             <th className="w-32">Tình trạng TT</th>
                             <th className="w-28">Ghi chú</th>
                             <th className="w-24 text-right">Thao tác</th>
@@ -452,7 +430,6 @@ export default function Shipping() {
                                     formatCurrency(s.surcharge)
                                   )}
                                 </td>
-                                <td className="text-right tabular-nums">{formatCurrency(s.weight * s.partner_rate)}</td>
                                 <td><PaidBadge status={s.paid_status} /></td>
                                 <td>
                                   {isEditing ? (
@@ -515,17 +492,15 @@ export default function Shipping() {
                 <th>Mã KH</th>
                 <th className="text-right">SL tracking</th>
                 <th className="text-right">Tổng cân nặng</th>
-                <th className="text-right">Phí đối tác</th>
                 <th className="text-right">Tổng phụ thu</th>
                 <th className="text-right">Tổng phí VC</th>
-                <th>Mã vận đơn</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-10 text-ink-400">
+                  <td colSpan={8} className="text-center py-10 text-ink-400">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                       Đang tải...
@@ -534,7 +509,7 @@ export default function Shipping() {
                 </tr>
               ) : filteredBatches.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-14 text-ink-400">
+                  <td colSpan={8} className="text-center py-14 text-ink-400">
                     <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
                     {q ? 'Không tìm thấy lô hàng khớp' : 'Chưa có lô hàng nào trong khoảng này'}
                   </td>
@@ -565,37 +540,21 @@ export default function Shipping() {
                       </td>
                       <td className="text-right tabular-nums">{batch.tracking_count}</td>
                       <td className="text-right tabular-nums">{Number(batch.total_weight || 0).toFixed(2)} kg</td>
-                      <td className="text-right tabular-nums">{formatCurrency(batch.total_partner_fee)}</td>
                       <td className="text-right tabular-nums">{formatCurrency(batch.total_surcharge)}</td>
                       <td className="text-right font-semibold text-primary-700 tabular-nums">{formatCurrency(batch.total_vc_fee)}</td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <VanDonInlineEdit
-                          value={batch.van_don_code || ''}
-                          onSave={(v) => updateVanDon(batch, v)}
-                        />
-                      </td>
                       <td onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
                         <button
                           onClick={() => triggerNotification(batch)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full ${
-                            batch.notified_at
-                              ? 'bg-greige-100 text-ink-500 hover:bg-greige-200'
-                              : 'bg-primary-500 text-white hover:bg-primary-600'
-                          }`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white hover:bg-primary-600"
                         >
                           <Bell className="w-3.5 h-3.5" />
-                          {batch.notified_at ? 'Gửi lại' : 'Thông báo'}
+                          Thông báo
                         </button>
-                        {batch.notify_count > 0 && (
-                          <span className="block text-2xs text-ink-400 mt-1" title={`Lần cuối: ${batch.notified_at ? dayjs(batch.notified_at).format('DD/MM/YYYY HH:mm') : ''}`}>
-                            Đã báo {batch.notify_count} lần
-                          </span>
-                        )}
                       </td>
                     </tr>,
                     isOpen && (
                       <tr key={`${bKey}-detail`} className="expand-row">
-                        <td colSpan={10} className="bg-primary-50/50 p-0">
+                        <td colSpan={8} className="bg-primary-50/50 p-0">
                           <div className="px-8 py-3 overflow-x-auto">
                             <table className="w-full text-xs border-collapse min-w-[560px]">
                               <thead>
@@ -604,7 +563,6 @@ export default function Shipping() {
                                   <th className="px-3 py-2 text-left text-ink-400 font-semibold">Tracking #</th>
                                   <th className="px-3 py-2 text-left text-ink-400 font-semibold">Sản phẩm</th>
                                   <th className="px-3 py-2 text-right text-ink-400 font-semibold">Cân nặng</th>
-                                  <th className="px-3 py-2 text-right text-ink-400 font-semibold">Phí đối tác</th>
                                   <th className="px-3 py-2 text-right text-ink-400 font-semibold">Phụ thu</th>
                                   <th className="px-3 py-2 text-right text-ink-400 font-semibold">Phí VC</th>
                                 </tr>
@@ -618,7 +576,6 @@ export default function Shipping() {
                                       <td className="px-3 py-2 font-mono">{s.tracking_no || '–'}</td>
                                       <td className="px-3 py-2 max-w-[160px] truncate" title={s.product}>{s.product || '–'}</td>
                                       <td className="px-3 py-2 text-right tabular-nums">{s.weight} kg</td>
-                                      <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(s.weight * s.partner_rate)}</td>
                                       <td className="px-3 py-2 text-right tabular-nums">{formatCurrency(s.surcharge)}</td>
                                       <td className="px-3 py-2 text-right font-semibold text-primary-700 tabular-nums">{formatCurrency(vcFee)}</td>
                                     </tr>
