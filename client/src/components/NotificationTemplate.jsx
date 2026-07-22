@@ -201,7 +201,7 @@ export default function NotificationTemplate({
                 fontSize: 14, fontWeight: 700, color: '#9fe0f2',
               }}
             >
-              <span data-nudge="4">{items.length} kiện</span>
+              <span data-nudge="7">{items.length} kiện</span>
             </div>
           </div>
         </div>
@@ -239,26 +239,26 @@ export default function NotificationTemplate({
                 borderTop: '1px solid #eef4f7',
               }}
             >
-              <div data-nudge="5" style={{ fontSize: 15, color: '#90a6b3', fontWeight: 500 }}>{idx + 1}</div>
-              <div data-nudge="5" style={{ fontFamily: MONO, fontSize: 14, color: '#1a3a4d', letterSpacing: -0.2, wordBreak: 'break-all' }}>
+              <div data-nudge="7" style={{ fontSize: 15, color: '#90a6b3', fontWeight: 500 }}>{idx + 1}</div>
+              <div data-nudge="7" style={{ fontFamily: MONO, fontSize: 14, color: '#1a3a4d', letterSpacing: -0.2, wordBreak: 'break-all' }}>
                 {item.tracking_no || '–'}
               </div>
-              <div data-nudge="5" style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
-              <div data-nudge="5" style={{ fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
+              <div data-nudge="7" style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
+              <div data-nudge="7" style={{ fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
                 {item.weight ? Number(item.weight).toFixed(2) : '–'}
               </div>
-              <div data-nudge="5" style={{ fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
+              <div data-nudge="7" style={{ fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
                 {item.customer_fee ? fmtMoney(item.customer_fee) : '–'}
               </div>
             </div>
           ))}
 
           <div style={{ ...GRID, padding: '18px 22px', background: '#2f93b8' }}>
-            <div data-nudge="5" style={{ gridColumn: '1 / 4', textAlign: 'left', fontSize: 15, fontWeight: 600, color: '#ffffff' }}>
+            <div data-nudge="9" style={{ gridColumn: '1 / 4', textAlign: 'left', fontSize: 15, fontWeight: 600, color: '#ffffff' }}>
               Tổng cộng ({items.length} kiện hàng)
             </div>
-            <div data-nudge="5" style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{totalWeight.toFixed(2)}</div>
-            <div data-nudge="5" style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(totalFee)}</div>
+            <div data-nudge="9" style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{totalWeight.toFixed(2)}</div>
+            <div data-nudge="9" style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(totalFee)}</div>
           </div>
         </div>
 
