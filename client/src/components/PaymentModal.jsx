@@ -3,6 +3,7 @@ import axios from 'axios';
 import { X, CreditCard } from 'lucide-react';
 import { toast } from './Toast.jsx';
 import { formatCurrency, todayInputValue } from '../utils.jsx';
+import MoneyInput from './MoneyInput.jsx';
 
 export default function PaymentModal({ customerId, batchDate, amount, onClose, onSaved }) {
   const needsCustomerPick = !customerId;
@@ -134,15 +135,11 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
             {/* Amount */}
             <div>
               <label className="label">Số tiền (VND)</label>
-              <input
-                type="number"
-                name="amount"
+              <MoneyInput
                 value={form.amount}
-                onChange={handleField}
+                onChange={(v) => setForm((prev) => ({ ...prev, amount: v }))}
                 onFocus={(e) => e.target.select()}
                 className="input-field"
-                min={0}
-                step={1000}
                 autoFocus
                 required
               />

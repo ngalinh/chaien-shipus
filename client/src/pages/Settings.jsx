@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
+import MoneyInput from '../components/MoneyInput.jsx';
 
 export default function Settings() {
   const [rates, setRates] = useState([]);
@@ -443,14 +444,11 @@ function RatesSection({ rates, setRates }) {
                   />
                 </td>
                 <td>
-                  <input
-                    type="number"
+                  <MoneyInput
                     value={form.rate_per_kg}
-                    onChange={(e) => setForm((p) => ({ ...p, rate_per_kg: e.target.value }))}
+                    onChange={(v) => setForm((p) => ({ ...p, rate_per_kg: v }))}
                     className="input-field py-1 text-sm"
                     placeholder="50000"
-                    min={0}
-                    step={1000}
                   />
                 </td>
                 <td className="text-right">
@@ -485,13 +483,10 @@ function RatesSection({ rates, setRates }) {
                   </td>
                   <td>
                     {editId === r.id ? (
-                      <input
-                        type="number"
+                      <MoneyInput
                         value={editForm.rate_per_kg}
-                        onChange={(e) => setEditForm((p) => ({ ...p, rate_per_kg: e.target.value }))}
+                        onChange={(v) => setEditForm((p) => ({ ...p, rate_per_kg: v }))}
                         className="input-field py-1 text-sm"
-                        min={0}
-                        step={1000}
                       />
                     ) : (
                       formatCurrency(r.rate_per_kg)
@@ -646,14 +641,11 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                   />
                 </td>
                 <td>
-                  <input
-                    type="number"
+                  <MoneyInput
                     value={form.rate_per_kg}
-                    onChange={(e) => setForm((p) => ({ ...p, rate_per_kg: e.target.value }))}
+                    onChange={(v) => setForm((p) => ({ ...p, rate_per_kg: v }))}
                     className="input-field py-1 text-sm"
                     placeholder="30000"
-                    min={0}
-                    step={1000}
                   />
                 </td>
                 <td>
@@ -705,13 +697,10 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                   </td>
                   <td>
                     {editId === w.id ? (
-                      <input
-                        type="number"
+                      <MoneyInput
                         value={editForm.rate_per_kg}
-                        onChange={(e) => setEditForm((p) => ({ ...p, rate_per_kg: e.target.value }))}
+                        onChange={(v) => setEditForm((p) => ({ ...p, rate_per_kg: v }))}
                         className="input-field py-1 text-sm"
-                        min={0}
-                        step={1000}
                       />
                     ) : (
                       formatCurrency(w.rate_per_kg)
