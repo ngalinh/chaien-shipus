@@ -16,6 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
+import { getUserRole } from '../utils.jsx';
 
 const NAV_ITEMS = [
   { to: '/',             label: 'Dashboard',   icon: LayoutDashboard, end: true },
@@ -47,7 +48,7 @@ function Wordmark() {
   );
 }
 
-function Sidebar({ onNavigate }) {
+function Sidebar({ onNavigate, navItems, collapsed, toggleCollapsed }) {
   return (
     <div className="flex flex-col h-full">
       {/* Logo → Dashboard */}
@@ -56,25 +57,28 @@ function Sidebar({ onNavigate }) {
         end
         onClick={onNavigate}
         aria-label="Về Dashboard"
-        className="flex items-center gap-3 px-5 pt-7 pb-5 hover:opacity-80"
+        className={`flex items-center pt-7 pb-5 hover:opacity-80 ${collapsed ? 'justify-center px-3' : 'gap-3 px-5'}`}
         style={{ transition: 'opacity 150ms ease-out' }}
       >
         <span className="w-11 h-11 rounded-tile bg-primary-100 grid place-items-center flex-shrink-0">
           <Mark size={26} />
         </span>
-        <Wordmark />
+        {!collapsed && <Wordmark />}
       </NavLink>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3.5 py-2 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
+        {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             onClick={onNavigate}
+            title={collapsed ? label : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold ${
+              `flex items-center py-3 rounded-tile text-nav font-semibold ${
+                collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+              } ${
                 isActive
                   ? 'bg-primary-500 text-white shadow-pill'
                   : 'text-ink-500 hover:bg-greige-50 hover:text-ink-900'
@@ -85,8 +89,8 @@ function Sidebar({ onNavigate }) {
             {({ isActive }) => (
               <>
                 <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2.1 : 1.9} />
-                <span className="flex-1">{label}</span>
-                {isActive && <ChevronRight className="w-4 h-4 opacity-70" />}
+                {!collapsed && <span className="flex-1">{label}</span>}
+                {!collapsed && isActive && <ChevronRight className="w-4 h-4 opacity-70" />}
               </>
             )}
           </NavLink>
@@ -94,17 +98,34 @@ function Sidebar({ onNavigate }) {
       </nav>
 
       {/* Sidebar footer */}
-      <div className="px-3.5 py-4 border-t border-greige-100 space-y-1">
-        <a
-          href="https://ai.basso.vn/admin/dashboard.html"
-          onClick={onNavigate}
-          className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900"
-          style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
+      <div className={`py-4 border-t border-greige-100 space-y-1 ${collapsed ? 'px-2' : 'px-3.5'}`}>
+        {!collapsed && (
+          <>
+            <a
+              href="https://ai.basso.vn/admin/dashboard.html"
+              onClick={onNavigate}
+              className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900"
+              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
+            >
+              <ExternalLink className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
+              <span className="flex-1">AI Basso</span>
+            </a>
+            <p className="text-2xs text-ink-400 font-semibold px-3.5 pt-1">ShipUS v1.0</p>
+          </>
+        )}
+        {/* Toggle collapse — desktop only */}
+        <button
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? 'Mở menu' : 'Thu gọn menu'}
+          title={collapsed ? 'Mở menu' : 'Thu gọn menu'}
+          className={`hidden lg:flex items-center w-full py-3 rounded-tile text-ink-500 hover:bg-greige-50 hover:text-ink-900 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'}`}
+          style={{ transition: 'background-color 150ms ease-out' }}
         >
-          <ExternalLink className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
-          <span className="flex-1">AI Basso</span>
-        </a>
-        <p className="text-2xs text-ink-400 font-semibold px-3.5 pt-1">ShipUS v1.0</p>
+          {collapsed
+            ? <PanelLeftOpen className="w-5 h-5 flex-shrink-0" />
+            : <PanelLeftClose className="w-5 h-5 flex-shrink-0" />}
+          {!collapsed && <span className="flex-1 text-nav font-semibold">Thu gọn</span>}
+        </button>
       </div>
     </div>
   );
@@ -115,6 +136,12 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('shipus_sidebar_collapsed') === '1');
   const [searchOpen, setSearchOpen] = useState(false);
   const [username, setUsername] = useState('Admin');
+  const role = getUserRole();
+
+  const navItems = NAV_ITEMS.filter(({ to }) => {
+    if (role === 'staff') return to !== '/' && to !== '/transactions';
+    return true;
+  });
 
   function toggleCollapsed() {
     setCollapsed((c) => {
@@ -159,14 +186,14 @@ export default function Layout() {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-30 w-64 bg-white flex flex-col
+          fixed inset-y-0 left-0 z-30 bg-white flex flex-col overflow-hidden
           lg:relative lg:translate-x-0 lg:flex-shrink-0
           lg:rounded-frame lg:shadow-card lg:sticky lg:top-5 lg:self-start
           lg:h-[calc(100vh-40px)]
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          ${collapsed ? 'lg:hidden' : ''}
+          ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
+          ${collapsed ? 'lg:w-16' : 'lg:w-64'}
         `}
-        style={{ transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1)' }}
+        style={{ transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1), width 280ms cubic-bezier(0.4,0,0.2,1)' }}
       >
         <button
           onClick={() => setSidebarOpen(false)}
@@ -175,7 +202,12 @@ export default function Layout() {
         >
           <X className="w-5 h-5" />
         </button>
-        <Sidebar onNavigate={() => setSidebarOpen(false)} />
+        <Sidebar
+          onNavigate={() => setSidebarOpen(false)}
+          navItems={navItems}
+          collapsed={collapsed}
+          toggleCollapsed={toggleCollapsed}
+        />
       </aside>
 
       {/* Main content */}
@@ -189,17 +221,6 @@ export default function Layout() {
             style={{ transition: 'background-color 150ms ease-out' }}
           >
             <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Desktop: đóng gọn / mở lại sidebar */}
-          <button
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Mở menu' : 'Đóng gọn menu'}
-            title={collapsed ? 'Mở menu' : 'Đóng gọn menu'}
-            className="hidden lg:inline-flex p-2 rounded-full text-ink-500 hover:bg-greige-100"
-            style={{ transition: 'background-color 150ms ease-out' }}
-          >
-            {collapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
           </button>
 
           {/* Search pill — desktop */}

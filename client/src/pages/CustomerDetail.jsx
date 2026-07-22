@@ -7,7 +7,7 @@ import {
   Banknote, CheckCircle, Clock, ZoomIn, Bell, CreditCard,
   ChevronDown, ChevronRight, Edit2,
 } from 'lucide-react';
-import { formatCurrency, formatDate, StatusBadge, calcCustomerStatus } from '../utils.jsx';
+import { formatCurrency, formatDate, StatusBadge, calcCustomerStatus, getUserRole } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
@@ -364,16 +364,18 @@ export default function CustomerDetail() {
                               <Bell className="w-3.5 h-3.5" />
                               Phiếu báo
                             </button>
-                            <button
-                              onClick={() => setPaymentModal({
-                                batchDate: batch.batch_date,
-                                amount: batch.total_vc_fee,
-                              })}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded hover:bg-primary-100"
-                            >
-                              <CreditCard className="w-3.5 h-3.5" />
-                              Thanh toán
-                            </button>
+                            {getUserRole() !== 'staff' && (
+                              <button
+                                onClick={() => setPaymentModal({
+                                  batchDate: batch.batch_date,
+                                  amount: batch.total_vc_fee,
+                                })}
+                                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded hover:bg-primary-100"
+                              >
+                                <CreditCard className="w-3.5 h-3.5" />
+                                Thanh toán
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>,

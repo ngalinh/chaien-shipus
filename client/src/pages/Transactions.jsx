@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { Plus, Calendar, Receipt } from 'lucide-react';
-import { formatCurrency, formatDate, todayInputValue } from '../utils.jsx';
+import { formatCurrency, formatDate, todayInputValue, getUserRole } from '../utils.jsx';
 import TransactionModal from '../components/TransactionModal.jsx';
 
 const CATEGORY_LABEL = {
@@ -64,10 +64,12 @@ export default function Transactions() {
           <h1 className="text-page font-bold text-ink-900 leading-tight">Giao dịch</h1>
           <p className="text-body-md text-ink-500 mt-1.5">Tổng hợp thanh toán & công nợ của khách</p>
         </div>
-        <button onClick={() => setPayModal(true)} className="btn-primary">
-          <Plus className="w-4 h-4" />
-          Tạo thanh toán
-        </button>
+        {getUserRole() !== 'staff' && (
+          <button onClick={() => setPayModal(true)} className="btn-primary">
+            <Plus className="w-4 h-4" />
+            Tạo thanh toán
+          </button>
+        )}
       </div>
 
       {/* Summary */}
