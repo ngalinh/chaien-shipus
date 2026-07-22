@@ -13,6 +13,8 @@ import {
   ChevronRight,
   ExternalLink,
   Search,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -110,8 +112,17 @@ function Sidebar({ onNavigate }) {
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem('shipus_sidebar_collapsed') === '1');
   const [searchOpen, setSearchOpen] = useState(false);
   const [username, setUsername] = useState('Admin');
+
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem('shipus_sidebar_collapsed', next ? '1' : '0');
+      return next;
+    });
+  }
   const [searchParams, setSearchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
 
@@ -153,6 +164,7 @@ export default function Layout() {
           lg:rounded-frame lg:shadow-card lg:sticky lg:top-5 lg:self-start
           lg:h-[calc(100vh-40px)]
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          ${collapsed ? 'lg:hidden' : ''}
         `}
         style={{ transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1)' }}
       >
@@ -177,6 +189,17 @@ export default function Layout() {
             style={{ transition: 'background-color 150ms ease-out' }}
           >
             <Menu className="w-5 h-5" />
+          </button>
+
+          {/* Desktop: đóng gọn / mở lại sidebar */}
+          <button
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Mở menu' : 'Đóng gọn menu'}
+            title={collapsed ? 'Mở menu' : 'Đóng gọn menu'}
+            className="hidden lg:inline-flex p-2 rounded-full text-ink-500 hover:bg-greige-100"
+            style={{ transition: 'background-color 150ms ease-out' }}
+          >
+            {collapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
           </button>
 
           {/* Search pill — desktop */}

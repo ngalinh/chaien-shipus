@@ -80,15 +80,28 @@ router.get('/', (req, res) => {
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
 
-    // ── 4. Total VC fee (customer side) and gross margin ──────────────────
-    const vcFeeRow = db.prepare(`
-      SELECT
-        ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2) AS total_vc_fee_customer,
-        ROUND(COALESCE(SUM(weight * partner_rate),              0), 2) AS total_vc_fee_partner,
-        ROUND(COALESCE(SUM(weight * customer_rate + surcharge - weight * partner_rate), 0), 2) AS gross_margin
+    // ── 4. Phí VC khách trả (từ shipments) & phí trả đối tác (từ các khoản CHI
+    //       nhập trong mục Giao dịch — bảng partner_payments, KHÔNG tính theo cước
+    //       đối tác trên từng kiện nữa). Lợi nhuận gộp = khách trả − trả đối tác.
+    const vcCustomerRow = db.prepare(`
+      SELECT ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2) AS total_vc_fee_customer
       FROM shipments
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
+
+    const partnerPaidRow = db.prepare(`
+      SELECT ROUND(COALESCE(SUM(amount), 0), 2) AS total_vc_fee_partner
+      FROM partner_payments
+      WHERE trans_date >= ? AND trans_date <= ?
+    `).get(startDate, endDate);
+
+    const vcFeeRow = {
+      total_vc_fee_customer: vcCustomerRow.total_vc_fee_customer,
+      total_vc_fee_partner:  partnerPaidRow.total_vc_fee_partner,
+      gross_margin: Math.round(
+        (vcCustomerRow.total_vc_fee_customer - partnerPaidRow.total_vc_fee_partner) * 100
+      ) / 100,
+    };
 
     // ── 5. Total payments received in period ──────────────────────────────
     const paymentsRow = db.prepare(`

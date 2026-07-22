@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { formatCurrency } from '../utils.jsx';
@@ -137,7 +138,11 @@ export default function RevenueVC() {
                 <>
                   {byCustomer.map((r) => (
                     <tr key={r.id}>
-                      <td className="font-semibold text-primary-700">{r.customer_code}</td>
+                      <td>
+                        <Link to={`/customers/${r.id}`} className="font-semibold text-primary-700 hover:underline" title={`Xem hồ sơ ${r.customer_code}`}>
+                          {r.customer_code}
+                        </Link>
+                      </td>
                       <td className="text-right">{fmtKg(r.total_weight)}</td>
                       <td className="text-right">{formatCurrency(r.total_vc_fee)}</td>
                       <td>{r.sale_name || <span className="text-ink-400">Chưa gán</span>}</td>
