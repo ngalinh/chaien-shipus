@@ -297,6 +297,7 @@ router.get('/bao-khach', (req, res) => {
         ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)          AS total_vc_fee,
         bi.van_don_code,
         bi.notified_at,
+        COALESCE(bi.status, '')                                          AS status,
         bi.id                                                            AS batch_info_id,
         (SELECT COUNT(*) FROM notification_log nl
           WHERE nl.batch_date = s.import_date AND nl.customer_id = s.customer_id) AS notify_count
@@ -411,6 +412,36 @@ router.post('/batch/notify', (req, res) => {
     `).get(batch_date, cid);
 
     res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PATCH /api/shipments/batch-status
+// Cập nhật tình trạng lô hàng: '' | 'Đã báo khách' | 'Đã ship hàng'
+// Body: { batch_date, customer_id, status }
+// ═════════════════════════════════════════════════════════════════════════════
+router.patch('/batch-status', (req, res) => {
+  try {
+    const { batch_date, customer_id, status } = req.body;
+    if (!batch_date || !customer_id) {
+      return res.status(400).json({ error: 'batch_date and customer_id are required' });
+    }
+    const cid = parseInt(customer_id);
+    const exists = db.prepare(
+      'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? LIMIT 1'
+    ).get(batch_date, cid);
+    if (!exists) return res.status(404).json({ error: 'Batch not found' });
+
+    db.prepare(`
+      INSERT INTO batch_info (batch_date, customer_id, status)
+      VALUES (?, ?, ?)
+      ON CONFLICT(batch_date, customer_id) DO UPDATE SET status = excluded.status
+    `).run(batch_date, cid, status || '');
+
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
