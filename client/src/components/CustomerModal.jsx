@@ -13,7 +13,7 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
     phone: '',
     email: '',
     address: '',
-    channel: '',
+    channel: '',        // ẩn khỏi form nhưng giữ lại để không xoá dữ liệu cũ khi sửa
     rate_id: '',
     notes: '',
     warehouse: '',
@@ -38,7 +38,6 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
         phone: customer.phone || '',
         email: customer.email || '',
         address: customer.address || '',
-        channel: customer.channel || '',
         rate_id: customer.rate_id || '',
         notes: customer.notes || '',
         warehouse: customer.warehouse || '',
@@ -373,16 +372,6 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Kênh liên hệ */}
-            <div>
-              <label className="label">Kênh liên hệ</label>
-              <select name="channel" value={form.channel} onChange={handleField} className="input-field">
-                <option value="">-- Chọn kênh --</option>
-                <option value="fb">Facebook</option>
-                <option value="zalo">Zalo</option>
-              </select>
             </div>
 
             {/* Cước vận chuyển */}

@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
-  ArrowLeft, Phone, MapPin, MessageCircle, Package, Weight,
+  ArrowLeft, Phone, MapPin, Package, Weight,
   Banknote, CheckCircle, Clock, ZoomIn, Bell, CreditCard,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Edit2,
 } from 'lucide-react';
 import { formatCurrency, formatDate, StatusBadge, calcCustomerStatus } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
-import VanDonInlineEdit from '../components/VanDonInlineEdit.jsx';
+import CustomerModal from '../components/CustomerModal.jsx';
 
 export default function CustomerDetail() {
   const { id } = useParams();
@@ -35,10 +35,13 @@ export default function CustomerDetail() {
   const [lightbox, setLightbox] = useState(null);
   const [notifData, setNotifData] = useState(null);
   const [settings, setSettings] = useState({ company: {} });
+  const [editOpen, setEditOpen] = useState(false);
+  const [allCustomers, setAllCustomers] = useState([]);
 
   useEffect(() => {
     fetchCustomer();
     fetchSettings();
+    fetchAllCustomers();
   }, [id]);
 
   useEffect(() => {
@@ -63,6 +66,31 @@ export default function CustomerDetail() {
       const res = await axios.get('/api/settings');
       setSettings(res.data);
     } catch { /* ignore */ }
+  }
+
+  async function fetchAllCustomers() {
+    try {
+      const res = await axios.get('/api/customers');
+      setAllCustomers(Array.isArray(res.data) ? res.data : []);
+    } catch { /* ignore */ }
+  }
+
+  // Danh sách NV SALE để chọn trong modal chỉnh sửa (giống trang Khách hàng)
+  const saleOptions = useMemo(() => {
+    const map = new Map();
+    allCustomers.forEach((c) => {
+      if (c.sale_username && !map.has(c.sale_username)) {
+        map.set(c.sale_username, { sale_username: c.sale_username, sale_name: c.sale_name || c.sale_username });
+      }
+    });
+    return [...map.values()].sort((a, b) => a.sale_name.localeCompare(b.sale_name, 'vi'));
+  }, [allCustomers]);
+
+  function handleCustomerSaved() {
+    setEditOpen(false);
+    fetchCustomer();
+    fetchAllCustomers();
+    toast('Đã cập nhật khách hàng', 'success');
   }
 
   async function fetchBatches() {
@@ -141,36 +169,11 @@ export default function CustomerDetail() {
     });
   }
 
-  async function updateBatchVanDon(batch, value) {
-    try {
-      await axios.put('/api/shipments/batch', {
-        batch_date: batch.batch_date,
-        customer_id: batch.customer_id,
-        van_don_code: value,
-      });
-      setBatches((prev) =>
-        prev.map((b) =>
-          b.batch_date === batch.batch_date && b.customer_id === batch.customer_id
-            ? { ...b, van_don_code: value }
-            : b
-        )
-      );
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi cập nhật mã vận đơn', 'error');
-    }
-  }
-
   function handlePaymentSaved() {
     setPaymentModal(null);
     fetchCustomer();
     if (tab === 'transactions') fetchTransactions();
   }
-
-  const channelLabel = (ch) => {
-    if (ch === 'fb') return 'Facebook';
-    if (ch === 'zalo') return 'Zalo';
-    return ch || '–';
-  };
 
   if (loading) {
     return (
@@ -227,10 +230,6 @@ export default function CustomerDetail() {
                   {customer.address}
                 </span>
               )}
-              <span className="flex items-center gap-1.5">
-                <MessageCircle className="w-4 h-4 text-gray-400" />
-                {channelLabel(customer.channel)}
-              </span>
               {customer.rate_name && (
                 <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
                   {customer.rate_name} ({Number(customer.rate_per_kg || 0).toLocaleString('en-US')} đ/kg)
@@ -239,23 +238,34 @@ export default function CustomerDetail() {
             </div>
           </div>
 
-          {/* CCCD images */}
-          {customer.cccd_images && customer.cccd_images.length > 0 && (
-            <div className="flex gap-2">
-              {customer.cccd_images.map((img) => (
-                <button key={img.id} onClick={() => setLightbox(img.url)} className="relative group">
-                  <img
-                    src={img.url}
-                    alt="CCCD"
-                    className="w-20 h-14 object-cover rounded-lg border border-gray-200"
-                  />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
-                    <ZoomIn className="w-5 h-5 text-white" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-3">
+            {/* CCCD images */}
+            {customer.cccd_images && customer.cccd_images.length > 0 && (
+              <div className="flex gap-2">
+                {customer.cccd_images.map((img) => (
+                  <button key={img.id} onClick={() => setLightbox(img.url)} className="relative group">
+                    <img
+                      src={img.url}
+                      alt="CCCD"
+                      className="w-20 h-14 object-cover rounded-lg border border-gray-200"
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
+                      <ZoomIn className="w-5 h-5 text-white" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Edit customer */}
+            <button
+              onClick={() => setEditOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm bg-primary-50 text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-100"
+            >
+              <Edit2 className="w-4 h-4" />
+              Chỉnh sửa
+            </button>
+          </div>
         </div>
 
         {/* Stats row */}
@@ -319,7 +329,6 @@ export default function CustomerDetail() {
                     <th>Tổng cân nặng</th>
                     <th>Tổng phụ thu</th>
                     <th>Tổng phí VC</th>
-                    <th>Mã vận đơn</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -346,12 +355,6 @@ export default function CustomerDetail() {
                         <td>{formatCurrency(batch.total_surcharge)}</td>
                         <td className="font-semibold text-primary-700">{formatCurrency(batch.total_vc_fee)}</td>
                         <td onClick={(e) => e.stopPropagation()}>
-                          <VanDonInlineEdit
-                            value={batch.van_don_code || ''}
-                            onSave={(v) => updateBatchVanDon(batch, v)}
-                          />
-                        </td>
-                        <td onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1 flex-wrap">
                             <button
                               onClick={() => generateNotification(batch)}
@@ -376,7 +379,7 @@ export default function CustomerDetail() {
                       </tr>,
                       isOpen && (
                         <tr key={`${bKey}-expand`} className="expand-row">
-                          <td colSpan={8} className="bg-primary-50/50 p-0">
+                          <td colSpan={7} className="bg-primary-50/50 p-0">
                             <div className="px-6 py-3 overflow-x-auto">
                               <table className="min-w-[640px] w-full text-sm border-collapse">
                                 <thead>
@@ -498,6 +501,16 @@ export default function CustomerDetail() {
             </>
           )}
         </div>
+      )}
+
+      {/* Edit customer modal */}
+      {editOpen && (
+        <CustomerModal
+          customer={customer}
+          saleOptions={saleOptions}
+          onClose={() => setEditOpen(false)}
+          onSaved={handleCustomerSaved}
+        />
       )}
 
       {/* Payment modal */}

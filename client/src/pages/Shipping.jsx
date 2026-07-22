@@ -9,6 +9,7 @@ import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS } 
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
+import MoneyInput from '../components/MoneyInput.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -423,9 +424,9 @@ export default function Shipping() {
                                 </td>
                                 <td className="text-right tabular-nums">
                                   {isEditing ? (
-                                    <input type="number" value={editValues.surcharge}
-                                      onChange={(e) => setEditValues((p) => ({ ...p, surcharge: e.target.value }))}
-                                      className="input-field py-1 text-xs w-full text-right" step={1000} min={0} />
+                                    <MoneyInput value={editValues.surcharge}
+                                      onChange={(v) => setEditValues((p) => ({ ...p, surcharge: v }))}
+                                      className="input-field py-1 text-xs w-full text-right" />
                                   ) : (
                                     formatCurrency(s.surcharge)
                                   )}
