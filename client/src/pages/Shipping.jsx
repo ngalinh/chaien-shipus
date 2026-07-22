@@ -360,7 +360,7 @@ export default function Shipping() {
                       <table className="data-table w-full min-w-[1100px]">
                         <thead>
                           <tr>
-                            {groupMode !== 'customer' && <th className="w-36">Mã KH</th>}
+                            {groupMode !== 'customer' && <th className="w-52">Mã KH</th>}
                             {groupMode === 'customer' && <th className="w-28">Ngày nhập</th>}
                             <th className="w-16">Kho</th>
                             <th>Tracking #</th>
@@ -381,7 +381,7 @@ export default function Shipping() {
                                   <td>
                                     <Link
                                       to={`/customers/${s.customer_id}`}
-                                      className="block max-w-[160px] group"
+                                      className="block max-w-[216px] group"
                                       title={`Xem hồ sơ ${cleanCode(s.customer_code)}`}
                                     >
                                       <span className="font-mono text-sm text-primary-700 group-hover:underline truncate block">
