@@ -115,6 +115,19 @@ db.exec(`
   );
 `);
 
+// Khoản CHI trả đối tác vận chuyển (không gắn khách hàng). Tách riêng khỏi
+// bảng transactions để không phải nới customer_id NOT NULL của bảng tiền hiện có.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS partner_payments (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    trans_date   TEXT    NOT NULL,
+    warehouse_id INTEGER REFERENCES partner_warehouses(id) ON DELETE SET NULL,
+    amount       REAL    NOT NULL DEFAULT 0,
+    description  TEXT,
+    created_at   DATETIME DEFAULT (datetime('now'))
+  );
+`);
+
 // Log mỗi lần báo khách (giữ lịch sử nhiều lần, không đè như batch_info.notified_at)
 db.exec(`
   CREATE TABLE IF NOT EXISTS notification_log (
