@@ -174,7 +174,16 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5">
+    <div
+      className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+    >
+      {/* iOS PWA: phủ vùng status bar bằng nền trắng — đặt z-[200] để hiển thị trên mọi overlay */}
+      <div
+        className="fixed top-0 left-0 right-0 bg-white lg:hidden"
+        style={{ height: 'env(safe-area-inset-top, 0px)', zIndex: 200 }}
+      />
+
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
