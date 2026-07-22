@@ -4,7 +4,12 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import { Plus, Calendar, Receipt } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue } from '../utils.jsx';
-import PaymentModal from '../components/PaymentModal.jsx';
+import TransactionModal from '../components/TransactionModal.jsx';
+
+const CATEGORY_LABEL = {
+  customer_payment: 'Phí VC khách trả',
+  partner_payment:  'Phí VC trả đối tác',
+};
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -35,7 +40,7 @@ export default function Transactions() {
   async function fetchTransactions() {
     setLoading(true);
     try {
-      const res = await axios.get('/api/transactions', { params: rangeFor(period) });
+      const res = await axios.get('/api/transactions/ledger', { params: rangeFor(period) });
       setRows(res.data);
     } catch (err) {
       console.error('fetchTransactions:', err);
@@ -44,9 +49,9 @@ export default function Transactions() {
     }
   }
 
-  const totalCredit = rows.reduce((a, r) => a + (r.credit || 0), 0);
-  const totalDebit = rows.reduce((a, r) => a + (r.debit || 0), 0);
-  const balance = totalCredit - totalDebit;
+  const totalThu = rows.reduce((a, r) => a + (r.thu || 0), 0);
+  const totalChi = rows.reduce((a, r) => a + (r.chi || 0), 0);
+  const balance = totalThu - totalChi;
 
   // Mới nhất trước
   const display = [...rows].reverse();
@@ -68,15 +73,15 @@ export default function Transactions() {
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="card p-4">
-          <div className="text-sm text-ink-500">Tổng khách đã thanh toán</div>
-          <div className="text-2xl font-bold text-primary-700 mt-1">{formatCurrency(totalCredit)}</div>
+          <div className="text-sm text-ink-500">Tổng Thu (khách trả)</div>
+          <div className="text-2xl font-bold text-success-700 mt-1">{formatCurrency(totalThu)}</div>
         </div>
         <div className="card p-4">
-          <div className="text-sm text-ink-500">Tổng phí VC (chi phí)</div>
-          <div className="text-2xl font-bold text-danger-600 mt-1">{formatCurrency(totalDebit)}</div>
+          <div className="text-sm text-ink-500">Tổng Chi (trả đối tác)</div>
+          <div className="text-2xl font-bold text-danger-600 mt-1">{formatCurrency(totalChi)}</div>
         </div>
         <div className="card p-4">
-          <div className="text-sm text-ink-500">Chênh lệch (đã thu − phí)</div>
+          <div className="text-sm text-ink-500">Chênh lệch (Thu − Chi)</div>
           <div className={`text-2xl font-bold mt-1 ${balance >= 0 ? 'text-success-700' : 'text-warning-500'}`}>
             {formatCurrency(balance)}
           </div>
@@ -113,7 +118,8 @@ export default function Transactions() {
           <thead>
             <tr>
               <th>Ngày tháng</th>
-              <th>Mã KH</th>
+              <th>Danh mục</th>
+              <th>Mã KH / Đối tác</th>
               <th>Nội dung</th>
               <th className="text-right">Thu (đ)</th>
               <th className="text-right">Chi (đ)</th>
@@ -122,7 +128,7 @@ export default function Transactions() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="text-center py-10 text-ink-400">
+                <td colSpan={6} className="text-center py-10 text-ink-400">
                   <div className="inline-flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                     Đang tải...
@@ -131,28 +137,41 @@ export default function Transactions() {
               </tr>
             ) : display.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-14 text-ink-400">
+                <td colSpan={6} className="text-center py-14 text-ink-400">
                   <Receipt className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
                   Chưa có giao dịch nào trong khoảng này
                 </td>
               </tr>
             ) : (
               display.map((t) => (
-                <tr key={t.id}>
+                <tr key={t.key}>
                   <td className="whitespace-nowrap font-medium">{formatDate(t.trans_date)}</td>
                   <td>
-                    <Link
-                      to={`/customers/${t.customer_id}?tab=transactions`}
-                      className="font-mono text-sm text-primary-700 hover:underline"
-                      title={`Xem giao dịch ${cleanCode(t.customer_code)}`}
-                    >
-                      {cleanCode(t.customer_code) || `#${t.customer_id}`}
-                    </Link>
-                    {t.customer_name && <div className="text-xs text-ink-400 truncate max-w-[160px]">{t.customer_name}</div>}
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                      t.category === 'customer_payment' ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-600'
+                    }`}>
+                      {CATEGORY_LABEL[t.category] || '–'}
+                    </span>
+                  </td>
+                  <td>
+                    {t.category === 'customer_payment' ? (
+                      <Link
+                        to={`/customers/${t.customer_id}?tab=transactions`}
+                        className="font-mono text-sm text-primary-700 hover:underline"
+                        title={`Xem giao dịch ${cleanCode(t.customer_code)}`}
+                      >
+                        {cleanCode(t.customer_code) || `#${t.customer_id}`}
+                      </Link>
+                    ) : (
+                      <span className="text-sm text-ink-700">{t.warehouse_name || t.warehouse_code || '–'}</span>
+                    )}
+                    {t.category === 'customer_payment' && t.customer_name && (
+                      <div className="text-xs text-ink-400 truncate max-w-[160px]">{t.customer_name}</div>
+                    )}
                   </td>
                   <td className="max-w-[320px]"><span className="truncate block" title={t.description}>{t.description || '–'}</span></td>
-                  <td className="text-right tabular-nums text-success-700 font-medium">{t.credit > 0 ? formatCurrency(t.credit) : '–'}</td>
-                  <td className="text-right tabular-nums text-danger-600 font-medium">{t.debit > 0 ? formatCurrency(t.debit) : '–'}</td>
+                  <td className="text-right tabular-nums text-success-700 font-medium">{t.thu > 0 ? formatCurrency(t.thu) : '–'}</td>
+                  <td className="text-right tabular-nums text-danger-600 font-medium">{t.chi > 0 ? formatCurrency(t.chi) : '–'}</td>
                 </tr>
               ))
             )}
@@ -161,7 +180,7 @@ export default function Transactions() {
       </div>
 
       {payModal && (
-        <PaymentModal
+        <TransactionModal
           onClose={() => setPayModal(false)}
           onSaved={() => { setPayModal(false); fetchTransactions(); }}
         />
