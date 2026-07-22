@@ -19,6 +19,22 @@ export function todayInputValue() {
   return dayjs().format('YYYY-MM-DD');
 }
 
+// Danh tính nhân viên đăng nhập từ nền tảng BASSO (localStorage.ai_chat_user).
+// Dùng để gán NV SALE khi tạo mã KH mới. Trả null nếu chưa đăng nhập BASSO.
+export function getBassoUser() {
+  try {
+    const raw = localStorage.getItem('ai_chat_user') || sessionStorage.getItem('ai_chat_user');
+    if (!raw) return null;
+    const u = JSON.parse(raw);
+    const username = u?.username || null;
+    const name = u?.name || u?.username || null;
+    if (!username && !name) return null;
+    return { username, name };
+  } catch {
+    return null;
+  }
+}
+
 export function calcCustomerStatus(lastDate) {
   if (!lastDate) return 'inactive';
   const diffDays = dayjs().diff(dayjs(lastDate), 'day');

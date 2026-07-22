@@ -191,4 +191,105 @@ router.get('/', (req, res) => {
   }
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// GET /api/dashboard/vc-revenue
+// Doanh thu VC theo tháng. Query: month=YYYY-MM (mặc định tháng hiện tại),
+// sale=<sale_username> (tuỳ chọn — lọc theo NV SALE).
+// Profit SALE = 1% phí VC, Profit CSKH = 0.5% phí VC.
+// ═════════════════════════════════════════════════════════════════════════════
+router.get('/vc-revenue', (req, res) => {
+  try {
+    const month = /^\d{4}-\d{2}$/.test(req.query.month || '')
+      ? req.query.month
+      : new Date().toISOString().slice(0, 7);
+    const sale = (req.query.sale || '').trim(); // '' = tất cả NV
+
+    const params = [month];
+    let saleFilter = '';
+    if (sale) { saleFilter = 'AND c.sale_username = ?'; params.push(sale); }
+
+    // ── Tab Khách hàng: 1 dòng / mã KH (gộp cả tháng) ─────────────────────────
+    const byCustomerRaw = db.prepare(`
+      SELECT
+        c.id,
+        c.code                                                   AS customer_code,
+        c.name                                                   AS customer_name,
+        c.sale_username,
+        c.sale_name,
+        ROUND(SUM(s.weight), 2)                                  AS total_weight,
+        ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)  AS total_vc_fee
+      FROM shipments s
+      JOIN customers c ON c.id = s.customer_id
+      WHERE strftime('%Y-%m', s.import_date) = ? ${saleFilter}
+      GROUP BY c.id
+      ORDER BY total_vc_fee DESC
+    `).all(...params);
+
+    const byCustomer = byCustomerRaw.map((r) => ({
+      ...r,
+      profit_sale: Math.round(r.total_vc_fee * 0.01 * 100) / 100,
+      profit_cskh: Math.round(r.total_vc_fee * 0.005 * 100) / 100,
+    }));
+
+    // ── Tab Nhân viên: 1 dòng / NV SALE + 1 dòng CSKH tổng ────────────────────
+    const bySaleRaw = db.prepare(`
+      SELECT
+        c.sale_username,
+        c.sale_name,
+        COUNT(DISTINCT c.id)                                     AS customer_count,
+        ROUND(SUM(s.weight), 2)                                  AS total_weight,
+        ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)  AS total_vc_fee
+      FROM shipments s
+      JOIN customers c ON c.id = s.customer_id
+      WHERE strftime('%Y-%m', s.import_date) = ? ${saleFilter}
+      GROUP BY c.sale_username
+      ORDER BY total_vc_fee DESC
+    `).all(...params);
+
+    const bySale = bySaleRaw.map((r) => ({
+      role:           'SALE',
+      sale_username:  r.sale_username,
+      sale_name:      r.sale_name || (r.sale_username ? r.sale_username : 'Chưa gán'),
+      customer_count: r.customer_count,
+      total_weight:   r.total_weight,
+      total_vc_fee:   r.total_vc_fee,
+      profit:         Math.round(r.total_vc_fee * 0.01 * 100) / 100,
+    }));
+
+    // Dòng CSKH: gộp toàn bộ khách đang hiển thị, profit = 0.5% tổng phí VC
+    const totalWeight = bySaleRaw.reduce((s, r) => s + (r.total_weight || 0), 0);
+    const totalVcFee  = bySaleRaw.reduce((s, r) => s + (r.total_vc_fee || 0), 0);
+    const totalCust   = bySaleRaw.reduce((s, r) => s + (r.customer_count || 0), 0);
+    const cskhRow = {
+      role:           'CSKH',
+      sale_username:  null,
+      sale_name:      'CSKH (tất cả khách)',
+      customer_count: totalCust,
+      total_weight:   Math.round(totalWeight * 100) / 100,
+      total_vc_fee:   Math.round(totalVcFee * 100) / 100,
+      profit:         Math.round(totalVcFee * 0.005 * 100) / 100,
+    };
+
+    // ── Danh sách NV SALE để đổ vào bộ lọc (mọi NV đã gán, không phụ thuộc tháng) ─
+    const saleOptions = db.prepare(`
+      SELECT DISTINCT sale_username, sale_name
+      FROM customers
+      WHERE sale_username IS NOT NULL AND sale_username != ''
+      ORDER BY sale_name
+    `).all();
+
+    res.json({
+      month,
+      sale,
+      by_customer:  byCustomer,
+      by_sale:      bySale,
+      cskh_row:     cskhRow,
+      sale_options: saleOptions,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

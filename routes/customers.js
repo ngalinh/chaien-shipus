@@ -151,13 +151,13 @@ router.get('/', (_req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id, warehouse } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      INSERT INTO customers (code, name, phone, email, address, channel, notes, rate_id, warehouse)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customers (code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       code.trim(),
       name.trim(),
@@ -168,6 +168,8 @@ router.post('/', (req, res) => {
       notes     || null,
       rate_id   || defaultRateId(),
       warehouse || null,
+      sale_username || null,
+      sale_name     || null,
     );
     const customer = getCustomerWithRate(info.lastInsertRowid);
     res.status(201).json({ ...customer, status: 'Inactive' });
@@ -256,12 +258,12 @@ router.get('/:id', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.put('/:id', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id, warehouse } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?, warehouse = ?
+      UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?, warehouse = ?, sale_username = ?, sale_name = ?
       WHERE id = ?
     `).run(
       code.trim(),
@@ -273,6 +275,8 @@ router.put('/:id', (req, res) => {
       notes     || null,
       rate_id   || null,
       warehouse || null,
+      sale_username || null,
+      sale_name     || null,
       parseInt(req.params.id),
     );
     if (info.changes === 0) return res.status(404).json({ error: 'Customer not found' });
