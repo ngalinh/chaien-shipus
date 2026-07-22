@@ -5,6 +5,7 @@ import {
   Users,
   Truck,
   Receipt,
+  TrendingUp,
   Settings,
   Menu,
   X,
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { to: '/shipping',     label: 'Vận chuyển',  icon: Truck },
   { to: '/customers',    label: 'Khách hàng',  icon: Users },
   { to: '/transactions', label: 'Giao dịch',   icon: Receipt },
+  { to: '/revenue',      label: 'Doanh thu VC', icon: TrendingUp },
   { to: '/settings',     label: 'Cài đặt',     icon: Settings },
 ];
 

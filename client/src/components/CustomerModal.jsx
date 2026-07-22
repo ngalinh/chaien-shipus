@@ -2,9 +2,11 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { X, Upload, Trash2, ZoomIn } from 'lucide-react';
 import { toast } from './Toast.jsx';
+import { getBassoUser } from '../utils.jsx';
 
-export default function CustomerModal({ customer, onClose, onSaved }) {
+export default function CustomerModal({ customer, onClose, onSaved, saleOptions = [] }) {
   const isEdit = !!customer;
+  const bassoUser = useMemo(() => getBassoUser(), []);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -15,6 +17,8 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
     rate_id: '',
     notes: '',
     warehouse: '',
+    sale_username: '',
+    sale_name: '',
   });
   const [rates, setRates] = useState([]);
   const [newImages, setNewImages] = useState([]);  // File objects to upload
@@ -38,6 +42,8 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
         rate_id: customer.rate_id || '',
         notes: customer.notes || '',
         warehouse: customer.warehouse || '',
+        sale_username: customer.sale_username || '',
+        sale_name: customer.sale_name || '',
       });
       fetchExistingImages(customer.id);
     }
@@ -120,9 +126,12 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
         });
         saved = res.data;
       } else {
+        // Gán NV SALE = nhân viên BASSO đang đăng nhập tạo mã KH này.
         const res = await axios.post('/api/customers', {
           ...form,
           rate_id: form.rate_id || null,
+          sale_username: bassoUser?.username || null,
+          sale_name: bassoUser?.name || null,
         });
         saved = res.data;
       }
@@ -387,6 +396,43 @@ export default function CustomerModal({ customer, onClose, onSaved }) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* NV SALE phụ trách */}
+            <div>
+              <label className="label">NV SALE phụ trách</label>
+              {isEdit ? (
+                <select
+                  name="sale_username"
+                  value={form.sale_username}
+                  onChange={(e) => {
+                    const uname = e.target.value;
+                    const opt = saleOptions.find((o) => o.sale_username === uname);
+                    setForm((prev) => ({
+                      ...prev,
+                      sale_username: uname,
+                      sale_name: uname ? (opt?.sale_name || uname) : '',
+                    }));
+                  }}
+                  className="input-field"
+                >
+                  <option value="">— Chưa gán —</option>
+                  {saleOptions.map((o) => (
+                    <option key={o.sale_username} value={o.sale_username}>
+                      {o.sale_name || o.sale_username}
+                    </option>
+                  ))}
+                  {form.sale_username && !saleOptions.some((o) => o.sale_username === form.sale_username) && (
+                    <option value={form.sale_username}>{form.sale_name || form.sale_username}</option>
+                  )}
+                </select>
+              ) : (
+                <p className="text-sm text-gray-600 py-2">
+                  {bassoUser?.name
+                    ? <>Sẽ gán cho <span className="font-semibold text-gray-900">{bassoUser.name}</span> (bạn)</>
+                    : <span className="text-amber-600">Chưa đăng nhập BASSO — mã KH sẽ không có NV phụ trách</span>}
+                </p>
+              )}
             </div>
 
             {/* Ghi chú */}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Search } from 'lucide-react';
@@ -73,6 +73,17 @@ export default function Customers() {
       c.address?.toLowerCase().includes(q)
     );
   });
+
+  // Danh sách NV SALE đã có (distinct) để đổ vào dropdown gán NV khi sửa khách.
+  const saleOptions = useMemo(() => {
+    const map = new Map();
+    (Array.isArray(customers) ? customers : []).forEach((c) => {
+      if (c.sale_username && !map.has(c.sale_username)) {
+        map.set(c.sale_username, { sale_username: c.sale_username, sale_name: c.sale_name || c.sale_username });
+      }
+    });
+    return [...map.values()].sort((a, b) => a.sale_name.localeCompare(b.sale_name, 'vi'));
+  }, [customers]);
 
   const channelLabel = (ch) => {
     if (ch === 'fb') return 'Facebook';
@@ -200,6 +211,7 @@ export default function Customers() {
       {modalOpen && (
         <CustomerModal
           customer={editCustomer}
+          saleOptions={saleOptions}
           onClose={() => setModalOpen(false)}
           onSaved={handleSaved}
         />
