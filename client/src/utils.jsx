@@ -35,6 +35,30 @@ export function getBassoUser() {
   }
 }
 
+const ADMIN_EMAILS  = ['dzuong.bol@gmail.com', 'ngalinh@gmail.com', 'thuylinhbui0209@gmail.com'];
+const KETOAN_EMAILS = ['ketoan.basso@gmail.com'];
+
+// Phân quyền frontend dựa theo email đăng nhập BASSO.
+// Quét tất cả các trường string trong ai_chat_user để khớp email — fail-closed: chưa xác định → 'staff'.
+// Trả về: 'admin' | 'ketoan' | 'staff'
+export function getUserRole() {
+  try {
+    const raw = localStorage.getItem('ai_chat_user') || sessionStorage.getItem('ai_chat_user');
+    if (!raw) return 'staff';
+    const u = JSON.parse(raw);
+    if (!u || typeof u !== 'object') return 'staff';
+    const strings = Object.values(u).filter((v) => typeof v === 'string');
+    for (const s of strings) {
+      const lower = s.toLowerCase().trim();
+      if (ADMIN_EMAILS.includes(lower))  return 'admin';
+      if (KETOAN_EMAILS.includes(lower)) return 'ketoan';
+    }
+    return 'staff';
+  } catch {
+    return 'staff';
+  }
+}
+
 export function calcCustomerStatus(lastDate) {
   if (!lastDate) return 'inactive';
   const diffDays = dayjs().diff(dayjs(lastDate), 'day');
