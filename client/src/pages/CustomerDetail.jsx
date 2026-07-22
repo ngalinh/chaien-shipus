@@ -317,7 +317,6 @@ export default function CustomerDetail() {
                     <th>Ngày tháng</th>
                     <th>SL tracking</th>
                     <th>Tổng cân nặng</th>
-                    <th>Tổng phí ship</th>
                     <th>Tổng phụ thu</th>
                     <th>Tổng phí VC</th>
                     <th>Mã vận đơn</th>
@@ -344,7 +343,6 @@ export default function CustomerDetail() {
                         <td className="font-medium">{formatDate(batch.batch_date)}</td>
                         <td>{batch.tracking_count}</td>
                         <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
-                        <td>{formatCurrency(batch.total_partner_fee)}</td>
                         <td>{formatCurrency(batch.total_surcharge)}</td>
                         <td className="font-semibold text-primary-700">{formatCurrency(batch.total_vc_fee)}</td>
                         <td onClick={(e) => e.stopPropagation()}>
@@ -378,7 +376,7 @@ export default function CustomerDetail() {
                       </tr>,
                       isOpen && (
                         <tr key={`${bKey}-expand`} className="expand-row">
-                          <td colSpan={9} className="bg-primary-50/50 p-0">
+                          <td colSpan={8} className="bg-primary-50/50 p-0">
                             <div className="px-6 py-3 overflow-x-auto">
                               <table className="min-w-[640px] w-full text-sm border-collapse">
                                 <thead>
@@ -395,7 +393,6 @@ export default function CustomerDetail() {
                                     <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Tracking #</th>
                                     <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Sản phẩm</th>
                                     <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Cân nặng</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phí ship</th>
                                     <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phụ thu</th>
                                     <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phí VC</th>
                                     <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Ghi chú</th>
@@ -418,7 +415,6 @@ export default function CustomerDetail() {
                                         <td className="px-3 py-2 font-mono text-xs">{s.tracking_no || '–'}</td>
                                         <td className="px-3 py-2 max-w-[160px] truncate" title={s.product}>{s.product || '–'}</td>
                                         <td className="px-3 py-2">{s.weight} kg</td>
-                                        <td className="px-3 py-2">{formatCurrency(s.weight * s.partner_rate)}</td>
                                         <td className="px-3 py-2">{formatCurrency(s.surcharge)}</td>
                                         <td className="px-3 py-2 font-semibold text-primary-700">{formatCurrency(vcFee)}</td>
                                         <td className="px-3 py-2 text-ink-400 text-xs">{s.notes || '–'}</td>
