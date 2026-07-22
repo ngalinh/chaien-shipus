@@ -162,6 +162,8 @@ try { db.exec('ALTER TABLE customers ADD COLUMN sale_name TEXT'); } catch { /* a
 // aliases: comma-separated partner sub-warehouse codes that map to this warehouse
 // (e.g. Hải An's US hubs "OR,NH" both bill at the HA rate)
 try { db.exec('ALTER TABLE partner_warehouses ADD COLUMN aliases TEXT'); } catch { /* already exists */ }
+// Tình trạng lô hàng trong tab Báo khách: '' | 'Đã báo khách' | 'Đã ship hàng'
+try { db.exec("ALTER TABLE batch_info ADD COLUMN status TEXT NOT NULL DEFAULT ''"); } catch { /* already exists */ }
 
 // ─── Seed default data ────────────────────────────────────────────────────────
 

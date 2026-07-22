@@ -3,13 +3,14 @@ import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
-  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CalendarDays, Users,
+  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CalendarDays, Users, CreditCard,
 } from 'lucide-react';
-import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS } from '../utils.jsx';
+import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
+import PaymentModal from '../components/PaymentModal.jsx';
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -39,6 +40,7 @@ export default function Shipping() {
   const [collapsedDates, setCollapsedDates] = useState({});
   const [notifData, setNotifData] = useState(null);
   const [settings, setSettings] = useState({ company: {} });
+  const [paymentModal, setPaymentModal] = useState(null); // { customerId, batchDate, amount }
 
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
@@ -96,6 +98,25 @@ export default function Shipping() {
     else if (val === '6m') setStartDate(dayjs().subtract(6, 'month').format('YYYY-MM-DD'));
     else if (val === 'month') setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
     if (val !== 'custom') setEndDate(todayInputValue());
+  }
+
+  async function handleBatchStatus(batch, status) {
+    try {
+      await axios.patch('/api/shipments/batch-status', {
+        batch_date: batch.batch_date,
+        customer_id: batch.customer_id,
+        status,
+      });
+      setNotifyBatches((prev) =>
+        prev.map((b) =>
+          b.customer_id === batch.customer_id && b.batch_date === batch.batch_date
+            ? { ...b, status }
+            : b
+        )
+      );
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không thể cập nhật tình trạng', 'error');
+    }
   }
 
   async function handleDelete(id) {
@@ -495,13 +516,14 @@ export default function Shipping() {
                 <th className="text-right">Tổng cân nặng</th>
                 <th className="text-right">Tổng phụ thu</th>
                 <th className="text-right">Tổng phí VC</th>
+                <th>Tình trạng</th>
                 <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-10 text-ink-400">
+                  <td colSpan={9} className="text-center py-10 text-ink-400">
                     <div className="flex items-center justify-center gap-2">
                       <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                       Đang tải...
@@ -510,7 +532,7 @@ export default function Shipping() {
                 </tr>
               ) : filteredBatches.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-14 text-ink-400">
+                  <td colSpan={9} className="text-center py-14 text-ink-400">
                     <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
                     {q ? 'Không tìm thấy lô hàng khớp' : 'Chưa có lô hàng nào trong khoảng này'}
                   </td>
@@ -543,19 +565,51 @@ export default function Shipping() {
                       <td className="text-right tabular-nums">{Number(batch.total_weight || 0).toFixed(2)} kg</td>
                       <td className="text-right tabular-nums">{formatCurrency(batch.total_surcharge)}</td>
                       <td className="text-right font-semibold text-primary-700 tabular-nums">{formatCurrency(batch.total_vc_fee)}</td>
-                      <td onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
-                        <button
-                          onClick={() => triggerNotification(batch)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white hover:bg-primary-600"
+                      <td onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={batch.status || ''}
+                          onChange={(e) => handleBatchStatus(batch, e.target.value)}
+                          className={`text-xs rounded px-2 py-1 border focus:outline-none focus:ring-1 focus:ring-primary-400 ${
+                            batch.status === 'Đã ship hàng'
+                              ? 'bg-success-100 text-success-700 border-success-200'
+                              : batch.status === 'Đã báo khách'
+                              ? 'bg-warning-100 text-warning-700 border-warning-200'
+                              : 'bg-white text-ink-400 border-greige-200'
+                          }`}
                         >
-                          <Bell className="w-3.5 h-3.5" />
-                          Thông báo
-                        </button>
+                          <option value="">Chưa chọn</option>
+                          <option value="Đã báo khách">Đã báo khách</option>
+                          <option value="Đã ship hàng">Đã ship hàng</option>
+                        </select>
+                      </td>
+                      <td onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={() => triggerNotification(batch)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white hover:bg-primary-600"
+                          >
+                            <Bell className="w-3.5 h-3.5" />
+                            Thông báo
+                          </button>
+                          {getUserRole() !== 'staff' && (
+                            <button
+                              onClick={() => setPaymentModal({
+                                customerId: batch.customer_id,
+                                batchDate: batch.batch_date,
+                                amount: batch.total_vc_fee,
+                              })}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              Thanh toán
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>,
                     isOpen && (
                       <tr key={`${bKey}-detail`} className="expand-row">
-                        <td colSpan={8} className="bg-primary-50/50 p-0">
+                        <td colSpan={9} className="bg-primary-50/50 p-0">
                           <div className="px-8 py-3 overflow-x-auto">
                             <table className="w-full text-xs border-collapse min-w-[560px]">
                               <thead>
@@ -599,6 +653,17 @@ export default function Shipping() {
       {/* Import modal */}
       {importModal && (
         <ImportModal onClose={() => setImportModal(false)} onImported={handleImported} />
+      )}
+
+      {/* Ghi nhận thanh toán từ tab Báo khách */}
+      {paymentModal && (
+        <PaymentModal
+          customerId={paymentModal.customerId}
+          batchDate={paymentModal.batchDate}
+          amount={paymentModal.amount}
+          onClose={() => setPaymentModal(null)}
+          onSaved={() => setPaymentModal(null)}
+        />
       )}
 
       {/* Notification popup: xem trước + Copy ảnh / Tải về */}
