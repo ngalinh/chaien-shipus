@@ -174,15 +174,7 @@ export default function Layout() {
   }
 
   return (
-    <div
-      className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-    >
-      {/* iOS PWA: phủ vùng status bar bằng nền trắng — đặt z-[200] để hiển thị trên mọi overlay */}
-      <div
-        className="fixed top-0 left-0 right-0 bg-white lg:hidden"
-        style={{ height: 'env(safe-area-inset-top, 0px)', zIndex: 200 }}
-      />
+    <div className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5">
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -202,7 +194,10 @@ export default function Layout() {
           ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
           ${collapsed ? 'lg:w-16' : 'lg:w-64'}
         `}
-        style={{ transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1), width 280ms cubic-bezier(0.4,0,0.2,1)' }}
+        style={{
+          transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1), width 280ms cubic-bezier(0.4,0,0.2,1)',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
+        }}
       >
         <button
           onClick={() => setSidebarOpen(false)}
@@ -220,32 +215,35 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)] p-4 lg:p-0">
-        {/* Top bar */}
-        <header className="flex items-center gap-3 bg-white rounded-card shadow-card px-4 lg:px-5 py-3 flex-shrink-0">
+      <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)]">
+        {/* Top bar — full-bleed teal on mobile, floating white card on desktop */}
+        <header
+          className="flex items-center gap-3 bg-primary-500 lg:bg-white lg:rounded-card lg:shadow-card px-4 lg:px-5 pb-3 flex-shrink-0"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
+        >
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Mở menu"
-            className="lg:hidden p-2 rounded-full text-ink-500 hover:bg-greige-100"
+            className="lg:hidden p-2 rounded-full text-white hover:bg-white/20"
             style={{ transition: 'background-color 150ms ease-out' }}
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Search pill — desktop */}
-          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md bg-greige-50 rounded-full px-4 py-2.5">
-            <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
+          {/* Search pill — desktop (sm+ with frosted look on teal, greige on white) */}
+          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md bg-white/20 lg:bg-greige-50 rounded-full px-4 py-2.5">
+            <Search className="w-4 h-4 text-white lg:text-ink-400 flex-shrink-0" />
             <input
               value={query}
               onChange={(e) => handleSearch(e.target.value)}
               placeholder="Tìm theo mã KH, tracking #…"
-              className="border-none outline-none bg-transparent text-sm w-full text-ink-900 placeholder-ink-400"
+              className="border-none outline-none bg-transparent text-sm w-full text-white lg:text-ink-900 placeholder-white/60 lg:placeholder-ink-400"
             />
             {query && (
               <button
                 onClick={() => handleSearch('')}
                 aria-label="Xóa tìm kiếm"
-                className="text-ink-400 hover:text-ink-900 flex-shrink-0"
+                className="text-white/70 lg:text-ink-400 hover:text-white lg:hover:text-ink-900 flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -254,10 +252,11 @@ export default function Layout() {
 
           {/* Mobile wordmark */}
           <Link to="/" aria-label="Về Dashboard" className="flex items-center gap-2 sm:hidden">
-            <Mark size={22} />
-            <span className="text-body-md font-extrabold tracking-wide">
-              <span className="text-ink-900">SHIP</span>
-              <span className="text-primary-500">US</span>
+            <span style={{ filter: 'brightness(0) invert(1)' }}>
+              <Mark size={22} />
+            </span>
+            <span className="text-body-md font-extrabold tracking-wide text-white">
+              SHIPUS
             </span>
           </Link>
 
@@ -266,7 +265,7 @@ export default function Layout() {
             <button
               onClick={() => setSearchOpen((v) => !v)}
               aria-label="Tìm kiếm"
-              className="sm:hidden p-2 rounded-full text-ink-500 hover:bg-greige-100"
+              className="sm:hidden p-2 rounded-full text-white hover:bg-white/20"
               style={{ transition: 'background-color 150ms ease-out' }}
             >
               <Search className="w-5 h-5" />
@@ -274,7 +273,7 @@ export default function Layout() {
 
             <button
               aria-label="Thông báo"
-              className="relative w-10 h-10 rounded-full bg-white shadow-pill text-ink-700 grid place-items-center hover:bg-greige-50"
+              className="relative w-10 h-10 rounded-full bg-white/20 lg:bg-white lg:shadow-pill text-white lg:text-ink-700 grid place-items-center hover:bg-white/30 lg:hover:bg-greige-50"
               style={{ transition: 'background-color 150ms ease-out' }}
             >
               <Bell className="w-[18px] h-[18px]" />
@@ -282,12 +281,12 @@ export default function Layout() {
             </button>
 
             <div className="flex items-center gap-2.5 pl-1">
-              <span className="w-10 h-10 rounded-full bg-ink-900 text-white grid place-items-center font-bold uppercase text-sm">
+              <span className="w-10 h-10 rounded-full bg-white/20 lg:bg-ink-900 text-white grid place-items-center font-bold uppercase text-sm border border-white/30 lg:border-0">
                 {username.charAt(0) || 'A'}
               </span>
               <div className="hidden sm:block leading-tight">
-                <div className="text-sm font-bold text-ink-900">{username}</div>
-                <div className="text-2xs text-ink-400 whitespace-nowrap">Quản trị viên</div>
+                <div className="text-sm font-bold text-white lg:text-ink-900">{username}</div>
+                <div className="text-2xs text-white/70 lg:text-ink-400 whitespace-nowrap">Quản trị viên</div>
               </div>
             </div>
           </div>
@@ -295,7 +294,7 @@ export default function Layout() {
 
         {/* Mobile search bar — expands below topbar when toggled */}
         {searchOpen && (
-          <div className="sm:hidden flex items-center gap-2 bg-white rounded-card shadow-card px-4 py-3 flex-shrink-0">
+          <div className="sm:hidden flex items-center gap-2 bg-white mx-4 rounded-card shadow-card px-4 py-3 flex-shrink-0">
             <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
             <input
               autoFocus
@@ -313,7 +312,10 @@ export default function Layout() {
         )}
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto min-w-0">
+        <main
+          className="flex-1 overflow-y-auto min-w-0"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
           <Outlet />
         </main>
       </div>
