@@ -138,6 +138,13 @@ app.use(express.static(staticRoot, {
     }
   },
 }));
+// manifest.json is copied to client/dist by Vite but NOT into the served root
+// (the deploy only copies index.html + assets). Serve it explicitly from dist so
+// the <link rel="manifest"> resolves to real JSON instead of the SPA fallback HTML.
+app.get('/manifest.json', (_req, res) => {
+  res.type('application/manifest+json');
+  res.sendFile(path.join(clientDist, 'manifest.json'));
+});
 app.get(/^(?!\/api).*/, (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.sendFile(htmlFile);
