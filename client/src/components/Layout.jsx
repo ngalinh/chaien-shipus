@@ -145,7 +145,8 @@ export default function Layout() {
     document.body.appendChild(tmp);
     const val = getComputedStyle(tmp).paddingTop;
     document.body.removeChild(tmp);
-    setDebugSat(`sat=${val} h=${window.innerHeight}/${window.screen.height}`);
+    const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+    setDebugSat(`v7-bt sat=${val} h=${window.innerHeight}/${window.screen.height} sa=${standalone ? 'Y' : 'N'}`);
   }, []);
 
   const navItems = NAV_ITEMS.filter(({ to }) => {
