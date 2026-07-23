@@ -18,6 +18,14 @@ const PERIODS = [
   { label: 'Tùy chỉnh', value: 'custom' },
 ];
 
+// Bộ lọc Tình trạng lô hàng (tab Báo khách)
+const STATUS_FILTERS = [
+  { label: 'Tất cả tình trạng', value: 'all' },
+  { label: 'Chưa chọn', value: '' },
+  { label: 'Đã báo khách', value: 'Đã báo khách' },
+  { label: 'Đã ship hàng', value: 'Đã ship hàng' },
+];
+
 function rangeFor(period, startDate, endDate) {
   if (period === 'all') return {};
   if (period === 'custom') return { start_date: startDate, end_date: endDate };
@@ -51,6 +59,7 @@ export default function Shipping() {
 
   const [groupMode, setGroupMode] = useState('date'); // 'date' | 'customer'
   const [ttFilter, setTtFilter] = useState('all');    // all | unpaid | partial | paid
+  const [statusFilter, setStatusFilter] = useState('all'); // all | '' | 'Đã báo khách' | 'Đã ship hàng'
 
   useEffect(() => {
     fetchSettings();
@@ -204,11 +213,12 @@ export default function Shipping() {
   const filteredShipments = shipments.filter(matchShipment);
 
   const filteredBatches = notifyBatches.filter((b) =>
-    !q ||
-    cleanCode(b.customer_code).toLowerCase().includes(q) ||
-    (b.customer_name || '').toLowerCase().includes(q) ||
-    (b.van_don_code || '').toLowerCase().includes(q) ||
-    (b.details || []).some((d) => (d.tracking_no || '').toLowerCase().includes(q)));
+    (statusFilter === 'all' || (b.status || '') === statusFilter) &&
+    (!q ||
+      cleanCode(b.customer_code).toLowerCase().includes(q) ||
+      (b.customer_name || '').toLowerCase().includes(q) ||
+      (b.van_don_code || '').toLowerCase().includes(q) ||
+      (b.details || []).some((d) => (d.tracking_no || '').toLowerCase().includes(q))));
 
   // Gom shipments theo Ngày (đợt hàng về) hoặc theo Khách hàng
   const groups = [];
@@ -299,6 +309,21 @@ export default function Shipping() {
               </select>
             </div>
           </>
+        )}
+
+        {tab === 'notify' && (
+          <div className="flex items-center gap-2.5">
+            <span className="text-sm font-semibold text-ink-500">Tình trạng:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input-field w-auto py-1.5 text-sm"
+            >
+              {STATUS_FILTERS.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+          </div>
         )}
 
         {/* Date filter */}
@@ -534,7 +559,7 @@ export default function Shipping() {
                 <tr>
                   <td colSpan={9} className="text-center py-14 text-ink-400">
                     <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-                    {q ? 'Không tìm thấy lô hàng khớp' : 'Chưa có lô hàng nào trong khoảng này'}
+                    {(q || statusFilter !== 'all') ? 'Không tìm thấy lô hàng khớp' : 'Chưa có lô hàng nào trong khoảng này'}
                   </td>
                 </tr>
               ) : (
