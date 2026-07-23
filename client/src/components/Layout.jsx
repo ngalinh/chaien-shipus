@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Outlet, NavLink, Link, useSearchParams } from 'react-router-dom';
+import { Outlet, NavLink, Link, useSearchParams, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -137,6 +137,13 @@ export default function Layout() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [username, setUsername] = useState('Admin');
   const role = getUserRole();
+  const location = useLocation();
+
+  // Ép iOS cập nhật status-bar màu teal sau mỗi SPA navigation
+  // (iOS chỉ đọc theme-color lần đầu load; trong BASSO PWA scope nó revert về màu BASSO sau pushState)
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#3AAFD3');
+  }, [location.pathname]);
 
   const navItems = NAV_ITEMS.filter(({ to }) => {
     if (role === 'staff') return to !== '/' && to !== '/transactions';
