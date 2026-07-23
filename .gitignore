@@ -13,3 +13,4 @@ test_webapp.py
 /*.png
 .playwright-mcp/
 /notif-*dataurl.txt
+baokhach.md
