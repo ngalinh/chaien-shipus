@@ -111,7 +111,7 @@ app.post('/deploy', express.raw({ type: '*/*' }), (req, res) => {
   res.json({ ok: true });
   console.log('[deploy] Starting git pull + rebuild...');
   exec(
-    'git pull origin main && npm --prefix client install --include=dev && npm --prefix client run build && cp client/dist/index.html client/dist/manifest.json . && rm -rf assets && cp -r client/dist/assets .',
+    'git pull origin main && npm --prefix client install --include=dev && npm --prefix client run build && cp client/dist/index.html client/dist/manifest.json client/dist/sw.js . && rm -rf assets && cp -r client/dist/assets .',
     { cwd: __dirname },
     (err) => {
       if (err) { console.error('[deploy] Failed:', err.message); }

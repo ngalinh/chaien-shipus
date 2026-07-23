@@ -11,6 +11,14 @@
     <meta name="theme-color" content="#3AAFD3" />
     <link rel="manifest" href="/manifest.json" />
     <title>Chaien Shipus - Quản lý vận chuyển</title>
+    <script>
+      // Đăng ký service worker (đường dẫn tương đối để chạy được dưới subpath /b/<id>/)
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('sw.js').catch(function () {});
+        });
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
