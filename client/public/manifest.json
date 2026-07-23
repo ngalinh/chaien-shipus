@@ -1,0 +1,11 @@
+{
+  "name": "Chaien Shipus",
+  "short_name": "ShipUS",
+  "description": "Quản lý vận chuyển Chaien",
+  "lang": "vi",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#3AAFD3",
+  "theme_color": "#3AAFD3"
+}
