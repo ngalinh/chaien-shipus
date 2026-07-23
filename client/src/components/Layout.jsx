@@ -136,7 +136,17 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('shipus_sidebar_collapsed') === '1');
   const [searchOpen, setSearchOpen] = useState(false);
   const [username, setUsername] = useState('Admin');
+  const [debugSat, setDebugSat] = useState('…');
   const role = getUserRole();
+
+  useEffect(() => {
+    const tmp = document.createElement('div');
+    tmp.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(tmp);
+    const val = getComputedStyle(tmp).paddingTop;
+    document.body.removeChild(tmp);
+    setDebugSat(`sat=${val} h=${window.innerHeight}/${window.screen.height}`);
+  }, []);
 
   const navItems = NAV_ITEMS.filter(({ to }) => {
     if (role === 'staff') return to !== '/' && to !== '/transactions';
@@ -216,6 +226,12 @@ export default function Layout() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)]">
+        {/* DEBUG OVERLAY — xóa sau khi test xong */}
+        <div className="lg:hidden fixed top-0 left-0 z-[999] bg-black/75 text-white font-mono pointer-events-none"
+          style={{ fontSize: 10, padding: '2px 6px', paddingTop: 'calc(env(safe-area-inset-top,0px) + 2px)' }}>
+          {debugSat}
+        </div>
+
         {/* Top bar — full-bleed teal on mobile, floating white card on desktop */}
         <header
           className="flex items-center gap-3 bg-primary-500 lg:bg-white lg:rounded-card lg:shadow-card px-4 lg:px-5 pb-3 flex-shrink-0"
