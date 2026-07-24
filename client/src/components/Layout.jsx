@@ -20,7 +20,7 @@ import { getUserRole } from '../utils.jsx';
 
 const NAV_ITEMS = [
   { to: '/',             label: 'Dashboard',   icon: LayoutDashboard, end: true },
-  { to: '/shipping',     label: 'Vận chuyển',  icon: Truck },
+  { to: '/shipping',     label: 'Hàng về',     icon: Truck },
   { to: '/customers',    label: 'Khách hàng',  icon: Users },
   { to: '/transactions', label: 'Giao dịch',   icon: Receipt },
   { to: '/revenue',      label: 'Doanh thu VC', icon: TrendingUp },
