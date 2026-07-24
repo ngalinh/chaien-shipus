@@ -127,7 +127,6 @@ export default function Customers() {
               <th>Họ tên</th>
               <th className="w-24">SĐT</th>
               <th>Địa chỉ</th>
-              <th className="w-20">Kênh LH</th>
               <th className="w-24">Cước VC</th>
               <th>Ghi chú</th>
               <th className="w-24">Ngày tạo</th>
@@ -137,7 +136,7 @@ export default function Customers() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} className="text-center py-10 text-ink-400">
+                <td colSpan={9} className="text-center py-10 text-ink-400">
                   <div className="flex items-center justify-center gap-2">
                     <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
                     Đang tải...
@@ -146,7 +145,7 @@ export default function Customers() {
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={10} className="text-center py-12 text-ink-400">
+                <td colSpan={9} className="text-center py-12 text-ink-400">
                   {search ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'}
                 </td>
               </tr>
@@ -170,7 +169,6 @@ export default function Customers() {
                     <td className="font-medium"><div className="max-w-[160px] truncate" title={c.name}>{c.name}</div></td>
                     <td><div className="max-w-[120px] truncate" title={c.phone}>{c.phone || '–'}</div></td>
                     <td><div className="max-w-[200px] truncate" title={c.address}>{c.address || '–'}</div></td>
-                    <td>{channelLabel(c.channel)}</td>
                     <td>
                       {c.rate_name ? (
                         <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">

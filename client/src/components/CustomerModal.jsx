@@ -27,18 +27,23 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
   const [lightbox, setLightbox] = useState(null);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [ratePopup, setRatePopup] = useState(false);
+  const [applyThisMonth, setApplyThisMonth] = useState(null); // null | true | false
+  const originalRateRef = useRef('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchRates();
     if (isEdit) {
+      const rateIdStr = String(customer.rate_id || '');
+      originalRateRef.current = rateIdStr;
       setForm({
         code: customer.code || '',
         name: customer.name || '',
         phone: customer.phone || '',
         email: customer.email || '',
         address: customer.address || '',
-        rate_id: customer.rate_id || '',
+        rate_id: rateIdStr,
         notes: customer.notes || '',
         warehouse: customer.warehouse || '',
         sale_username: customer.sale_username || '',
@@ -119,9 +124,11 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
     try {
       let saved;
       if (isEdit) {
+        const rateChanged = String(form.rate_id || '') !== originalRateRef.current;
         const res = await axios.put(`/api/customers/${customer.id}`, {
           ...form,
           rate_id: form.rate_id || null,
+          apply_rate_this_month: rateChanged && applyThisMonth === true,
         });
         saved = res.data;
       } else {
@@ -217,19 +224,6 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                 onChange={handleField}
                 className="input-field"
                 placeholder="0912 345 678"
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="label">Email</label>
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleField}
-                className="input-field"
-                placeholder="example@gmail.com"
               />
             </div>
 
@@ -377,7 +371,18 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
             {/* Cước vận chuyển */}
             <div>
               <label className="label">Cước vận chuyển</label>
-              <select name="rate_id" value={form.rate_id} onChange={handleField} className="input-field">
+              <select
+                name="rate_id"
+                value={form.rate_id}
+                onChange={(e) => {
+                  handleField(e);
+                  if (isEdit) {
+                    setApplyThisMonth(null);
+                    setRatePopup(true);
+                  }
+                }}
+                className="input-field"
+              >
                 <option value="">-- Chọn gói cước --</option>
                 {rates.map((r) => (
                   <option key={r.id} value={r.id}>
@@ -450,6 +455,32 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
           </div>
         </form>
       </div>
+
+      {/* Rate change timing popup */}
+      {ratePopup && (
+        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-xs w-full">
+            <p className="font-semibold text-gray-900 mb-1">Thay đổi cước vận chuyển</p>
+            <p className="text-sm text-gray-600 mb-5">Bạn muốn thay đổi cước vận chuyển từ tháng này hay tháng sau?</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setApplyThisMonth(true); setRatePopup(false); }}
+                className="flex-1 btn-primary"
+              >
+                Tháng này
+              </button>
+              <button
+                type="button"
+                onClick={() => { setApplyThisMonth(false); setRatePopup(false); }}
+                className="flex-1 btn-secondary"
+              >
+                Tháng sau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (

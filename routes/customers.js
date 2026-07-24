@@ -258,10 +258,11 @@ router.get('/:id', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.put('/:id', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name } = req.body;
+    const { code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name, apply_rate_this_month } = req.body;
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
+    const customerId = parseInt(req.params.id);
     const info = db.prepare(`
       UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?, warehouse = ?, sale_username = ?, sale_name = ?
       WHERE id = ?
@@ -277,10 +278,22 @@ router.put('/:id', (req, res) => {
       warehouse || null,
       sale_username || null,
       sale_name     || null,
-      parseInt(req.params.id),
+      customerId,
     );
     if (info.changes === 0) return res.status(404).json({ error: 'Customer not found' });
-    res.json(withStatus(getCustomerWithRate(parseInt(req.params.id))));
+
+    if (apply_rate_this_month && rate_id) {
+      const rateRow = db.prepare('SELECT rate_per_kg FROM customer_rates WHERE id = ?').get(Number(rate_id));
+      if (rateRow) {
+        db.prepare(`
+          UPDATE shipments SET customer_rate = ?
+          WHERE customer_id = ?
+            AND strftime('%Y-%m', import_date) = strftime('%Y-%m', 'now')
+        `).run(rateRow.rate_per_kg, customerId);
+      }
+    }
+
+    res.json(withStatus(getCustomerWithRate(customerId)));
   } catch (err) {
     if (err.message.includes('UNIQUE')) {
       return res.status(409).json({ error: `Customer code '${req.body.code}' already exists` });
