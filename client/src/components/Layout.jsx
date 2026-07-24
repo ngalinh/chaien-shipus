@@ -98,28 +98,28 @@ function Sidebar({ onNavigate, navItems, collapsed, toggleCollapsed }) {
       </nav>
 
       {/* Sidebar footer */}
-      <div className={`py-4 border-t border-greige-100 space-y-1 ${collapsed ? 'px-2' : 'px-3.5'}`}>
+      <div className={`py-4 border-t border-greige-100 ${collapsed ? 'px-2' : 'px-3.5'}`}>
         {!collapsed ? (
-          <>
+          <div className="flex items-center gap-1.5">
             <a
               href="https://ai.basso.vn/admin/dashboard.html"
               onClick={onNavigate}
-              className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-tile text-xs font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50"
               style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
             >
-              <ExternalLink className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
-              <span className="flex-1">AI Basso</span>
+              <ExternalLink className="w-4 h-4 flex-shrink-0" strokeWidth={1.9} />
+              <span>AI Basso</span>
             </a>
             <button
               onClick={toggleCollapsed}
               aria-label="Thu gọn menu"
-              className="hidden lg:flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50 w-full"
+              className="hidden lg:flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 rounded-tile text-xs font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50"
               style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
             >
-              <PanelLeftClose className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
-              <span className="flex-1">Thu gọn</span>
+              <PanelLeftClose className="w-4 h-4 flex-shrink-0" strokeWidth={1.9} />
+              <span>Thu gọn</span>
             </button>
-          </>
+          </div>
         ) : (
           <button
             onClick={toggleCollapsed}
