@@ -99,33 +99,38 @@ function Sidebar({ onNavigate, navItems, collapsed, toggleCollapsed }) {
 
       {/* Sidebar footer */}
       <div className={`py-4 border-t border-greige-100 space-y-1 ${collapsed ? 'px-2' : 'px-3.5'}`}>
-        {!collapsed && (
+        {!collapsed ? (
           <>
             <a
               href="https://ai.basso.vn/admin/dashboard.html"
               onClick={onNavigate}
-              className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900"
+              className="flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50"
               style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
             >
               <ExternalLink className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
               <span className="flex-1">AI Basso</span>
             </a>
-            <p className="text-2xs text-ink-400 font-semibold px-3.5 pt-1">ShipUS v1.0</p>
+            <button
+              onClick={toggleCollapsed}
+              aria-label="Thu gọn menu"
+              className="hidden lg:flex items-center gap-3 px-3.5 py-3 rounded-tile text-nav font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50 w-full"
+              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
+            >
+              <PanelLeftClose className="w-5 h-5 flex-shrink-0" strokeWidth={1.9} />
+              <span className="flex-1">Thu gọn</span>
+            </button>
           </>
+        ) : (
+          <button
+            onClick={toggleCollapsed}
+            aria-label="Mở menu"
+            title="Mở menu"
+            className="hidden lg:flex items-center justify-center w-9 h-9 rounded-full bg-greige-50 hover:bg-primary-500 text-ink-400 hover:text-white mx-auto border border-greige-200 hover:border-primary-500"
+            style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out' }}
+          >
+            <PanelLeftOpen className="w-4 h-4" />
+          </button>
         )}
-        {/* Toggle collapse — desktop only */}
-        <button
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? 'Mở menu' : 'Thu gọn menu'}
-          title={collapsed ? 'Mở menu' : 'Thu gọn menu'}
-          className={`hidden lg:flex items-center w-full py-3 rounded-tile text-ink-500 hover:bg-greige-50 hover:text-ink-900 ${collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'}`}
-          style={{ transition: 'background-color 150ms ease-out' }}
-        >
-          {collapsed
-            ? <PanelLeftOpen className="w-5 h-5 flex-shrink-0" />
-            : <PanelLeftClose className="w-5 h-5 flex-shrink-0" />}
-          {!collapsed && <span className="flex-1 text-nav font-semibold">Thu gọn</span>}
-        </button>
       </div>
     </div>
   );
