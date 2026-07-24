@@ -459,21 +459,29 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
       {/* Rate change timing popup */}
       {ratePopup && (
         <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-xs w-full">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-xs w-full relative">
+            <button
+              type="button"
+              onClick={() => { setRatePopup(false); }}
+              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              aria-label="Đóng"
+            >
+              <X className="w-4 h-4" />
+            </button>
             <p className="font-semibold text-gray-900 mb-1">Thay đổi cước vận chuyển</p>
             <p className="text-sm text-gray-600 mb-5">Bạn muốn thay đổi cước vận chuyển từ tháng này hay tháng sau?</p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => { setApplyThisMonth(true); setRatePopup(false); }}
-                className="flex-1 btn-primary"
+                className="flex-1 btn-primary justify-center"
               >
                 Tháng này
               </button>
               <button
                 type="button"
                 onClick={() => { setApplyThisMonth(false); setRatePopup(false); }}
-                className="flex-1 btn-secondary"
+                className="flex-1 btn-secondary justify-center"
               >
                 Tháng sau
               </button>
