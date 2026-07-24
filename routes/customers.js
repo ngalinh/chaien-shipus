@@ -395,4 +395,17 @@ router.delete('/:id/cccd/:imgId', (req, res) => {
   }
 });
 
+// ─── Import aliases (match learning) ─────────────────────────────────────────
+router.get('/aliases', (_req, res) => {
+  const rows = db.prepare('SELECT raw_key, customer_id FROM customer_aliases').all();
+  res.json(rows);
+});
+
+router.post('/aliases', (req, res) => {
+  const { raw_key, customer_id } = req.body;
+  if (!raw_key || !customer_id) return res.status(400).json({ error: 'raw_key and customer_id required' });
+  db.prepare('INSERT OR REPLACE INTO customer_aliases (raw_key, customer_id) VALUES (?, ?)').run(raw_key, Number(customer_id));
+  res.json({ ok: true });
+});
+
 module.exports = router;

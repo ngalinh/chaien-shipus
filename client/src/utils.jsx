@@ -127,9 +127,14 @@ export function buildCustomerIndex(customers) {
 }
 
 // Returns { status: 'auto'|'suggest'|'none', customerId, suggestions: [ids] }
-export function matchCustomer(raw, index) {
+// aliases: { [raw_key]: customer_id } — learned from previous manual matches
+export function matchCustomer(raw, index, aliases = {}) {
   const R = normKey(raw);
   if (!R) return { status: 'none', customerId: null, suggestions: [] };
+
+  if (aliases[R] !== undefined) {
+    return { status: 'auto', customerId: aliases[R], suggestions: [aliases[R]] };
+  }
 
   const exact = index.filter((c) => c.keys.includes(R));
   if (exact.length === 1) {

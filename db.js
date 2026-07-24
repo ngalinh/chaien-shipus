@@ -128,6 +128,14 @@ db.exec(`
   );
 `);
 
+// Alias học từ match thủ công: raw_key (normKey của tên file) → customer_id
+db.exec(`
+  CREATE TABLE IF NOT EXISTS customer_aliases (
+    raw_key     TEXT    PRIMARY KEY,
+    customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE
+  );
+`);
+
 // Log mỗi lần báo khách (giữ lịch sử nhiều lần, không đè như batch_info.notified_at)
 db.exec(`
   CREATE TABLE IF NOT EXISTS notification_log (

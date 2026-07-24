@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { X, ClipboardPaste, AlertCircle, Check, HelpCircle, AlertTriangle } from 'lucide-react';
 import { toast } from './Toast.jsx';
-import { buildCustomerIndex, matchCustomer, matchWarehouse } from '../utils.jsx';
+import { buildCustomerIndex, matchCustomer, matchWarehouse, normKey } from '../utils.jsx';
 
 /**
  * ImportModal: paste tab-separated Excel data from the shipping partner to create
@@ -22,10 +22,16 @@ export default function ImportModal({ onClose, onImported }) {
   const [importing, setImporting] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [aliasMap, setAliasMap] = useState({});
 
   useEffect(() => {
     axios.get('/api/customers').then((r) => setCustomers(r.data)).catch(() => {});
     axios.get('/api/settings').then((r) => setWarehouses(r.data.warehouses || [])).catch(() => {});
+    axios.get('/api/customers/aliases').then((r) => {
+      const map = {};
+      r.data.forEach((a) => { map[a.raw_key] = a.customer_id; });
+      setAliasMap(map);
+    }).catch(() => {});
   }, []);
 
   const customerIndex = useMemo(() => buildCustomerIndex(customers), [customers]);
@@ -43,10 +49,10 @@ export default function ImportModal({ onClose, onImported }) {
   const resolved = useMemo(
     () =>
       parsed.map((r) => ({
-        ...matchCustomer(r.customer_raw, customerIndex),
+        ...matchCustomer(r.customer_raw, customerIndex, aliasMap),
         wh: matchWarehouse(r.warehouse_code, warehouses),
       })),
-    [parsed, customerIndex, warehouses]
+    [parsed, customerIndex, warehouses, aliasMap]
   );
 
   const effectiveCustomerId = (i) =>
@@ -227,7 +233,15 @@ export default function ImportModal({ onClose, onImported }) {
                               {tone === 'missing' && <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" title="Không tìm thấy — chọn tay hoặc tạo khách mới" />}
                               <select
                                 value={eid || ''}
-                                onChange={(e) => setOverrides((p) => ({ ...p, [i]: e.target.value ? parseInt(e.target.value) : null }))}
+                                onChange={(e) => {
+                                  const newId = e.target.value ? parseInt(e.target.value) : null;
+                                  setOverrides((p) => ({ ...p, [i]: newId }));
+                                  if (newId) {
+                                    const rk = normKey(row.customer_raw);
+                                    setAliasMap((p) => ({ ...p, [rk]: newId }));
+                                    axios.post('/api/customers/aliases', { raw_key: rk, customer_id: newId }).catch(() => {});
+                                  }
+                                }}
                                 className="input-field py-1 text-xs w-full"
                               >
                                 <option value="">— Chọn khách hàng —</option>
