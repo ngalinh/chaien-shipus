@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
-  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CalendarDays, Users, CreditCard,
+  Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CreditCard,
 } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -24,10 +24,8 @@ function rangeFor(period, startDate, endDate) {
   return { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
 }
 
-// Mã KH gộp nhiều alias (có xuống dòng) → gọn 1 dòng để hiển thị
 const cleanCode = (code) => (code || '').replace(/\s+/g, ' ').trim();
 
-// Tính tình trạng TT tổng hợp cho nhóm khách hàng
 function groupPaidStatus(rows) {
   const statuses = rows.map((r) => r.paid_status || 'unpaid');
   if (statuses.every((s) => s === 'paid')) return 'paid';
@@ -43,9 +41,10 @@ export default function Shipping() {
   const [editValues, setEditValues] = useState({});
   const [deleting, setDeleting] = useState(null);
   const [collapsedDates, setCollapsedDates] = useState({});
+  const [expandedCustomers, setExpandedCustomers] = useState({});
   const [notifData, setNotifData] = useState(null);
   const [settings, setSettings] = useState({ company: {} });
-  const [paymentModal, setPaymentModal] = useState(null); // { customerId, batchDate, amount }
+  const [paymentModal, setPaymentModal] = useState(null);
 
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
@@ -54,16 +53,10 @@ export default function Shipping() {
   const [searchParams] = useSearchParams();
   const q = (searchParams.get('q') || '').trim().toLowerCase();
 
-  const [groupMode, setGroupMode] = useState('date'); // 'date' | 'customer'
-  const [ttFilter, setTtFilter] = useState('all');    // all | unpaid | partial | paid
+  const [ttFilter, setTtFilter] = useState('all');
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    fetchShipments();
-  }, [period, startDate, endDate]);
+  useEffect(() => { fetchSettings(); }, []);
+  useEffect(() => { fetchShipments(); }, [period, startDate, endDate]);
 
   async function fetchSettings() {
     try {
@@ -86,9 +79,7 @@ export default function Shipping() {
 
   function handlePeriodChange(val) {
     setPeriod(val);
-    if (val === '3m') setStartDate(dayjs().subtract(3, 'month').format('YYYY-MM-DD'));
-    else if (val === '6m') setStartDate(dayjs().subtract(6, 'month').format('YYYY-MM-DD'));
-    else if (val === 'month') setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
+    if (val === 'month') setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
     if (val !== 'custom') setEndDate(todayInputValue());
   }
 
@@ -133,31 +124,26 @@ export default function Shipping() {
     setEditValues({});
   }
 
-  async function triggerNotification(batch) {
-    const details = batch.details || [];
-    if (details.length === 0) {
+  async function triggerNotification(rows, customerCode, customerName, customerId, batchDate) {
+    if (!rows.length) {
       toast('Không có kiện hàng trong lô này', 'warning');
       return;
     }
-
     try {
-      await axios.post('/api/shipments/batch/notify', {
-        batch_date: batch.batch_date,
-        customer_id: batch.customer_id,
-      });
+      await axios.post('/api/shipments/batch/notify', { batch_date: batchDate, customer_id: customerId });
     } catch { /* non-critical */ }
 
     setNotifData({
-      batch,
-      customerName: batch.customer_name,
-      date: batch.batch_date,
-      items: details.map((s) => ({
+      batch: { details: rows, customer_name: customerName, batch_date: batchDate, customer_code: customerCode, customer_id: customerId },
+      customerName,
+      date: batchDate,
+      items: rows.map((s) => ({
         tracking_no: s.tracking_no,
         product: s.product,
         weight: s.weight,
         customer_fee: s.phi_vc || (s.weight * s.customer_rate + s.surcharge),
       })),
-      fileName: `thong-bao-${batch.customer_code || 'kh'}-${batch.batch_date}.png`,
+      fileName: `thong-bao-${customerCode || 'kh'}-${batchDate}.png`,
     });
   }
 
@@ -166,34 +152,44 @@ export default function Shipping() {
     fetchShipments();
   }
 
-  // Lọc theo ô tìm kiếm (mã KH / tên KH / tracking #) + tình trạng thanh toán
-  const matchShipment = (s) =>
-    (!q ||
-      cleanCode(s.customer_code).toLowerCase().includes(q) ||
-      (s.customer_name || '').toLowerCase().includes(q) ||
-      (s.tracking_no || '').toLowerCase().includes(q)) &&
-    (ttFilter === 'all' || (s.paid_status || 'unpaid') === ttFilter);
+  function toggleCustomer(key) {
+    setExpandedCustomers((p) => ({ ...p, [key]: !p[key] }));
+  }
 
-  const filteredShipments = shipments.filter(matchShipment);
+  // Build date → customer groups
+  const qFiltered = shipments.filter((s) =>
+    !q ||
+    cleanCode(s.customer_code).toLowerCase().includes(q) ||
+    (s.customer_name || '').toLowerCase().includes(q) ||
+    (s.tracking_no || '').toLowerCase().includes(q)
+  );
 
-  // Gom shipments theo Ngày (đợt hàng về) hoặc theo Khách hàng
-  const groups = [];
+  const dateGroups = [];
   {
-    const map = new Map();
-    for (const s of filteredShipments) {
-      const key = groupMode === 'customer' ? s.customer_id : s.import_date;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key).push(s);
+    const dateMap = new Map();
+    for (const s of qFiltered) {
+      if (!dateMap.has(s.import_date)) dateMap.set(s.import_date, new Map());
+      const custMap = dateMap.get(s.import_date);
+      if (!custMap.has(s.customer_id)) custMap.set(s.customer_id, []);
+      custMap.get(s.customer_id).push(s);
     }
-    for (const [key, rows] of map) {
-      groups.push({
-        key,
-        rows,
-        count: rows.length,
-        weight: rows.reduce((a, s) => a + (s.weight || 0), 0),
-        title: groupMode === 'customer' ? (cleanCode(rows[0].customer_code) || `#${key}`) : `Đợt ${formatDate(key)}`,
-        subtitle: groupMode === 'customer' ? (rows[0].customer_name || '') : '',
-      });
+    for (const [dateKey, custMap] of dateMap) {
+      const customers = [];
+      for (const [custId, rows] of custMap) {
+        const paidStatus = groupPaidStatus(rows);
+        if (ttFilter !== 'all' && paidStatus !== ttFilter) continue;
+        customers.push({
+          custId,
+          customerCode: cleanCode(rows[0].customer_code),
+          customerName: rows[0].customer_name || '',
+          rows,
+          count: rows.length,
+          totalWeight: rows.reduce((a, s) => a + (s.weight || 0), 0),
+          totalFee: rows.reduce((a, s) => a + (s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0), 0),
+          paidStatus,
+        });
+      }
+      if (customers.length > 0) dateGroups.push({ dateKey, customers });
     }
   }
 
@@ -211,27 +207,8 @@ export default function Shipping() {
         </button>
       </div>
 
-      {/* Toolbar: nhóm theo + lọc tình trạng TT (trái) • khoảng thời gian (phải) */}
+      {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-ink-500">Nhóm theo:</span>
-          <div className="inline-flex gap-1 p-1 bg-white rounded-full shadow-pill">
-            <button
-              onClick={() => setGroupMode('date')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'date' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
-              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-            >
-              <CalendarDays className="w-4 h-4" /> Ngày
-            </button>
-            <button
-              onClick={() => setGroupMode('customer')}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-semibold rounded-full ${groupMode === 'customer' ? 'bg-primary-500 text-white' : 'text-ink-500 hover:bg-greige-50'}`}
-              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-            >
-              <Users className="w-4 h-4" /> Khách hàng
-            </button>
-          </div>
-        </div>
         <div className="flex items-center gap-2.5">
           <span className="text-sm font-semibold text-ink-500">Tình trạng TT:</span>
           <select
@@ -245,7 +222,6 @@ export default function Shipping() {
           </select>
         </div>
 
-        {/* Date filter */}
         <div className="flex flex-wrap items-center gap-2.5 sm:ml-auto">
           <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5">
             <Calendar className="w-4 h-4" />
@@ -294,7 +270,7 @@ export default function Shipping() {
             Đang tải...
           </div>
         </div>
-      ) : groups.length === 0 ? (
+      ) : dateGroups.length === 0 ? (
         <div className="table-container p-14 text-center">
           <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
           <p className="text-ink-500 font-medium">{(q || ttFilter !== 'all') ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
@@ -302,195 +278,198 @@ export default function Shipping() {
         </div>
       ) : (
         <div className="space-y-4">
-          {groups.map((g) => {
-            const isCollapsed = collapsedDates[g.key];
-            const customerId = groupMode === 'customer' ? g.key : null;
+          {dateGroups.map(({ dateKey, customers }) => {
+            const isDateCollapsed = collapsedDates[dateKey];
             return (
-              <div key={g.key} className="card overflow-hidden">
-                {/* Group header */}
-                {groupMode === 'customer' ? (
-                  <div
-                    onClick={() => setCollapsedDates((p) => ({ ...p, [g.key]: !p[g.key] }))}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors cursor-pointer"
-                  >
-                    {isCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-ink-400 flex-shrink-0" />}
-                    <Link
-                      to={`/customers/${customerId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-body-md font-bold text-primary-700 hover:underline flex-shrink-0"
-                    >
-                      {g.title}
-                    </Link>
-                    {g.subtitle && <span className="text-sm text-ink-400 truncate">· {g.subtitle}</span>}
-                    <span className="text-sm text-ink-400 flex-shrink-0">{g.count} kiện · {g.weight.toFixed(2)} kg</span>
-                    <PaidBadge status={groupPaidStatus(g.rows)} />
-                    <div className="ml-auto flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => triggerNotification({
-                          details: g.rows,
-                          customer_name: g.rows[0].customer_name || g.subtitle,
-                          batch_date: todayInputValue(),
-                          customer_code: cleanCode(g.rows[0].customer_code),
-                          customer_id: customerId,
-                        })}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white hover:bg-primary-600"
-                      >
-                        <Bell className="w-3.5 h-3.5" />
-                        Thông báo
-                      </button>
-                      {getUserRole() !== 'staff' && (
-                        <button
-                          onClick={() => setPaymentModal({
-                            customerId,
-                            batchDate: null,
-                            amount: g.rows.reduce((sum, s) => sum + (s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0), 0),
-                          })}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
-                        >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          Thanh toán
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setCollapsedDates((p) => ({ ...p, [g.key]: !p[g.key] }))}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors text-left"
-                  >
-                    {isCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400" /> : <ChevronDown className="w-4 h-4 text-ink-400" />}
-                    <span className="text-body-md font-bold text-ink-900">{g.title}</span>
-                    {g.subtitle && <span className="text-sm text-ink-400">· {g.subtitle}</span>}
-                    <span className="text-sm text-ink-400">
-                      {g.count} kiện · {g.weight.toFixed(2)} kg
-                    </span>
-                  </button>
-                )}
+              <div key={dateKey} className="card overflow-hidden">
+                {/* Date group header */}
+                <button
+                  onClick={() => setCollapsedDates((p) => ({ ...p, [dateKey]: !p[dateKey] }))}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors text-left"
+                >
+                  {isDateCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400" /> : <ChevronDown className="w-4 h-4 text-ink-400" />}
+                  <span className="text-body-md font-bold text-ink-900">Đợt {formatDate(dateKey)}</span>
+                  <span className="text-sm text-ink-400">
+                    {customers.length} khách · {customers.reduce((a, c) => a + c.count, 0)} kiện
+                  </span>
+                </button>
 
-                {!isCollapsed && (
+                {!isDateCollapsed && (
                   <div className="table-container rounded-none shadow-none border-t border-greige-100">
-                    <table className="data-table w-full min-w-[1100px]">
+                    <table className="data-table w-full min-w-[900px]">
                       <thead>
                         <tr>
-                          {groupMode !== 'customer' && <th className="w-52">Mã KH</th>}
-                          {groupMode === 'customer' && <th className="w-28">Ngày nhập</th>}
-                          <th className="w-16">Kho</th>
-                          <th>Tracking #</th>
-                          <th className="w-28">Sản phẩm</th>
-                          <th className="w-24 text-right">Cân nặng</th>
-                          <th className="w-24 text-right">Phụ thu</th>
-                          {groupMode === 'customer' ? (
-                            <th className="w-32 text-right">Tổng phí VC</th>
-                          ) : (
-                            <th className="w-32">Tình trạng TT</th>
-                          )}
-                          <th className="w-28">Ghi chú</th>
-                          <th className="w-24 text-right">Thao tác</th>
+                          <th className="w-8"></th>
+                          <th className="w-36">Mã KH</th>
+                          <th>Tên KH</th>
+                          <th className="w-24 text-right">SL Tracking</th>
+                          <th className="w-36 text-right">Tổng cân nặng</th>
+                          <th className="w-36 text-right">Tổng Phí VC</th>
+                          <th className="w-32">Tình trạng TT</th>
+                          <th className="w-28 text-center">Thông báo</th>
+                          <th className="w-32 text-right">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {g.rows.map((s) => {
-                          const isEditing = editingId === s.id;
+                        {customers.map((cust) => {
+                          const custKey = `${dateKey}_${cust.custId}`;
+                          const isExpanded = expandedCustomers[custKey];
                           return (
-                            <tr key={s.id} className={isEditing ? 'bg-primary-50/40' : ''}>
-                              {groupMode !== 'customer' && (
+                            <Fragment key={custKey}>
+                              <tr
+                                className="cursor-pointer hover:bg-greige-50/60 transition-colors"
+                                onClick={() => toggleCustomer(custKey)}
+                              >
+                                <td className="text-center">
+                                  {isExpanded
+                                    ? <ChevronDown className="w-4 h-4 text-ink-400 mx-auto" />
+                                    : <ChevronRight className="w-4 h-4 text-ink-400 mx-auto" />}
+                                </td>
                                 <td>
                                   <Link
-                                    to={`/customers/${s.customer_id}`}
-                                    className="block max-w-[216px] group"
-                                    title={`Xem hồ sơ ${cleanCode(s.customer_code)}`}
+                                    to={`/customers/${cust.custId}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="font-mono text-sm text-primary-700 hover:underline"
                                   >
-                                    <span className="font-mono text-sm text-primary-700 group-hover:underline truncate block">
-                                      {cleanCode(s.customer_code)}
-                                    </span>
-                                    {s.customer_name && (
-                                      <span className="text-xs text-ink-400 truncate block">{s.customer_name}</span>
-                                    )}
+                                    {cust.customerCode}
                                   </Link>
                                 </td>
-                              )}
-                              {groupMode === 'customer' && <td className="tabular-nums">{formatDate(s.import_date)}</td>}
-                              <td>{s.warehouse_code || '–'}</td>
-                              <td>
-                                {isEditing ? (
-                                  <input value={editValues.tracking_no}
-                                    onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
-                                    className="input-field py-1 text-xs w-28" />
-                                ) : (
-                                  <span className="font-mono text-xs truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
-                                )}
-                              </td>
-                              <td>
-                                {isEditing ? (
-                                  <input value={editValues.product}
-                                    onChange={(e) => setEditValues((p) => ({ ...p, product: e.target.value }))}
-                                    className="input-field py-1 text-xs w-full" />
-                                ) : (
-                                  <span className="max-w-[140px] truncate block" title={s.product}>{s.product || '–'}</span>
-                                )}
-                              </td>
-                              <td className="text-right tabular-nums">
-                                {isEditing ? (
-                                  <input type="number" value={editValues.weight}
-                                    onChange={(e) => setEditValues((p) => ({ ...p, weight: e.target.value }))}
-                                    className="input-field py-1 text-xs w-full text-right" step={0.01} min={0} />
-                                ) : (
-                                  `${s.weight} kg`
-                                )}
-                              </td>
-                              <td className="text-right tabular-nums">
-                                {isEditing ? (
-                                  <MoneyInput value={editValues.surcharge}
-                                    onChange={(v) => setEditValues((p) => ({ ...p, surcharge: v }))}
-                                    className="input-field py-1 text-xs w-full text-right" />
-                                ) : (
-                                  formatCurrency(s.surcharge)
-                                )}
-                              </td>
-                              {groupMode === 'customer' ? (
+                                <td className="text-ink-600">{cust.customerName || '–'}</td>
+                                <td className="text-right tabular-nums">{cust.count}</td>
+                                <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg</td>
                                 <td className="text-right tabular-nums font-semibold text-primary-700">
-                                  {formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}
+                                  {formatCurrency(cust.totalFee)}
                                 </td>
-                              ) : (
-                                <td><PaidBadge status={s.paid_status} /></td>
-                              )}
-                              <td>
-                                {isEditing ? (
-                                  <input value={editValues.notes}
-                                    onChange={(e) => setEditValues((p) => ({ ...p, notes: e.target.value }))}
-                                    className="input-field py-1 text-xs w-full" />
-                                ) : (
-                                  <div className="max-w-[140px] truncate text-ink-400 text-xs" title={s.notes}>{s.notes || '–'}</div>
-                                )}
-                              </td>
-                              <td className="text-right">
-                                <div className="flex items-center justify-end gap-1">
-                                  {isEditing ? (
-                                    <>
-                                      <button onClick={() => saveEdit(s.id)}
-                                        className="text-xs px-2.5 py-1 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-600">
-                                        Lưu
-                                      </button>
-                                      <button onClick={cancelEdit}
-                                        className="text-xs px-2.5 py-1 bg-greige-100 text-ink-500 rounded-full font-semibold hover:bg-greige-200">
-                                        Hủy
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <button onClick={() => startEdit(s)} aria-label="Chỉnh sửa"
-                                        className="btn-icon text-primary-600 hover:bg-primary-50" title="Chỉnh sửa">
-                                        <Edit2 className="w-4 h-4" />
-                                      </button>
-                                      <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} aria-label="Xóa"
-                                        className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50" title="Xóa">
-                                        <Trash2 className="w-4 h-4" />
-                                      </button>
-                                    </>
+                                <td><PaidBadge status={cust.paidStatus} /></td>
+                                <td className="text-center" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white hover:bg-primary-600"
+                                  >
+                                    <Bell className="w-3.5 h-3.5" />
+                                    Thông báo
+                                  </button>
+                                </td>
+                                <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                                  {getUserRole() !== 'staff' && (
+                                    <button
+                                      onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                    >
+                                      <CreditCard className="w-3.5 h-3.5" />
+                                      Thanh toán
+                                    </button>
                                   )}
-                                </div>
-                              </td>
-                            </tr>
+                                </td>
+                              </tr>
+                              {isExpanded && (
+                                <tr>
+                                  <td colSpan={9} className="p-0">
+                                    <div className="border-t border-greige-100 bg-greige-50/40">
+                                      <table className="data-table w-full min-w-[860px]">
+                                        <thead>
+                                          <tr className="bg-greige-50">
+                                            <th className="w-16">Kho</th>
+                                            <th>Tracking #</th>
+                                            <th className="w-28">Sản phẩm</th>
+                                            <th className="w-24 text-right">Cân nặng</th>
+                                            <th className="w-24 text-right">Phụ thu</th>
+                                            <th className="w-32 text-right">Tổng phí VC</th>
+                                            <th className="w-28">Ghi chú</th>
+                                            <th className="w-24 text-right">Thao tác</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {cust.rows.map((s) => {
+                                            const isEditing = editingId === s.id;
+                                            return (
+                                              <tr key={s.id} className={isEditing ? 'bg-primary-50/40' : ''}>
+                                                <td>{s.warehouse_code || '–'}</td>
+                                                <td>
+                                                  {isEditing ? (
+                                                    <input value={editValues.tracking_no}
+                                                      onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
+                                                      className="input-field py-1 text-xs w-28" />
+                                                  ) : (
+                                                    <span className="font-mono text-xs truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
+                                                  )}
+                                                </td>
+                                                <td>
+                                                  {isEditing ? (
+                                                    <input value={editValues.product}
+                                                      onChange={(e) => setEditValues((p) => ({ ...p, product: e.target.value }))}
+                                                      className="input-field py-1 text-xs w-full" />
+                                                  ) : (
+                                                    <span className="max-w-[140px] truncate block" title={s.product}>{s.product || '–'}</span>
+                                                  )}
+                                                </td>
+                                                <td className="text-right tabular-nums">
+                                                  {isEditing ? (
+                                                    <input type="number" value={editValues.weight}
+                                                      onChange={(e) => setEditValues((p) => ({ ...p, weight: e.target.value }))}
+                                                      className="input-field py-1 text-xs w-full text-right" step={0.01} min={0} />
+                                                  ) : (
+                                                    `${s.weight} kg`
+                                                  )}
+                                                </td>
+                                                <td className="text-right tabular-nums">
+                                                  {isEditing ? (
+                                                    <MoneyInput value={editValues.surcharge}
+                                                      onChange={(v) => setEditValues((p) => ({ ...p, surcharge: v }))}
+                                                      className="input-field py-1 text-xs w-full text-right" />
+                                                  ) : (
+                                                    formatCurrency(s.surcharge)
+                                                  )}
+                                                </td>
+                                                <td className="text-right tabular-nums font-semibold text-primary-700">
+                                                  {isEditing ? '–' : formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}
+                                                </td>
+                                                <td>
+                                                  {isEditing ? (
+                                                    <input value={editValues.notes}
+                                                      onChange={(e) => setEditValues((p) => ({ ...p, notes: e.target.value }))}
+                                                      className="input-field py-1 text-xs w-full" />
+                                                  ) : (
+                                                    <div className="max-w-[140px] truncate text-ink-400 text-xs" title={s.notes}>{s.notes || '–'}</div>
+                                                  )}
+                                                </td>
+                                                <td className="text-right">
+                                                  <div className="flex items-center justify-end gap-1">
+                                                    {isEditing ? (
+                                                      <>
+                                                        <button onClick={() => saveEdit(s.id)}
+                                                          className="text-xs px-2.5 py-1 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-600">
+                                                          Lưu
+                                                        </button>
+                                                        <button onClick={cancelEdit}
+                                                          className="text-xs px-2.5 py-1 bg-greige-100 text-ink-500 rounded-full font-semibold hover:bg-greige-200">
+                                                          Hủy
+                                                        </button>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <button onClick={() => startEdit(s)} aria-label="Chỉnh sửa"
+                                                          className="btn-icon text-primary-600 hover:bg-primary-50" title="Chỉnh sửa">
+                                                          <Edit2 className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} aria-label="Xóa"
+                                                          className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50" title="Xóa">
+                                                          <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                      </>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            );
+                                          })}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
                           );
                         })}
                       </tbody>
@@ -503,12 +482,9 @@ export default function Shipping() {
         </div>
       )}
 
-      {/* Import modal */}
       {importModal && (
         <ImportModal onClose={() => setImportModal(false)} onImported={handleImported} />
       )}
-
-      {/* Ghi nhận thanh toán */}
       {paymentModal && (
         <PaymentModal
           customerId={paymentModal.customerId}
@@ -518,8 +494,6 @@ export default function Shipping() {
           onSaved={() => setPaymentModal(null)}
         />
       )}
-
-      {/* Notification popup: xem trước + Copy ảnh / Tải về */}
       {notifData && (
         <NotificationModal
           notifData={notifData}
