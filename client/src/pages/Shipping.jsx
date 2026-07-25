@@ -325,7 +325,7 @@ export default function Shipping() {
                                     ? <ChevronDown className="w-4 h-4 text-ink-400 mx-auto" />
                                     : <ChevronRight className="w-4 h-4 text-ink-400 mx-auto" />}
                                 </td>
-                                <td className="w-36 max-w-0">
+                                <td className="w-36">
                                   <Link
                                     to={`/customers/${cust.custId}`}
                                     onClick={(e) => e.stopPropagation()}
@@ -335,7 +335,7 @@ export default function Shipping() {
                                     {cust.customerCode}
                                   </Link>
                                 </td>
-                                <td className="w-40 max-w-0">
+                                <td className="w-40">
                                   <div className="truncate text-ink-600" title={cust.customerName}>{cust.customerName || '–'}</div>
                                 </td>
                                 <td className="text-right tabular-nums">{cust.count}</td>
