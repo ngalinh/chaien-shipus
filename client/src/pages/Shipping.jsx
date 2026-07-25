@@ -325,16 +325,19 @@ export default function Shipping() {
                                     ? <ChevronDown className="w-4 h-4 text-ink-400 mx-auto" />
                                     : <ChevronRight className="w-4 h-4 text-ink-400 mx-auto" />}
                                 </td>
-                                <td>
+                                <td className="w-36 max-w-0">
                                   <Link
                                     to={`/customers/${cust.custId}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="font-mono text-sm text-primary-700 hover:underline"
+                                    className="font-mono text-sm text-primary-700 hover:underline block truncate"
+                                    title={cust.customerCode}
                                   >
                                     {cust.customerCode}
                                   </Link>
                                 </td>
-                                <td className="text-ink-600">{cust.customerName || '–'}</td>
+                                <td className="max-w-0">
+                                  <div className="truncate text-ink-600" title={cust.customerName}>{cust.customerName || '–'}</div>
+                                </td>
                                 <td className="text-right tabular-nums">{cust.count}</td>
                                 <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg</td>
                                 <td className="text-right tabular-nums font-semibold text-primary-700">
