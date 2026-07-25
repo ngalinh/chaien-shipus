@@ -118,10 +118,16 @@ router.post('/import', (req, res) => {
         (import_date, customer_id, warehouse_id, tracking_no, product, weight, surcharge, partner_rate, customer_rate)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    const dupCheckStmt = db.prepare('SELECT id FROM shipments WHERE tracking_no = ? LIMIT 1');
 
     const importAll = db.transaction(() => {
       for (const row of rows) {
         const { customer_id, warehouse_id, tracking_no, product, weight } = row;
+
+        if (tracking_no && dupCheckStmt.get(tracking_no)) {
+          warnings.push(`Tracking ${tracking_no} đã được nhập kho`);
+          continue;
+        }
 
         const customer = customer_id ? customerStmt.get(parseInt(customer_id)) : null;
         if (!customer) {
