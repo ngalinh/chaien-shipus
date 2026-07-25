@@ -316,9 +316,8 @@ export default function Shipping() {
                         <tr>
                           <th className="w-8"></th>
                           <th className="w-36">Mã KH</th>
-                          <th className="w-40">Tên KH</th>
-                          <th className="w-24 text-right">SL Tracking</th>
-                          <th className="w-36 text-right">Tổng cân nặng</th>
+                          <th className="w-52">Tên KH</th>
+                          <th className="w-44 text-right">Tổng cân nặng</th>
                           <th className="w-32 text-right">Phí VC/kg</th>
                           <th className="w-36 text-right">Tổng Phí VC</th>
                           <th className="w-32">Tình trạng TT</th>
@@ -351,11 +350,10 @@ export default function Shipping() {
                                     {cust.customerCode}
                                   </Link>
                                 </td>
-                                <td className="w-40">
+                                <td className="w-52">
                                   <div className="truncate text-ink-600" title={cust.customerName}>{cust.customerName || '–'}</div>
                                 </td>
-                                <td className="text-right tabular-nums">{cust.count}</td>
-                                <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg</td>
+                                <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
                                 <td className="text-right tabular-nums text-ink-600" onClick={(e) => e.stopPropagation()}>
                                   {getUserRole() === 'admin' && editingRate?.custKey === custKey ? (
                                     <input
@@ -406,7 +404,7 @@ export default function Shipping() {
                               </tr>
                               {isExpanded && (
                                 <tr>
-                                  <td colSpan={10} className="p-0">
+                                  <td colSpan={9} className="p-0">
                                     <div className="border-t border-greige-100 bg-greige-50/40">
                                       <table className="data-table w-full min-w-[860px]">
                                         <thead>
