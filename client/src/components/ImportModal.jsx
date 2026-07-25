@@ -122,7 +122,10 @@ export default function ImportModal({ onClose, onImported }) {
         }))
         .filter(Boolean);
       const res = await axios.post('/api/shipments/import', { import_date: importDate, rows });
-      toast(`Đã nhập ${res.data.imported || rows.length} kiện hàng`, 'success');
+      const { imported = 0, warnings: warns = [] } = res.data;
+      if (imported > 0) toast(`Đã nhập ${imported} kiện hàng`, 'success');
+      for (const w of warns) toast(w, 'warning');
+      if (imported === 0 && warns.length === 0) toast('Không có kiện hàng nào được nhập', 'warning');
       onImported(res.data);
     } catch (err) {
       toast(err.response?.data?.error || 'Không thể nhập dữ liệu', 'error');
