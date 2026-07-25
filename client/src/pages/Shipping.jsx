@@ -533,7 +533,7 @@ export default function Shipping() {
           batchDate={paymentModal.batchDate}
           amount={paymentModal.amount}
           onClose={() => setPaymentModal(null)}
-          onSaved={() => setPaymentModal(null)}
+          onSaved={() => { setPaymentModal(null); fetchShipments(); }}
         />
       )}
       {notifData && (
