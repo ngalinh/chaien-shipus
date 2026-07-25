@@ -230,7 +230,7 @@ export default function Layout() {
       <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)]">
         {/* Top bar — full-bleed teal on mobile, floating white card on desktop */}
         <header
-          className="flex items-center gap-3 bg-primary-500 lg:bg-white lg:rounded-card lg:shadow-card px-4 lg:px-5 pb-3 flex-shrink-0"
+          className="relative z-[25] flex items-center gap-3 bg-primary-500 lg:bg-white lg:rounded-card lg:shadow-card px-4 lg:px-5 pb-3 flex-shrink-0"
           style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
         >
           <button

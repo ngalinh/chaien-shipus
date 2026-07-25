@@ -146,7 +146,7 @@ router.post('/import', (req, res) => {
           warehouseId,
           tracking_no || null,
           product     || null,
-          parseFloat(weight) || 0,
+          Math.max(0.5, parseFloat(weight) || 0),
           0,
           partnerRate,
           customerRate

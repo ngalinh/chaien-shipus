@@ -310,7 +310,8 @@ export default function Shipping() {
                 </button>
 
                 {!isDateCollapsed && (
-                  <div className="table-container rounded-none shadow-none border-t border-greige-100">
+                  <>
+                  <div className="hidden sm:block table-container rounded-none shadow-none border-t border-greige-100">
                     <table className="data-table w-full min-w-[1100px]">
                       <thead>
                         <tr>
@@ -515,6 +516,89 @@ export default function Shipping() {
                       </tbody>
                     </table>
                   </div>
+
+                  {/* Mobile: card list */}
+                  <div className="sm:hidden divide-y divide-greige-100 border-t border-greige-100">
+                    {customers.map((cust) => {
+                      const custKey = `${dateKey}_${cust.custId}`;
+                      const isExpanded = expandedCustomers[custKey];
+                      return (
+                        <div key={custKey}>
+                          <div
+                            className="px-4 py-3 cursor-pointer active:bg-greige-50"
+                            onClick={() => toggleCustomer(custKey)}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-1.5">
+                              <div className="flex-1 min-w-0">
+                                <Link
+                                  to={`/customers/${cust.custId}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="font-mono text-xs text-primary-700 block truncate"
+                                >
+                                  {cust.customerCode}
+                                </Link>
+                                <div className="font-semibold text-ink-900 text-sm mt-0.5">{cust.customerName || '–'}</div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+                                <PaidBadge status={cust.paidStatus} />
+                                {isExpanded
+                                  ? <ChevronDown className="w-4 h-4 text-ink-400" />
+                                  : <ChevronRight className="w-4 h-4 text-ink-400" />}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-ink-500 mb-2">
+                              <span>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện) · {formatCurrency(cust.customerRate)}/kg</span>
+                              <span className="font-semibold text-primary-700 text-sm">{formatCurrency(cust.totalFee)}</span>
+                            </div>
+                            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white"
+                              >
+                                <Bell className="w-3 h-3" /> Thông báo
+                              </button>
+                              {getUserRole() !== 'staff' && (
+                                <button
+                                  onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
+                                  className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700"
+                                >
+                                  <CreditCard className="w-3 h-3" /> Thanh toán
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="bg-greige-50/60 px-3 pb-3 space-y-2 border-t border-greige-100">
+                              {cust.rows.map((s) => (
+                                <div key={s.id} className="bg-white rounded-xl p-3 shadow-sm mt-2">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-mono text-xs text-ink-700 block truncate">{s.tracking_no || '–'}</span>
+                                      <div className="text-xs text-ink-400 mt-0.5">{s.warehouse_code || '–'} · {s.product || '–'}</div>
+                                    </div>
+                                    <div className="text-right flex-shrink-0">
+                                      <div className="font-semibold text-primary-700 text-sm">{formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}</div>
+                                      <div className="text-xs text-ink-400">{s.weight} kg{s.surcharge ? ` + ${formatCurrency(s.surcharge)}` : ''}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-end gap-1 mt-2">
+                                    <button onClick={() => startEdit(s)} className="btn-icon text-primary-600 hover:bg-primary-50" title="Chỉnh sửa">
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50" title="Xóa">
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  </>
                 )}
               </div>
             );
