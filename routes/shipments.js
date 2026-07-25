@@ -454,6 +454,33 @@ router.patch('/batch-status', (req, res) => {
   }
 });
 
+// PATCH /api/shipments/batch-rate
+// Cập nhật customer_rate cho toàn bộ shipment trong 1 lô (batch_date + customer_id)
+// Body: { batch_date, customer_id, customer_rate }
+router.patch('/batch-rate', (req, res) => {
+  try {
+    const { batch_date, customer_id, customer_rate } = req.body;
+    if (!batch_date || !customer_id || customer_rate === undefined) {
+      return res.status(400).json({ error: 'batch_date, customer_id and customer_rate are required' });
+    }
+    const rate = parseFloat(customer_rate);
+    if (isNaN(rate) || rate < 0) return res.status(400).json({ error: 'Invalid customer_rate' });
+    const cid = parseInt(customer_id);
+    const exists = db.prepare(
+      'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? LIMIT 1'
+    ).get(batch_date, cid);
+    if (!exists) return res.status(404).json({ error: 'Batch not found' });
+    db.prepare(
+      'UPDATE shipments SET customer_rate = ? WHERE import_date = ? AND customer_id = ?'
+    ).run(rate, batch_date, cid);
+    triggerAutoDebit(batch_date, cid);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Export triggerAutoDebit so transactions route can call it if needed
 module.exports = router;
 module.exports.triggerAutoDebit = triggerAutoDebit;

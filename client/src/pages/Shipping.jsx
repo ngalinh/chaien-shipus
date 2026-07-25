@@ -45,6 +45,7 @@ export default function Shipping() {
   const [notifData, setNotifData] = useState(null);
   const [settings, setSettings] = useState({ company: {} });
   const [paymentModal, setPaymentModal] = useState(null);
+  const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
 
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
@@ -154,6 +155,18 @@ export default function Shipping() {
 
   function toggleCustomer(key) {
     setExpandedCustomers((p) => ({ ...p, [key]: !p[key] }));
+  }
+
+  async function saveRate(custId, dateKey, value) {
+    const rate = parseFloat(String(value).replace(/[^0-9.]/g, ''));
+    setEditingRate(null);
+    if (isNaN(rate) || rate < 0) return;
+    try {
+      await axios.patch('/api/shipments/batch-rate', { batch_date: dateKey, customer_id: custId, customer_rate: rate });
+      fetchShipments();
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không thể cập nhật cước', 'error');
+    }
   }
 
   // Build date → customer groups
@@ -343,8 +356,28 @@ export default function Shipping() {
                                 </td>
                                 <td className="text-right tabular-nums">{cust.count}</td>
                                 <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg</td>
-                                <td className="text-right tabular-nums text-ink-600">
-                                  {formatCurrency(cust.customerRate)}/kg
+                                <td className="text-right tabular-nums text-ink-600" onClick={(e) => e.stopPropagation()}>
+                                  {getUserRole() === 'admin' && editingRate?.custKey === custKey ? (
+                                    <input
+                                      type="number"
+                                      className="input-field py-1 text-xs w-28 text-right"
+                                      value={editingRate.value}
+                                      autoFocus
+                                      onChange={(e) => setEditingRate((p) => ({ ...p, value: e.target.value }))}
+                                      onBlur={() => saveRate(cust.custId, dateKey, editingRate.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') saveRate(cust.custId, dateKey, editingRate.value);
+                                        if (e.key === 'Escape') setEditingRate(null);
+                                      }}
+                                    />
+                                  ) : (
+                                    <span
+                                      className={getUserRole() === 'admin' ? 'cursor-pointer hover:text-primary-600 hover:underline' : ''}
+                                      onClick={() => getUserRole() === 'admin' && setEditingRate({ custKey, custId: cust.custId, dateKey, value: cust.customerRate })}
+                                    >
+                                      {formatCurrency(cust.customerRate)}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="text-right tabular-nums font-semibold text-primary-700">
                                   {formatCurrency(cust.totalFee)}
