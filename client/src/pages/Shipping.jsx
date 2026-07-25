@@ -296,12 +296,12 @@ export default function Shipping() {
 
                 {!isDateCollapsed && (
                   <div className="table-container rounded-none shadow-none border-t border-greige-100">
-                    <table className="data-table w-full min-w-[900px]">
+                    <table className="data-table w-full min-w-[1100px]">
                       <thead>
                         <tr>
                           <th className="w-8"></th>
                           <th className="w-36">Mã KH</th>
-                          <th>Tên KH</th>
+                          <th className="w-40">Tên KH</th>
                           <th className="w-24 text-right">SL Tracking</th>
                           <th className="w-36 text-right">Tổng cân nặng</th>
                           <th className="w-36 text-right">Tổng Phí VC</th>
@@ -335,7 +335,7 @@ export default function Shipping() {
                                     {cust.customerCode}
                                   </Link>
                                 </td>
-                                <td className="max-w-0">
+                                <td className="w-40 max-w-0">
                                   <div className="truncate text-ink-600" title={cust.customerName}>{cust.customerName || '–'}</div>
                                 </td>
                                 <td className="text-right tabular-nums">{cust.count}</td>
