@@ -182,6 +182,7 @@ export default function Shipping() {
           custId,
           customerCode: cleanCode(rows[0].customer_code),
           customerName: rows[0].customer_name || '',
+          customerRate: rows[0]?.customer_rate || 0,
           rows,
           count: rows.length,
           totalWeight: rows.reduce((a, s) => a + (s.weight || 0), 0),
@@ -189,6 +190,7 @@ export default function Shipping() {
           paidStatus,
         });
       }
+      customers.sort((a, b) => a.customerName.localeCompare(b.customerName, 'vi'));
       if (customers.length > 0) dateGroups.push({ dateKey, customers });
     }
   }
@@ -304,6 +306,7 @@ export default function Shipping() {
                           <th className="w-40">Tên KH</th>
                           <th className="w-24 text-right">SL Tracking</th>
                           <th className="w-36 text-right">Tổng cân nặng</th>
+                          <th className="w-32 text-right">Phí VC/kg</th>
                           <th className="w-36 text-right">Tổng Phí VC</th>
                           <th className="w-32">Tình trạng TT</th>
                           <th className="w-28 text-center">Thông báo</th>
@@ -340,6 +343,9 @@ export default function Shipping() {
                                 </td>
                                 <td className="text-right tabular-nums">{cust.count}</td>
                                 <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg</td>
+                                <td className="text-right tabular-nums text-ink-600">
+                                  {formatCurrency(cust.customerRate)}/kg
+                                </td>
                                 <td className="text-right tabular-nums font-semibold text-primary-700">
                                   {formatCurrency(cust.totalFee)}
                                 </td>
@@ -367,7 +373,7 @@ export default function Shipping() {
                               </tr>
                               {isExpanded && (
                                 <tr>
-                                  <td colSpan={9} className="p-0">
+                                  <td colSpan={10} className="p-0">
                                     <div className="border-t border-greige-100 bg-greige-50/40">
                                       <table className="data-table w-full min-w-[860px]">
                                         <thead>

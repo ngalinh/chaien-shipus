@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import { X, Upload, Trash2, ZoomIn } from 'lucide-react';
 import { toast } from './Toast.jsx';
-import { getBassoUser } from '../utils.jsx';
+import { getBassoUser, getUserRole } from '../utils.jsx';
 
 export default function CustomerModal({ customer, onClose, onSaved, saleOptions = [] }) {
   const isEdit = !!customer;
   const bassoUser = useMemo(() => getBassoUser(), []);
+  const isAdmin = getUserRole() === 'admin';
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -57,6 +58,10 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
     try {
       const res = await axios.get('/api/settings/rates');
       setRates(res.data);
+      if (!isEdit) {
+        const le = res.data.find((r) => r.name === 'Khách lẻ');
+        if (le) setForm((prev) => ({ ...prev, rate_id: String(le.id) }));
+      }
     } catch {
       // ignore
     }
@@ -371,25 +376,34 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
             {/* Cước vận chuyển */}
             <div>
               <label className="label">Cước vận chuyển</label>
-              <select
-                name="rate_id"
-                value={form.rate_id}
-                onChange={(e) => {
-                  handleField(e);
-                  if (isEdit) {
-                    setApplyThisMonth(null);
-                    setRatePopup(true);
-                  }
-                }}
-                className="input-field"
-              >
-                <option value="">-- Chọn gói cước --</option>
-                {rates.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')} đ/kg)
-                  </option>
-                ))}
-              </select>
+              {isAdmin ? (
+                <select
+                  name="rate_id"
+                  value={form.rate_id}
+                  onChange={(e) => {
+                    handleField(e);
+                    if (isEdit) {
+                      setApplyThisMonth(null);
+                      setRatePopup(true);
+                    }
+                  }}
+                  className="input-field"
+                >
+                  <option value="">-- Chọn gói cước --</option>
+                  {rates.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')} đ/kg)
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-ink-600 py-2">
+                  {rates.find((r) => String(r.id) === String(form.rate_id))
+                    ? `${rates.find((r) => String(r.id) === String(form.rate_id)).name} (${Number(rates.find((r) => String(r.id) === String(form.rate_id)).rate_per_kg).toLocaleString('en-US')} đ/kg)`
+                    : 'Khách lẻ (240,000 đ/kg)'}
+                  <span className="ml-2 text-xs text-ink-400">(chỉ admin mới đổi được)</span>
+                </p>
+              )}
             </div>
 
             {/* NV SALE phụ trách */}
