@@ -511,14 +511,14 @@ export default function Shipping() {
                                 <tr>
                                   <td colSpan={8} className="p-0">
                                     <div className="border-t border-greige-100 bg-greige-50/40">
-                                      <table className="data-table w-full min-w-[860px]">
+                                      <table className="data-table w-full min-w-[960px]">
                                         <thead>
                                           <tr className="bg-greige-50">
                                             <th className="w-16">Kho</th>
-                                            <th>Tracking #</th>
-                                            <th className="w-28">Sản phẩm</th>
-                                            <th className="w-24 text-right">Cân nặng</th>
-                                            <th className="w-24 text-right">Phụ thu</th>
+                                            <th className="w-44">Tracking #</th>
+                                            <th className="w-36">Sản phẩm</th>
+                                            <th className="w-28 text-right">Cân nặng</th>
+                                            <th className="w-28 text-right">Phụ thu</th>
                                             <th className="w-32 text-right">Tổng phí VC</th>
                                             <th className="w-28">Ghi chú</th>
                                             <th className="w-24 text-right">Thao tác</th>
