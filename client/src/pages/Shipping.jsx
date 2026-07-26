@@ -318,7 +318,7 @@ export default function Shipping() {
                     <table className="data-table table-fixed w-full min-w-[1100px]">
                       <thead>
                         <tr>
-                          <th className="w-8"></th>
+                          <th className="w-8 !px-0"></th>
                           <th className="w-36">Mã KH</th>
                           <th className="w-52">Tên KH</th>
                           <th className="w-44 text-right">Tổng cân nặng</th>
@@ -339,7 +339,7 @@ export default function Shipping() {
                                 className="cursor-pointer hover:bg-greige-50/60 transition-colors"
                                 onClick={() => toggleCustomer(custKey)}
                               >
-                                <td className="text-center">
+                                <td className="!px-0 text-center">
                                   {isExpanded
                                     ? <ChevronDown className="w-4 h-4 text-ink-400 mx-auto" />
                                     : <ChevronRight className="w-4 h-4 text-ink-400 mx-auto" />}
