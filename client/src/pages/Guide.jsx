@@ -1,9 +1,21 @@
+/* Hallmark · redesign · macrostructure: accordion-content · tone: utilitarian · anchor hue: teal */
 import { useState } from 'react';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronRight,
+  LayoutDashboard,
+  Truck,
+  Users,
+  Receipt,
+  TrendingUp,
+  Settings,
+  HelpCircle,
+} from 'lucide-react';
 
 const SECTIONS = [
   {
-    title: '📊 Dashboard',
+    title: 'Dashboard',
+    icon: LayoutDashboard,
     content: [
       {
         heading: 'Tổng quan',
@@ -16,7 +28,8 @@ const SECTIONS = [
     ],
   },
   {
-    title: '📦 Hàng về',
+    title: 'Hàng về',
+    icon: Truck,
     content: [
       {
         heading: 'Import lô hàng',
@@ -32,7 +45,7 @@ const SECTIONS = [
       },
       {
         heading: 'Cột Thao tác (3 icon)',
-        body: '🔔 Bell: Mở phiếu Báo hàng về — copy nội dung để gửi khách. 📤 Send: Mở phiếu Báo ship hàng — copy nội dung để gửi khách. 🚚 Truck: Nhập/sửa mã vận đơn (tracking code) của lô.',
+        body: 'Bell: Mở phiếu Báo hàng về — copy nội dung để gửi khách. Send: Mở phiếu Báo ship hàng — copy nội dung để gửi khách. Truck: Nhập/sửa mã vận đơn (tracking code) của lô.',
       },
       {
         heading: 'Phiếu báo hàng / báo ship',
@@ -45,7 +58,8 @@ const SECTIONS = [
     ],
   },
   {
-    title: '👥 Khách hàng',
+    title: 'Khách hàng',
+    icon: Users,
     content: [
       {
         heading: 'Danh sách khách',
@@ -70,7 +84,8 @@ const SECTIONS = [
     ],
   },
   {
-    title: '💸 Giao dịch',
+    title: 'Giao dịch',
+    icon: Receipt,
     content: [
       {
         heading: 'Tổng quan',
@@ -83,7 +98,8 @@ const SECTIONS = [
     ],
   },
   {
-    title: '📈 Doanh thu VC',
+    title: 'Doanh thu VC',
+    icon: TrendingUp,
     content: [
       {
         heading: 'Thống kê theo tháng',
@@ -96,7 +112,8 @@ const SECTIONS = [
     ],
   },
   {
-    title: '⚙️ Cài đặt',
+    title: 'Cài đặt',
+    icon: Settings,
     content: [
       {
         heading: 'Nhóm cước vận chuyển',
@@ -121,10 +138,11 @@ const SECTIONS = [
     ],
   },
   {
-    title: '❓ Câu hỏi thường gặp',
+    title: 'Câu hỏi thường gặp',
+    icon: HelpCircle,
     content: [
       {
-        heading: 'Đổi cước VẬN CHUYỂN — lô nào bị ảnh hưởng?',
+        heading: 'Đổi cước vận chuyển — lô nào bị ảnh hưởng?',
         body: 'Đổi trong Cài đặt → chỉ áp lô MỚI import từ đó về sau. Lô đã nhập kho giữ nguyên cước cũ. Để áp cước mới cho lô cũ, vào Hàng về → click số cước của lô đó → sửa thủ công.',
       },
       {
@@ -145,14 +163,22 @@ const SECTIONS = [
 
 function Section({ section }) {
   const [open, setOpen] = useState(false);
+  const Icon = section.icon;
   return (
     <div className="bg-white rounded-card shadow-card overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-greige-50 transition-colors"
       >
-        <span className="text-base font-bold text-ink-900">{section.title}</span>
-        {open ? <ChevronDown className="w-5 h-5 text-ink-400 flex-shrink-0" /> : <ChevronRight className="w-5 h-5 text-ink-400 flex-shrink-0" />}
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+            <Icon className="w-4 h-4 text-primary-500" strokeWidth={1.9} />
+          </span>
+          <span className="text-base font-bold text-ink-900 truncate">{section.title}</span>
+        </div>
+        {open
+          ? <ChevronDown className="w-5 h-5 text-ink-400 flex-shrink-0" />
+          : <ChevronRight className="w-5 h-5 text-ink-400 flex-shrink-0" />}
       </button>
       {open && (
         <div className="border-t border-greige-100 divide-y divide-greige-50">
