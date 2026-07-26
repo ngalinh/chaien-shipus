@@ -332,12 +332,12 @@ export default function Shipping() {
                           <th className="!px-0"></th>
                           <th>Mã KH</th>
                           <th>Tên KH</th>
-                          <th className="text-right">Tổng cân nặng</th>
-                          <th className="text-right">Phí VC/kg</th>
-                          <th className="text-right">Tổng Phí VC</th>
+                          <th className="!text-right">Tổng cân nặng</th>
+                          <th className="!text-right">Phí VC/kg</th>
+                          <th className="!text-right">Tổng Phí VC</th>
                           <th>Tình trạng TT</th>
-                          <th className="text-center">Thông báo</th>
-                          <th className="text-right">Thao tác</th>
+                          <th className="!text-center">Thông báo</th>
+                          <th className="!text-right">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
