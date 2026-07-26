@@ -7,6 +7,7 @@ import {
   Receipt,
   TrendingUp,
   Settings,
+  BookOpen,
   Menu,
   X,
   Bell,
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { to: '/transactions', label: 'Giao dịch',   icon: Receipt },
   { to: '/revenue',      label: 'Doanh thu VC', icon: TrendingUp },
   { to: '/settings',     label: 'Cài đặt',     icon: Settings },
+  { to: '/guide',        label: 'HDSD',        icon: BookOpen },
 ];
 
 function Mark({ size = 28 }) {

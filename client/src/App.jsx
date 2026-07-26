@@ -7,6 +7,7 @@ import Shipping from './pages/Shipping.jsx';
 import Transactions from './pages/Transactions.jsx';
 import RevenueVC from './pages/RevenueVC.jsx';
 import Settings from './pages/Settings.jsx';
+import Guide from './pages/Guide.jsx';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/revenue" element={<RevenueVC />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/guide" element={<Guide />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
