@@ -138,8 +138,8 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Filters row */}
-      <div className="flex flex-wrap gap-x-6 gap-y-3 items-start">
+      {/* Filters + Search row */}
+      <div className="flex flex-wrap gap-x-5 gap-y-3 items-center">
         {/* Khoảng thời gian */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5 whitespace-nowrap">
@@ -174,11 +174,7 @@ export default function Transactions() {
                 onClick={() => setCatFilter(c.value)}
                 className={`px-3 py-1.5 text-sm font-semibold rounded-full ${
                   catFilter === c.value
-                    ? c.value === 'customer_payment'
-                      ? 'bg-success-600 text-white'
-                      : c.value === 'partner_payment'
-                        ? 'bg-danger-600 text-white'
-                        : 'bg-primary-500 text-white'
+                    ? 'bg-primary-500 text-white'
                     : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
                 }`}
                 style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
@@ -187,6 +183,25 @@ export default function Transactions() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Tìm mã KH, đối tác, nội dung, số tiền…"
+            className="input-field pl-9 pr-8 text-sm w-64"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-900"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -210,33 +225,14 @@ export default function Transactions() {
         </div>
       )}
 
-      {/* Search bar */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm mã KH, đối tác, nội dung, số tiền…"
-          className="input-field pl-9 pr-8 text-sm"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-900"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-
       {/* Table */}
       <div className="table-container">
         <table className="data-table">
           <colgroup>
             <col className="w-28" />
+            <col className="w-40" />
             <col className="w-36" />
             <col />
-            <col className="w-40" />
             <col className="w-28" />
             <col className="w-28" />
             {role !== 'staff' && <col className="w-20" />}
@@ -244,9 +240,9 @@ export default function Transactions() {
           <thead>
             <tr>
               <th>Ngày tháng</th>
+              <th>Danh mục</th>
               <th>Mã KH / Đối tác</th>
               <th>Nội dung</th>
-              <th>Danh mục</th>
               <th className="!text-right">Thu (đ)</th>
               <th className="!text-right">Chi (đ)</th>
               {role !== 'staff' && <th className="text-center">Thao tác</th>}
@@ -274,6 +270,17 @@ export default function Transactions() {
                 <tr key={t.key}>
                   <td className="whitespace-nowrap font-medium">{formatDate(t.trans_date)}</td>
 
+                  {/* Danh mục */}
+                  <td>
+                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
+                      t.category === 'customer_payment'
+                        ? 'bg-success-100 text-success-700'
+                        : 'bg-danger-100 text-danger-600'
+                    }`}>
+                      {CATEGORY_LABEL[t.category] || '–'}
+                    </span>
+                  </td>
+
                   {/* Mã KH / Đối tác */}
                   <td>
                     {t.category === 'customer_payment' ? (
@@ -298,16 +305,6 @@ export default function Transactions() {
                   <td className="max-w-0">
                     <span className="truncate block text-sm text-ink-700" title={t.description || ''}>
                       {t.description || '–'}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
-                      t.category === 'customer_payment'
-                        ? 'bg-success-100 text-success-700'
-                        : 'bg-danger-100 text-danger-600'
-                    }`}>
-                      {CATEGORY_LABEL[t.category] || '–'}
                     </span>
                   </td>
 
