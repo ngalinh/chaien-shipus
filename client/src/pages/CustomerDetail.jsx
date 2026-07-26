@@ -483,9 +483,9 @@ export default function CustomerDetail() {
                     <tr>
                       <th>Ngày tháng</th>
                       <th>Nội dung</th>
-                      <th className="text-right">Thu (đ)</th>
-                      <th className="text-right">Chi (đ)</th>
-                      <th className="text-right">Số dư</th>
+                      <th className="!text-right">Thu (đ)</th>
+                      <th className="!text-right">Chi (đ)</th>
+                      <th className="!text-right">Số dư</th>
                     </tr>
                   </thead>
                   <tbody>
