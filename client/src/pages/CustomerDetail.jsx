@@ -471,7 +471,14 @@ export default function CustomerDetail() {
                 </div>
               )}
               <div className="table-container">
-                <table className="data-table">
+                <table className="data-table table-fixed w-full">
+                  <colgroup>
+                    <col style={{width:'100px'}} />
+                    <col />
+                    <col style={{width:'110px'}} />
+                    <col style={{width:'110px'}} />
+                    <col style={{width:'110px'}} />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th>Ngày tháng</th>
@@ -485,7 +492,7 @@ export default function CustomerDetail() {
                     {txList.map((tx) => (
                       <tr key={tx.id}>
                         <td>{formatDate(tx.trans_date)}</td>
-                        <td>{tx.description || '–'}</td>
+                        <td className="max-w-0" title={tx.description}><span className="block truncate">{tx.description || '–'}</span></td>
                         <td className="text-right text-success-700 font-medium">
                           {tx.credit > 0 ? formatCurrency(tx.credit) : '–'}
                         </td>
