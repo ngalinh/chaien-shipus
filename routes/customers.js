@@ -233,7 +233,8 @@ router.get('/:id', (req, res) => {
 
     res.json({
       ...customer,
-      status:        computeStatus(latestDate ? latestDate.latest : null),
+      status:               computeStatus(latestDate ? latestDate.latest : null),
+      latest_shipment_date: latestDate ? latestDate.latest : null,
       cccd_images:   images.map((img) => ({
         ...img,
         url: `/uploads/cccd/${img.filename}`,
