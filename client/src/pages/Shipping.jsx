@@ -4,7 +4,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import {
   Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CreditCard,
-  Truck, Send, X,
+  Truck, Send, X, Copy,
 } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -840,8 +840,12 @@ export default function Shipping() {
               onChange={(e) => setShipNotifText(e.target.value)}
             />
             <div className="flex gap-3">
-              <button onClick={() => setShipNotifModal(null)} className="flex-1 btn-secondary">
-                Đóng
+              <button
+                onClick={() => { navigator.clipboard.writeText(shipNotifText); toast('Đã copy nội dung!', 'success'); }}
+                className="flex-1 btn-secondary inline-flex items-center justify-center gap-2"
+              >
+                <Copy className="w-4 h-4" />
+                Copy nội dung
               </button>
               <button
                 disabled
