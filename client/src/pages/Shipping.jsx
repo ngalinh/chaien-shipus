@@ -474,10 +474,10 @@ export default function Shipping() {
                                   <div className="flex items-center justify-end gap-1">
                                     <button
                                       onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
-                                      className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      className="inline-flex items-center p-2 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
                                       title="Báo hàng về"
                                     >
-                                      <Bell className="w-3.5 h-3.5" />
+                                      <Bell className="w-4 h-4" />
                                     </button>
                                     <button
                                       onClick={() => openShipNotif({
@@ -486,10 +486,10 @@ export default function Shipping() {
                                         van_don_code: cust.vanDonCode,
                                         totalFee: cust.totalFee,
                                       })}
-                                      className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      className="inline-flex items-center p-2 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
                                       title="Báo ship hàng"
                                     >
-                                      <Send className="w-3.5 h-3.5" />
+                                      <Send className="w-4 h-4" />
                                     </button>
                                     <button
                                       onClick={() => setVanDonModal({
@@ -499,10 +499,10 @@ export default function Shipping() {
                                         totalFee: cust.totalFee,
                                         van_don_code: cust.vanDonCode,
                                       })}
-                                      className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      className="inline-flex items-center p-2 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
                                       title="Mã vận đơn"
                                     >
-                                      <Truck className="w-3.5 h-3.5" />
+                                      <Truck className="w-4 h-4" />
                                     </button>
                                   </div>
                                 </td>

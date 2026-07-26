@@ -8,7 +8,6 @@ import {
   Users,
   Receipt,
   TrendingUp,
-  Settings,
   HelpCircle,
 } from 'lucide-react';
 
@@ -108,32 +107,6 @@ const SECTIONS = [
       {
         heading: 'Gán NV SALE',
         body: 'Click vào cột NV của dòng khách hàng → chọn nhân viên. Dùng để tính hoa hồng hoặc phân công quản lý khách.',
-      },
-    ],
-  },
-  {
-    title: 'Cài đặt',
-    icon: Settings,
-    content: [
-      {
-        heading: 'Nhóm cước vận chuyển',
-        body: 'Quản lý các mức giá VC/kg (VD: Khách lẻ 280k, Khách buôn 230k...). Khi tạo/sửa khách, chọn nhóm cước phù hợp. Thay đổi nhóm cước chỉ áp dụng cho lô mới import từ đó về sau — lô cũ dùng cước riêng của từng lô.',
-      },
-      {
-        heading: 'Kho',
-        body: 'Quản lý danh sách kho nhận hàng. Khi import từ Excel, hệ thống dò mã kho trong cột Kho để phân loại lô hàng.',
-      },
-      {
-        heading: 'Tài khoản ngân hàng',
-        body: 'Lưu thông tin tài khoản ngân hàng công ty — hiển thị trong phiếu báo hàng gửi khách.',
-      },
-      {
-        heading: 'Thông tin công ty',
-        body: 'Tên công ty, logo, thông tin liên hệ — xuất hiện trên các phiếu báo hàng.',
-      },
-      {
-        heading: 'Import khách hàng hàng loạt',
-        body: 'Upload file Excel danh sách khách để nhập hàng loạt vào hệ thống. Dùng khi mới bắt đầu hoặc cần thêm nhiều khách cùng lúc.',
       },
     ],
   },
