@@ -446,18 +446,21 @@ export default function Shipping() {
                                   </select>
                                 </td>
                                 <td onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex flex-col items-start gap-1">
-                                    <PaidBadge status={cust.paidStatus} />
-                                    {cust.paidStatus !== 'paid' && getUserRole() !== 'staff' && (
+                                  <div className="flex flex-col items-start gap-1.5">
+                                    {cust.paidStatus !== 'paid' && getUserRole() !== 'staff' ? (
                                       <button
                                         onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                        className="text-xs font-semibold text-primary-600 hover:underline whitespace-nowrap"
+                                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary-500 text-white hover:bg-primary-600 whitespace-nowrap"
                                       >
                                         Thanh toán
                                       </button>
+                                    ) : (
+                                      <PaidBadge status={cust.paidStatus} />
                                     )}
-                                    {cust.paidStatus === 'partial' && (
-                                      <span className="text-xs text-amber-600 font-medium">TT 1 phần</span>
+                                    {cust.paidStatus !== 'paid' && (
+                                      <span className="text-xs text-ink-400">
+                                        {cust.paidStatus === 'partial' ? 'TT 1 phần' : 'Chưa TT'}
+                                      </span>
                                     )}
                                   </div>
                                 </td>
