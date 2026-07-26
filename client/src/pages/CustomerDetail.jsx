@@ -474,7 +474,7 @@ export default function CustomerDetail() {
                 <table className="data-table table-fixed w-full">
                   <colgroup>
                     <col style={{width:'100px'}} />
-                    <col />
+                    <col style={{width:'160px'}} />
                     <col style={{width:'110px'}} />
                     <col style={{width:'110px'}} />
                     <col style={{width:'110px'}} />
