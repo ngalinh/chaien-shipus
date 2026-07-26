@@ -328,14 +328,11 @@ export default function NotificationTemplate({
       {/* ── Footer ───────────────────────────────────────────────────── */}
       <div
         style={{
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-          padding: '24px 44px', borderTop: '1px solid #edf3f6',
+          padding: '20px 44px', borderTop: '1px solid #edf3f6',
         }}
       >
-        <div style={{ fontSize: 19, fontWeight: 800, color: '#0f2e42' }}>{companyName}</div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1c7ea3' }}>Cảm ơn quý khách!</div>
-          <div style={{ fontSize: 13, color: '#90a6b3', marginTop: 3 }}>Thank you for your trust.</div>
+        <div style={{ fontSize: 13, color: '#4a6474', lineHeight: 1.6 }}>
+          Quý khách vui lòng thanh toán phí ship cho bên vận chuyển và quay video khi mở hàng để được hỗ trợ tốt nhất nếu có vấn đề xảy ra. Xin chân thành cảm ơn!
         </div>
       </div>
     </div>

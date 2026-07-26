@@ -517,8 +517,8 @@ export default function Shipping() {
                                             <th className="w-16">Kho</th>
                                             <th className="w-44">Tracking #</th>
                                             <th className="w-36">Sản phẩm</th>
-                                            <th className="w-28 text-right">Cân nặng</th>
-                                            <th className="w-28 text-right">Phụ thu</th>
+                                            <th className="w-28">Cân nặng</th>
+                                            <th className="w-28">Phụ thu</th>
                                             <th className="w-32 text-right">Tổng phí VC</th>
                                             <th className="w-28">Ghi chú</th>
                                             <th className="w-24 text-right">Thao tác</th>
@@ -548,20 +548,20 @@ export default function Shipping() {
                                                     <span className="max-w-[140px] truncate block" title={s.product}>{s.product || '–'}</span>
                                                   )}
                                                 </td>
-                                                <td className="text-right tabular-nums">
+                                                <td className="tabular-nums">
                                                   {isEditing ? (
                                                     <input type="number" value={editValues.weight}
                                                       onChange={(e) => setEditValues((p) => ({ ...p, weight: e.target.value }))}
-                                                      className="input-field py-1 text-xs w-full text-right" step={0.01} min={0} />
+                                                      className="input-field py-1 text-xs w-full" step={0.01} min={0} />
                                                   ) : (
                                                     `${s.weight} kg`
                                                   )}
                                                 </td>
-                                                <td className="text-right tabular-nums">
+                                                <td className="tabular-nums">
                                                   {isEditing ? (
                                                     <MoneyInput value={editValues.surcharge}
                                                       onChange={(v) => setEditValues((p) => ({ ...p, surcharge: v }))}
-                                                      className="input-field py-1 text-xs w-full text-right" />
+                                                      className="input-field py-1 text-xs w-full" />
                                                   ) : (
                                                     formatCurrency(s.surcharge)
                                                   )}
