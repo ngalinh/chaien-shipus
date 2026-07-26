@@ -316,17 +316,28 @@ export default function Shipping() {
                   <>
                   <div className="hidden sm:block table-container rounded-none shadow-none border-t border-greige-100">
                     <table className="data-table table-fixed w-full min-w-[1100px]">
+                      <colgroup>
+                        <col style={{width:'32px'}} />
+                        <col style={{width:'144px'}} />
+                        <col style={{width:'208px'}} />
+                        <col style={{width:'176px'}} />
+                        <col style={{width:'128px'}} />
+                        <col style={{width:'144px'}} />
+                        <col style={{width:'128px'}} />
+                        <col style={{width:'112px'}} />
+                        <col style={{width:'128px'}} />
+                      </colgroup>
                       <thead>
                         <tr>
-                          <th className="w-8 !px-0"></th>
-                          <th className="w-36">Mã KH</th>
-                          <th className="w-52">Tên KH</th>
-                          <th className="w-44 text-right">Tổng cân nặng</th>
-                          <th className="w-32 text-right">Phí VC/kg</th>
-                          <th className="w-36 text-right">Tổng Phí VC</th>
-                          <th className="w-32">Tình trạng TT</th>
-                          <th className="w-28 text-center">Thông báo</th>
-                          <th className="w-32 text-right">Thao tác</th>
+                          <th className="!px-0"></th>
+                          <th>Mã KH</th>
+                          <th>Tên KH</th>
+                          <th className="text-right">Tổng cân nặng</th>
+                          <th className="text-right">Phí VC/kg</th>
+                          <th className="text-right">Tổng Phí VC</th>
+                          <th>Tình trạng TT</th>
+                          <th className="text-center">Thông báo</th>
+                          <th className="text-right">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
