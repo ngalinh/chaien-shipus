@@ -49,6 +49,7 @@ export default function Shipping() {
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
   const [vanDonModal, setVanDonModal] = useState(null); // { custId, dateKey, customerName, totalFee, van_don_code }
   const [shipNotifModal, setShipNotifModal] = useState(null); // { customerName, carrier, van_don_code, totalFee }
+  const [shipNotifText, setShipNotifText] = useState('');
 
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
@@ -158,6 +159,17 @@ export default function Shipping() {
 
   function toggleCustomer(key) {
     setExpandedCustomers((p) => ({ ...p, [key]: !p[key] }));
+  }
+
+  function buildShipText({ customerName, carrier, van_don_code }) {
+    const c = carrier || 'Giao hàng tiết kiệm';
+    const code = van_don_code || '';
+    return `Anh/Chị ${customerName} ơi, đơn hàng của mình đã được bàn giao cho ${c} rồi ạ 🚚\n📦 Mã vận đơn: ${code}\n🔎 Theo dõi đơn hàng: https://i.ghtk.vn/${code}\nPhí ship anh/chị vui lòng thanh toán cho shipper khi nhận hàng.\nDự kiến 2–5 ngày (tùy khu vực) mình sẽ nhận được hàng. Nếu cần hỗ trợ về đơn hàng, anh/chị cứ nhắn bên em nhé 💕`;
+  }
+
+  function openShipNotif(data) {
+    setShipNotifModal(data);
+    setShipNotifText(buildShipText(data));
   }
 
   async function saveRate(custId, dateKey, value) {
@@ -405,7 +417,7 @@ export default function Shipping() {
                                       Báo hàng về
                                     </button>
                                     <button
-                                      onClick={() => setShipNotifModal({
+                                      onClick={() => openShipNotif({
                                         customerName: cust.customerName,
                                         carrier: settings.company?.delivery_carrier || '',
                                         van_don_code: cust.rows[0]?.van_don_code || '',
@@ -599,7 +611,7 @@ export default function Shipping() {
                                 <Bell className="w-3 h-3" /> Báo hàng về
                               </button>
                               <button
-                                onClick={() => setShipNotifModal({
+                                onClick={() => openShipNotif({
                                   customerName: cust.customerName,
                                   carrier: settings.company?.delivery_carrier || '',
                                   van_don_code: cust.rows[0]?.van_don_code || '',
@@ -727,7 +739,7 @@ export default function Shipping() {
                     fetchShipments();
                     const saved = { ...vanDonModal };
                     setVanDonModal(null);
-                    setShipNotifModal({
+                    openShipNotif({
                       customerName: saved.customerName,
                       carrier: settings.company?.delivery_carrier || '',
                       van_don_code: saved.van_don_code,
@@ -749,30 +761,34 @@ export default function Shipping() {
       {shipNotifModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-ink-900/50" onClick={() => setShipNotifModal(null)} />
-          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink-900">Báo ship hàng</h2>
+              <h2 className="text-base font-semibold text-ink-900">
+                Báo ship – {shipNotifModal.customerName}
+              </h2>
               <button onClick={() => setShipNotifModal(null)} className="text-ink-400 hover:text-ink-900">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="bg-greige-50 rounded-card p-4 space-y-2 text-sm text-ink-700">
-              <p><span className="font-semibold">Khách hàng:</span> {shipNotifModal.customerName}</p>
-              {shipNotifModal.carrier && (
-                <p><span className="font-semibold">Đơn vị VC:</span> {shipNotifModal.carrier}</p>
-              )}
-              <p><span className="font-semibold">Mã vận đơn:</span> {shipNotifModal.van_don_code || <span className="text-ink-400 italic">chưa nhập</span>}</p>
-              <p><span className="font-semibold">Tổng phí VC:</span> {formatCurrency(shipNotifModal.totalFee)}</p>
+            <textarea
+              className="w-full rounded-card border border-greige-200 p-3 text-sm text-ink-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-primary-300"
+              rows={10}
+              value={shipNotifText}
+              onChange={(e) => setShipNotifText(e.target.value)}
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setShipNotifModal(null)} className="flex-1 btn-secondary">
+                Đóng
+              </button>
+              <button
+                disabled
+                className="flex-1 btn-primary opacity-50 cursor-not-allowed inline-flex items-center justify-center gap-2"
+                title="Tính năng sắp ra mắt"
+              >
+                <Send className="w-4 h-4" />
+                Gửi báo ship qua Zalo
+              </button>
             </div>
-            <button
-              disabled
-              className="w-full btn-primary opacity-50 cursor-not-allowed inline-flex items-center justify-center gap-2"
-              title="Tính năng sắp ra mắt"
-            >
-              <Send className="w-4 h-4" />
-              Gửi báo ship qua Zalo
-            </button>
-            <button onClick={() => setShipNotifModal(null)} className="w-full btn-secondary">Đóng</button>
           </div>
         </div>
       )}
