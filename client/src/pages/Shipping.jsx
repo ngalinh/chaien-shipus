@@ -452,11 +452,11 @@ export default function Shipping() {
                                   </select>
                                 </td>
                                 <td onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex flex-col items-start gap-1.5">
+                                  <div className="flex flex-col items-center gap-1.5">
                                     {cust.paidStatus !== 'paid' && getUserRole() !== 'staff' ? (
                                       <button
                                         onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                        className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary-500 text-white hover:bg-primary-600 whitespace-nowrap"
+                                        className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-500 text-white hover:bg-primary-600 whitespace-nowrap"
                                       >
                                         Thanh toán
                                       </button>
