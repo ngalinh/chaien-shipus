@@ -219,12 +219,16 @@ export default function Shipping() {
       const customers = [];
       for (const [custId, rows] of custMap) {
         const paidStatus = groupPaidStatus(rows);
+        const batchStatus = rows[0]?.batch_status || '';
         if (ttFilter !== 'all' && paidStatus !== ttFilter) continue;
+        if (statusFilter !== 'all' && batchStatus !== statusFilter) continue;
         customers.push({
           custId,
           customerCode: cleanCode(rows[0].customer_code),
           customerName: rows[0].customer_name || '',
           customerRate: rows[0]?.customer_rate || 0,
+          batchStatus,
+          vanDonCode: rows[0]?.van_don_code || '',
           rows,
           count: rows.length,
           totalWeight: rows.reduce((a, s) => a + (s.weight || 0), 0),
@@ -263,6 +267,19 @@ export default function Shipping() {
             {PAID_FILTERS.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
             ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-semibold text-ink-500">Trạng thái:</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="input-field w-auto py-1.5 text-sm"
+          >
+            <option value="all">Tất cả</option>
+            <option value="">Chưa báo</option>
+            <option value="Đã báo hàng">Đã báo hàng</option>
+            <option value="Đã báo ship">Đã báo ship</option>
           </select>
         </div>
 
@@ -317,8 +334,8 @@ export default function Shipping() {
       ) : dateGroups.length === 0 ? (
         <div className="table-container p-14 text-center">
           <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-          <p className="text-ink-500 font-medium">{(q || ttFilter !== 'all') ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
-          <p className="text-ink-400 text-sm mt-1">{(q || ttFilter !== 'all') ? 'Thử đổi bộ lọc hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
+          <p className="text-ink-500 font-medium">{(q || ttFilter !== 'all' || statusFilter !== 'all') ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
+          <p className="text-ink-400 text-sm mt-1">{(q || ttFilter !== 'all' || statusFilter !== 'all') ? 'Thử đổi bộ lọc hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -344,25 +361,23 @@ export default function Shipping() {
                     <table className="data-table table-fixed w-full min-w-[1100px]">
                       <colgroup>
                         <col style={{width:'32px'}} />
-                        <col style={{width:'144px'}} />
-                        <col style={{width:'208px'}} />
+                        <col style={{width:'200px'}} />
                         <col style={{width:'176px'}} />
                         <col style={{width:'128px'}} />
-                        <col style={{width:'144px'}} />
-                        <col style={{width:'128px'}} />
-                        <col style={{width:'112px'}} />
-                        <col style={{width:'128px'}} />
+                        <col style={{width:'148px'}} />
+                        <col style={{width:'148px'}} />
+                        <col style={{width:'172px'}} />
+                        <col style={{width:'116px'}} />
                       </colgroup>
                       <thead>
                         <tr>
                           <th className="!px-0"></th>
-                          <th>Mã KH</th>
                           <th>Tên KH</th>
                           <th className="!text-right">Tổng cân nặng</th>
                           <th className="!text-right">Phí VC/kg</th>
                           <th className="!text-right">Tổng Phí VC</th>
+                          <th>Trạng thái</th>
                           <th>Tình trạng TT</th>
-                          <th className="!text-center">Thông báo</th>
                           <th className="!text-right">Thao tác</th>
                         </tr>
                       </thead>
@@ -381,18 +396,16 @@ export default function Shipping() {
                                     ? <ChevronDown className="w-4 h-4 text-ink-400 mx-auto" />
                                     : <ChevronRight className="w-4 h-4 text-ink-400 mx-auto" />}
                                 </td>
-                                <td className="w-36">
+                                <td>
+                                  <div className="font-medium text-ink-900 truncate" title={cust.customerName}>{cust.customerName || '–'}</div>
                                   <Link
                                     to={`/customers/${cust.custId}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="font-mono text-sm text-primary-700 hover:underline block truncate"
+                                    className="font-mono text-xs text-primary-700 hover:underline block truncate"
                                     title={cust.customerCode}
                                   >
                                     {cust.customerCode}
                                   </Link>
-                                </td>
-                                <td className="w-52">
-                                  <div className="truncate text-ink-600" title={cust.customerName}>{cust.customerName || '–'}</div>
                                 </td>
                                 <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
                                 <td className="text-right tabular-nums text-ink-600" onClick={(e) => e.stopPropagation()}>
@@ -421,46 +434,61 @@ export default function Shipping() {
                                 <td className="text-right tabular-nums font-semibold text-primary-700">
                                   {formatCurrency(cust.totalFee)}
                                 </td>
-                                <td><PaidBadge status={cust.paidStatus} /></td>
-                                <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex flex-col items-center gap-1">
+                                <td onClick={(e) => e.stopPropagation()}>
+                                  <select
+                                    value={cust.batchStatus}
+                                    onChange={(e) => updateBatchStatus(cust.custId, dateKey, e.target.value)}
+                                    className="input-field py-1 text-xs w-full"
+                                  >
+                                    <option value="">Chưa báo</option>
+                                    <option value="Đã báo hàng">Đã báo hàng</option>
+                                    <option value="Đã báo ship">Đã báo ship</option>
+                                  </select>
+                                </td>
+                                <td onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex flex-col items-start gap-1">
+                                    <PaidBadge status={cust.paidStatus} />
+                                    {cust.paidStatus !== 'paid' && getUserRole() !== 'staff' && (
+                                      <button
+                                        onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
+                                        className="text-xs font-semibold text-primary-600 hover:underline whitespace-nowrap"
+                                      >
+                                        Thanh toán
+                                      </button>
+                                    )}
+                                    {cust.paidStatus === 'partial' && (
+                                      <span className="text-xs text-amber-600 font-medium">TT 1 phần</span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex items-center justify-end gap-1">
                                     <button
                                       onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
-                                      className="text-xs font-semibold text-primary-600 hover:underline"
+                                      className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      title="Báo hàng về"
                                     >
-                                      Báo hàng về
+                                      <Bell className="w-3.5 h-3.5" />
                                     </button>
                                     <button
                                       onClick={() => openShipNotif({
                                         customerName: cust.customerName,
                                         carrier: settings.company?.delivery_carrier || '',
-                                        van_don_code: cust.rows[0]?.van_don_code || '',
+                                        van_don_code: cust.vanDonCode,
                                         totalFee: cust.totalFee,
                                       })}
-                                      className="text-xs font-semibold text-ink-500 hover:underline"
+                                      className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      title="Báo ship hàng"
                                     >
-                                      Báo ship hàng
+                                      <Send className="w-3.5 h-3.5" />
                                     </button>
-                                  </div>
-                                </td>
-                                <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex items-center justify-end gap-1">
-                                    {getUserRole() !== 'staff' && (
-                                      <button
-                                        onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                        className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
-                                        title="Thanh toán"
-                                      >
-                                        <CreditCard className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
                                     <button
                                       onClick={() => setVanDonModal({
                                         custId: cust.custId,
                                         dateKey,
                                         customerName: cust.customerName,
                                         totalFee: cust.totalFee,
-                                        van_don_code: cust.rows[0]?.van_don_code || '',
+                                        van_don_code: cust.vanDonCode,
                                       })}
                                       className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
                                       title="Mã vận đơn"
@@ -472,7 +500,7 @@ export default function Shipping() {
                               </tr>
                               {isExpanded && (
                                 <tr>
-                                  <td colSpan={9} className="p-0">
+                                  <td colSpan={8} className="p-0">
                                     <div className="border-t border-greige-100 bg-greige-50/40">
                                       <table className="data-table w-full min-w-[860px]">
                                         <thead>
@@ -617,6 +645,18 @@ export default function Shipping() {
                               <span>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện) · {formatCurrency(cust.customerRate)}/kg</span>
                               <span className="font-semibold text-primary-700 text-sm">{formatCurrency(cust.totalFee)}</span>
                             </div>
+                            <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                              <span className="text-xs text-ink-500 shrink-0">Trạng thái:</span>
+                              <select
+                                value={cust.batchStatus}
+                                onChange={(e) => updateBatchStatus(cust.custId, dateKey, e.target.value)}
+                                className="text-xs border border-greige-200 rounded-lg px-2 py-1 bg-white text-ink-700 flex-1"
+                              >
+                                <option value="">Chưa báo</option>
+                                <option value="Đã báo hàng">Đã báo hàng</option>
+                                <option value="Đã báo ship">Đã báo ship</option>
+                              </select>
+                            </div>
                             <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
@@ -628,14 +668,14 @@ export default function Shipping() {
                                 onClick={() => openShipNotif({
                                   customerName: cust.customerName,
                                   carrier: settings.company?.delivery_carrier || '',
-                                  van_don_code: cust.rows[0]?.van_don_code || '',
+                                  van_don_code: cust.vanDonCode,
                                   totalFee: cust.totalFee,
                                 })}
                                 className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700"
                               >
                                 <Send className="w-3 h-3" /> Báo ship
                               </button>
-                              {getUserRole() !== 'staff' && (
+                              {getUserRole() !== 'staff' && cust.paidStatus !== 'paid' && (
                                 <button
                                   onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
                                   className="inline-flex items-center justify-center p-2 rounded-full bg-greige-100 text-ink-700"
@@ -650,7 +690,7 @@ export default function Shipping() {
                                   dateKey,
                                   customerName: cust.customerName,
                                   totalFee: cust.totalFee,
-                                  van_don_code: cust.rows[0]?.van_don_code || '',
+                                  van_don_code: cust.vanDonCode,
                                 })}
                                 className="inline-flex items-center justify-center p-2 rounded-full bg-greige-100 text-ink-700"
                                 title="Mã vận đơn"
