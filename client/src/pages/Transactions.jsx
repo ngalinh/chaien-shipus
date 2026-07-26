@@ -234,9 +234,9 @@ export default function Transactions() {
         <table className="data-table">
           <colgroup>
             <col className="w-28" />
-            <col />
             <col className="w-36" />
-            <col className="w-24" />
+            <col />
+            <col className="w-40" />
             <col className="w-28" />
             <col className="w-28" />
             {role !== 'staff' && <col className="w-20" />}
@@ -244,7 +244,8 @@ export default function Transactions() {
           <thead>
             <tr>
               <th>Ngày tháng</th>
-              <th>Mã KH / Đối tác &amp; Nội dung</th>
+              <th>Mã KH / Đối tác</th>
+              <th>Nội dung</th>
               <th>Danh mục</th>
               <th className="!text-right">Thu (đ)</th>
               <th className="!text-right">Chi (đ)</th>
@@ -273,7 +274,7 @@ export default function Transactions() {
                 <tr key={t.key}>
                   <td className="whitespace-nowrap font-medium">{formatDate(t.trans_date)}</td>
 
-                  {/* Mã KH / Đối tác + Nội dung gộp */}
+                  {/* Mã KH / Đối tác */}
                   <td>
                     {t.category === 'customer_payment' ? (
                       <Link
@@ -291,11 +292,13 @@ export default function Transactions() {
                     {t.category === 'customer_payment' && t.customer_name && (
                       <div className="text-xs text-ink-400 truncate">{t.customer_name}</div>
                     )}
-                    {t.description && (
-                      <div className="text-xs text-ink-400 truncate mt-0.5" title={t.description}>
-                        {t.description}
-                      </div>
-                    )}
+                  </td>
+
+                  {/* Nội dung */}
+                  <td className="max-w-0">
+                    <span className="truncate block text-sm text-ink-700" title={t.description || ''}>
+                      {t.description || '–'}
+                    </span>
                   </td>
 
                   <td>
