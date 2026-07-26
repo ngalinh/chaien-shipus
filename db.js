@@ -180,6 +180,7 @@ const insertDefault = db.prepare(
 );
 insertDefault.run('company_name', 'ShipUS');
 insertDefault.run('logo_path', '');
+insertDefault.run('delivery_carrier', '');
 
 // Seed warehouse aliases + Lihaco partner (idempotent — runs once on first deploy)
 try {

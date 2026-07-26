@@ -188,14 +188,6 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5">
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-ink-900/40 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Sidebar */}
       <aside
         className={`
@@ -226,8 +218,15 @@ export default function Layout() {
         />
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)]">
+      {/* Main content — explicit z-[25] creates a stacking context above the sidebar overlay (z-20) so the header stays on top in Safari iOS */}
+      <div className="flex-1 flex flex-col min-w-0 gap-4 z-[25] lg:h-[calc(100vh-40px)]">
+        {/* Mobile overlay — inside this stacking context so header (z-[25] within) paints above it (z-20) */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-ink-900/40 z-20 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
         {/* Top bar — full-bleed teal on mobile, floating white card on desktop */}
         <header
           className="relative z-[25] flex items-center gap-3 bg-primary-500 lg:bg-white lg:rounded-card lg:shadow-card px-4 lg:px-5 pb-3 flex-shrink-0"

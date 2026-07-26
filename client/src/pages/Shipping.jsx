@@ -4,6 +4,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import {
   Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CreditCard,
+  Truck, Send, X,
 } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -46,6 +47,8 @@ export default function Shipping() {
   const [settings, setSettings] = useState({ company: {} });
   const [paymentModal, setPaymentModal] = useState(null);
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
+  const [vanDonModal, setVanDonModal] = useState(null); // { custId, dateKey, customerName, totalFee, van_don_code }
+  const [shipNotifModal, setShipNotifModal] = useState(null); // { customerName, carrier, van_don_code, totalFee }
 
   const [period, setPeriod] = useState('month');
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
@@ -312,7 +315,7 @@ export default function Shipping() {
                 {!isDateCollapsed && (
                   <>
                   <div className="hidden sm:block table-container rounded-none shadow-none border-t border-greige-100">
-                    <table className="data-table w-full min-w-[1100px]">
+                    <table className="data-table table-fixed w-full min-w-[1100px]">
                       <thead>
                         <tr>
                           <th className="w-8"></th>
@@ -383,24 +386,51 @@ export default function Shipping() {
                                 </td>
                                 <td><PaidBadge status={cust.paidStatus} /></td>
                                 <td className="text-center" onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white hover:bg-primary-600"
-                                  >
-                                    <Bell className="w-3.5 h-3.5" />
-                                    Thông báo
-                                  </button>
+                                  <div className="flex flex-col items-center gap-1">
+                                    <button
+                                      onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
+                                      className="text-xs font-semibold text-primary-600 hover:underline"
+                                    >
+                                      Báo hàng về
+                                    </button>
+                                    <button
+                                      onClick={() => setShipNotifModal({
+                                        customerName: cust.customerName,
+                                        carrier: settings.company?.delivery_carrier || '',
+                                        van_don_code: cust.rows[0]?.van_don_code || '',
+                                        totalFee: cust.totalFee,
+                                      })}
+                                      className="text-xs font-semibold text-ink-500 hover:underline"
+                                    >
+                                      Báo ship hàng
+                                    </button>
+                                  </div>
                                 </td>
                                 <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                                  {getUserRole() !== 'staff' && (
+                                  <div className="flex items-center justify-end gap-1">
+                                    {getUserRole() !== 'staff' && (
+                                      <button
+                                        onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
+                                        className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                        title="Thanh toán"
+                                      >
+                                        <CreditCard className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
                                     <button
-                                      onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                      className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      onClick={() => setVanDonModal({
+                                        custId: cust.custId,
+                                        dateKey,
+                                        customerName: cust.customerName,
+                                        totalFee: cust.totalFee,
+                                        van_don_code: cust.rows[0]?.van_don_code || '',
+                                      })}
+                                      className="inline-flex items-center p-1.5 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
+                                      title="Mã vận đơn"
                                     >
-                                      <CreditCard className="w-3.5 h-3.5" />
-                                      Thanh toán
+                                      <Truck className="w-3.5 h-3.5" />
                                     </button>
-                                  )}
+                                  </div>
                                 </td>
                               </tr>
                               {isExpanded && (
@@ -555,16 +585,41 @@ export default function Shipping() {
                                 onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
                                 className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-primary-500 text-white"
                               >
-                                <Bell className="w-3 h-3" /> Thông báo
+                                <Bell className="w-3 h-3" /> Báo hàng về
+                              </button>
+                              <button
+                                onClick={() => setShipNotifModal({
+                                  customerName: cust.customerName,
+                                  carrier: settings.company?.delivery_carrier || '',
+                                  van_don_code: cust.rows[0]?.van_don_code || '',
+                                  totalFee: cust.totalFee,
+                                })}
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700"
+                              >
+                                <Send className="w-3 h-3" /> Báo ship
                               </button>
                               {getUserRole() !== 'staff' && (
                                 <button
                                   onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                  className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700"
+                                  className="inline-flex items-center justify-center p-2 rounded-full bg-greige-100 text-ink-700"
+                                  title="Thanh toán"
                                 >
-                                  <CreditCard className="w-3 h-3" /> Thanh toán
+                                  <CreditCard className="w-3.5 h-3.5" />
                                 </button>
                               )}
+                              <button
+                                onClick={() => setVanDonModal({
+                                  custId: cust.custId,
+                                  dateKey,
+                                  customerName: cust.customerName,
+                                  totalFee: cust.totalFee,
+                                  van_don_code: cust.rows[0]?.van_don_code || '',
+                                })}
+                                className="inline-flex items-center justify-center p-2 rounded-full bg-greige-100 text-ink-700"
+                                title="Mã vận đơn"
+                              >
+                                <Truck className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
 
@@ -625,6 +680,90 @@ export default function Shipping() {
           bank={(settings.bank_accounts || []).find((b) => b.is_default) || (settings.bank_accounts || [])[0] || null}
           onClose={() => setNotifData(null)}
         />
+      )}
+
+      {/* Van đơn modal */}
+      {vanDonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-ink-900/50" onClick={() => setVanDonModal(null)} />
+          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-ink-900">Mã vận đơn</h2>
+              <button onClick={() => setVanDonModal(null)} className="text-ink-400 hover:text-ink-900">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-ink-500">{vanDonModal.customerName} · {formatDate(vanDonModal.dateKey)}</p>
+            <input
+              type="text"
+              value={vanDonModal.van_don_code}
+              onChange={(e) => setVanDonModal((p) => ({ ...p, van_don_code: e.target.value }))}
+              placeholder="Nhập mã vận đơn..."
+              className="input-field"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setVanDonModal(null)} className="btn-secondary">Đóng</button>
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  try {
+                    await axios.put('/api/shipments/batch', {
+                      batch_date: vanDonModal.dateKey,
+                      customer_id: vanDonModal.custId,
+                      van_don_code: vanDonModal.van_don_code,
+                    });
+                    fetchShipments();
+                    const saved = { ...vanDonModal };
+                    setVanDonModal(null);
+                    setShipNotifModal({
+                      customerName: saved.customerName,
+                      carrier: settings.company?.delivery_carrier || '',
+                      van_don_code: saved.van_don_code,
+                      totalFee: saved.totalFee,
+                    });
+                  } catch (err) {
+                    toast(err.response?.data?.error || 'Không thể lưu mã vận đơn', 'error');
+                  }
+                }}
+              >
+                Lưu & Báo ship
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ship notification modal */}
+      {shipNotifModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-ink-900/50" onClick={() => setShipNotifModal(null)} />
+          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-ink-900">Báo ship hàng</h2>
+              <button onClick={() => setShipNotifModal(null)} className="text-ink-400 hover:text-ink-900">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="bg-greige-50 rounded-card p-4 space-y-2 text-sm text-ink-700">
+              <p><span className="font-semibold">Khách hàng:</span> {shipNotifModal.customerName}</p>
+              {shipNotifModal.carrier && (
+                <p><span className="font-semibold">Đơn vị VC:</span> {shipNotifModal.carrier}</p>
+              )}
+              <p><span className="font-semibold">Mã vận đơn:</span> {shipNotifModal.van_don_code || <span className="text-ink-400 italic">chưa nhập</span>}</p>
+              <p><span className="font-semibold">Tổng phí VC:</span> {formatCurrency(shipNotifModal.totalFee)}</p>
+            </div>
+            <button
+              disabled
+              className="w-full btn-primary opacity-50 cursor-not-allowed inline-flex items-center justify-center gap-2"
+              title="Tính năng sắp ra mắt"
+            >
+              <Send className="w-4 h-4" />
+              Gửi báo ship qua Zalo
+            </button>
+            <button onClick={() => setShipNotifModal(null)} className="w-full btn-secondary">Đóng</button>
+          </div>
+        </div>
       )}
     </div>
   );

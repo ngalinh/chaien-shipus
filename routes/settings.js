@@ -257,7 +257,7 @@ router.get('/company', (_req, res) => {
 
 router.post('/company', (req, res) => {
   try {
-    const { company_name, logo_path } = req.body;
+    const { company_name, logo_path, delivery_carrier } = req.body;
     const upsert = db.prepare(
       `INSERT INTO company_info (key, value) VALUES (?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value`
@@ -268,8 +268,9 @@ router.post('/company', (req, res) => {
       }
     });
     upsertMany([
-      ['company_name', company_name],
-      ['logo_path',    logo_path],
+      ['company_name',     company_name],
+      ['logo_path',        logo_path],
+      ['delivery_carrier', delivery_carrier],
     ]);
     res.json(readCompany());
   } catch (err) {

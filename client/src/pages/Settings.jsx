@@ -14,7 +14,7 @@ export default function Settings() {
   const [rates, setRates] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [bankAccounts, setBankAccounts] = useState([]);
-  const [company, setCompany] = useState({ company_name: '', logo_path: '', hotline: '' });
+  const [company, setCompany] = useState({ company_name: '', logo_path: '', hotline: '', delivery_carrier: '' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -999,6 +999,7 @@ function CompanySection({ company, setCompany }) {
     company_name: company.company_name || '',
     hotline: company.hotline || '',
     logo_path: company.logo_path || '',
+    delivery_carrier: company.delivery_carrier || '',
   });
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -1009,6 +1010,7 @@ function CompanySection({ company, setCompany }) {
       company_name: company.company_name || '',
       hotline: company.hotline || '',
       logo_path: company.logo_path || '',
+      delivery_carrier: company.delivery_carrier || '',
     });
   }, [company]);
 
@@ -1073,6 +1075,17 @@ function CompanySection({ company, setCompany }) {
             onChange={(e) => setForm((p) => ({ ...p, hotline: e.target.value }))}
             className="input-field"
             placeholder="0912 345 678"
+          />
+        </div>
+
+        {/* Delivery carrier */}
+        <div>
+          <label className="label">Đơn vị vận chuyển</label>
+          <input
+            value={form.delivery_carrier}
+            onChange={(e) => setForm((p) => ({ ...p, delivery_carrier: e.target.value }))}
+            className="input-field"
+            placeholder="UPS, FedEx, DHL..."
           />
         </div>
 
