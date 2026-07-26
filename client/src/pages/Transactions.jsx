@@ -186,7 +186,7 @@ export default function Transactions() {
         </div>
 
         {/* Search */}
-        <div className="relative">
+        <div className="relative ml-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" />
           <input
             value={search}
