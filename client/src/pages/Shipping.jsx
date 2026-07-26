@@ -13,6 +13,12 @@ import NotificationModal from '../components/NotificationModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 
+function getStatusClass(v) {
+  if (v === 'Đã báo hàng') return 'bg-amber-50 !text-amber-700 !border-amber-300';
+  if (v === 'Đã báo ship') return 'bg-green-50 !text-green-700 !border-green-300';
+  return '';
+}
+
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
   { label: 'Tất cả', value: 'all' },
@@ -378,7 +384,7 @@ export default function Shipping() {
                           <th className="!text-right">Tổng Phí VC</th>
                           <th>Trạng thái</th>
                           <th>Tình trạng TT</th>
-                          <th className="!text-right">Thao tác</th>
+                          <th className="!text-center">Thao tác</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -438,7 +444,7 @@ export default function Shipping() {
                                   <select
                                     value={cust.batchStatus}
                                     onChange={(e) => updateBatchStatus(cust.custId, dateKey, e.target.value)}
-                                    className="input-field py-1 text-xs w-full"
+                                    className={`input-field py-1 text-xs w-full ${getStatusClass(cust.batchStatus)}`}
                                   >
                                     <option value="">Chưa báo</option>
                                     <option value="Đã báo hàng">Đã báo hàng</option>
@@ -653,7 +659,7 @@ export default function Shipping() {
                               <select
                                 value={cust.batchStatus}
                                 onChange={(e) => updateBatchStatus(cust.custId, dateKey, e.target.value)}
-                                className="text-xs border border-greige-200 rounded-lg px-2 py-1 bg-white text-ink-700 flex-1"
+                                className={`text-xs border rounded-lg px-2 py-1 flex-1 ${getStatusClass(cust.batchStatus) || 'border-greige-200 bg-white text-ink-700'}`}
                               >
                                 <option value="">Chưa báo</option>
                                 <option value="Đã báo hàng">Đã báo hàng</option>
