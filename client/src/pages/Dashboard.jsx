@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import {
@@ -21,10 +22,11 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef(null);
+  const location = useLocation();
 
   useEffect(() => {
     fetchStats();
-  }, [period, startDate, endDate]);
+  }, [period, startDate, endDate, location.key]);
 
   async function fetchStats() {
     if (abortRef.current) abortRef.current.abort();
