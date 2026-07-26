@@ -82,40 +82,11 @@ router.put('/rates/:id', (req, res) => {
     if (!name || rate_per_kg == null) {
       return res.status(400).json({ error: 'name and rate_per_kg are required' });
     }
-    const newRate = parseFloat(rate_per_kg);
-    const rateId  = parseInt(req.params.id);
     const info = db.prepare(
       'UPDATE customer_rates SET name = ?, rate_per_kg = ? WHERE id = ?'
-    ).run(name.trim(), newRate, rateId);
+    ).run(name.trim(), parseFloat(rate_per_kg), parseInt(req.params.id));
     if (info.changes === 0) return res.status(404).json({ error: 'Rate not found' });
-
-    // Cascade to current-month batches for customers in this rate group
-    const monthStart = new Date().toLocaleDateString('sv', { timeZone: 'Asia/Ho_Chi_Minh' }).slice(0, 7) + '-01';
-    const customerIds = db.prepare('SELECT id FROM customers WHERE rate_id = ?').all(rateId).map(c => c.id);
-    if (customerIds.length > 0) {
-      const ph = customerIds.map(() => '?').join(',');
-      const batches = db.prepare(
-        `SELECT DISTINCT import_date, customer_id FROM shipments WHERE customer_id IN (${ph}) AND import_date >= ?`
-      ).all(...customerIds, monthStart);
-      const updateShipments = db.prepare('UPDATE shipments SET customer_rate = ? WHERE import_date = ? AND customer_id = ?');
-      const getFee = db.prepare('SELECT COALESCE(SUM(weight * customer_rate + surcharge), 0) AS fee FROM shipments WHERE import_date = ? AND customer_id = ?');
-      const getExisting = db.prepare("SELECT id FROM transactions WHERE customer_id = ? AND trans_date = ? AND reference_type = 'shipment_batch' AND reference_id = ?");
-      const updateTx = db.prepare('UPDATE transactions SET debit = ?, description = ? WHERE id = ?');
-      const insertTx = db.prepare("INSERT INTO transactions (trans_date, customer_id, description, debit, credit, reference_type, reference_id) VALUES (?, ?, ?, ?, 0, 'shipment_batch', ?)");
-      for (const { import_date, customer_id } of batches) {
-        updateShipments.run(newRate, import_date, customer_id);
-        const fee    = getFee.get(import_date, customer_id)?.fee || 0;
-        const refId  = `${import_date}_${customer_id}`;
-        const existing = getExisting.get(customer_id, import_date, refId);
-        if (existing) {
-          updateTx.run(fee, `Phí VC lô ${import_date}`, existing.id);
-        } else if (fee > 0) {
-          insertTx.run(import_date, customer_id, `Phí VC lô ${import_date}`, fee, refId);
-        }
-      }
-    }
-
-    const row = db.prepare('SELECT * FROM customer_rates WHERE id = ?').get(rateId);
+    const row = db.prepare('SELECT * FROM customer_rates WHERE id = ?').get(req.params.id);
     res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
