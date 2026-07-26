@@ -218,8 +218,8 @@ export default function Layout() {
         />
       </aside>
 
-      {/* Main content — explicit z-[25] creates a stacking context above the sidebar overlay (z-20) so the header stays on top in Safari iOS */}
-      <div className="flex-1 flex flex-col min-w-0 gap-4 z-[25] lg:h-[calc(100vh-40px)]">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)]">
         {/* Mobile overlay — inside this stacking context so header (z-[25] within) paints above it (z-20) */}
         {sidebarOpen && (
           <div
