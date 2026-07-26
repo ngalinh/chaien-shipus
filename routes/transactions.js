@@ -89,6 +89,7 @@ router.get('/ledger', (req, res) => {
     const rows = [
       ...payments.map((r) => ({
         key: `pay-${r.id}`,
+        id: r.id,
         trans_date: r.trans_date,
         category: 'customer_payment',
         customer_id: r.customer_id,
@@ -100,6 +101,7 @@ router.get('/ledger', (req, res) => {
       })),
       ...partner.map((r) => ({
         key: `partner-${r.id}`,
+        id: r.id,
         trans_date: r.trans_date,
         category: 'partner_payment',
         warehouse_id: r.warehouse_id,
@@ -308,6 +310,76 @@ router.post('/auto-debit', (req, res) => {
     res.json(result);
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PUT /api/transactions/pay/:id  — edit a customer payment
+// ═════════════════════════════════════════════════════════════════════════════
+router.put('/pay/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { trans_date, amount, description } = req.body;
+    if (!trans_date || amount == null) return res.status(400).json({ error: 'trans_date and amount are required' });
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) return res.status(400).json({ error: 'amount must be positive' });
+    const row = db.prepare("SELECT id FROM transactions WHERE id = ? AND reference_type = 'payment'").get(id);
+    if (!row) return res.status(404).json({ error: 'Transaction not found' });
+    db.prepare('UPDATE transactions SET trans_date = ?, credit = ?, description = ? WHERE id = ?')
+      .run(trans_date, amt, description || null, id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PUT /api/transactions/partner/:id  — edit a partner payment
+// ═════════════════════════════════════════════════════════════════════════════
+router.put('/partner/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { trans_date, amount, description, warehouse_id } = req.body;
+    if (!trans_date || amount == null) return res.status(400).json({ error: 'trans_date and amount are required' });
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) return res.status(400).json({ error: 'amount must be positive' });
+    const row = db.prepare('SELECT id FROM partner_payments WHERE id = ?').get(id);
+    if (!row) return res.status(404).json({ error: 'Partner payment not found' });
+    db.prepare('UPDATE partner_payments SET trans_date = ?, amount = ?, description = ?, warehouse_id = ? WHERE id = ?')
+      .run(trans_date, amt, description || null, warehouse_id ? parseInt(warehouse_id) : null, id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DELETE /api/transactions/pay/:id  — delete a customer payment
+// ═════════════════════════════════════════════════════════════════════════════
+router.delete('/pay/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const row = db.prepare("SELECT id FROM transactions WHERE id = ? AND reference_type = 'payment'").get(id);
+    if (!row) return res.status(404).json({ error: 'Transaction not found' });
+    db.prepare('DELETE FROM transactions WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DELETE /api/transactions/partner/:id  — delete a partner payment
+// ═════════════════════════════════════════════════════════════════════════════
+router.delete('/partner/:id', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const row = db.prepare('SELECT id FROM partner_payments WHERE id = ?').get(id);
+    if (!row) return res.status(404).json({ error: 'Partner payment not found' });
+    db.prepare('DELETE FROM partner_payments WHERE id = ?').run(id);
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
