@@ -331,7 +331,7 @@ export default function NotificationTemplate({
           padding: '20px 44px', borderTop: '1px solid #edf3f6',
         }}
       >
-        <div style={{ fontSize: 13, color: '#4a6474', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 15, color: '#4a6474', lineHeight: 1.6, textAlign: 'center' }}>
           Quý khách vui lòng thanh toán phí ship cho bên vận chuyển và quay video khi mở hàng để được hỗ trợ tốt nhất nếu có vấn đề xảy ra. Xin chân thành cảm ơn!
         </div>
       </div>

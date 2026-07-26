@@ -519,7 +519,7 @@ export default function Shipping() {
                                             <th className="w-36">Sản phẩm</th>
                                             <th className="w-28">Cân nặng</th>
                                             <th className="w-28">Phụ thu</th>
-                                            <th className="w-32 text-right">Tổng phí VC</th>
+                                            <th className="w-32">Tổng phí VC</th>
                                             <th className="w-28">Ghi chú</th>
                                             <th className="w-24 text-right">Thao tác</th>
                                           </tr>
@@ -566,7 +566,7 @@ export default function Shipping() {
                                                     formatCurrency(s.surcharge)
                                                   )}
                                                 </td>
-                                                <td className="text-right tabular-nums font-semibold text-primary-700">
+                                                <td className="tabular-nums font-semibold text-primary-700">
                                                   {isEditing ? '–' : formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}
                                                 </td>
                                                 <td>
