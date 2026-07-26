@@ -70,10 +70,13 @@ router.get('/', (req, res) => {
              ROUND(s.weight * s.partner_rate,  2) AS partner_ship_fee,
              ROUND(s.weight * s.customer_rate, 2) AS customer_ship_fee,
              ROUND(s.weight * s.partner_rate  + s.surcharge, 2) AS phi_tra_doi_tac,
-             ROUND(s.weight * s.customer_rate + s.surcharge, 2) AS phi_vc
+             ROUND(s.weight * s.customer_rate + s.surcharge, 2) AS phi_vc,
+             bi.van_don_code,
+             COALESCE(bi.status, '') AS batch_status
       FROM shipments s
-      LEFT JOIN customers c         ON c.id  = s.customer_id
+      LEFT JOIN customers c           ON c.id  = s.customer_id
       LEFT JOIN partner_warehouses pw ON pw.id = s.warehouse_id
+      LEFT JOIN batch_info bi ON bi.batch_date = s.import_date AND bi.customer_id = s.customer_id
       ${where}
       ORDER BY s.import_date DESC, s.id DESC
     `).all(...params);
@@ -176,6 +179,43 @@ router.post('/import', (req, res) => {
       import_date: date,
       warnings,
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PUT /api/shipments/batch
+// Update batch_info van_don_code for a (batch_date, customer_id) combo
+// Body: { batch_date, customer_id, van_don_code }
+// ═════════════════════════════════════════════════════════════════════════════
+router.put('/batch', (req, res) => {
+  try {
+    const { batch_date, customer_id, van_don_code } = req.body;
+    if (!batch_date || !customer_id) {
+      return res.status(400).json({ error: 'batch_date and customer_id are required' });
+    }
+
+    // Ensure the customer has shipments on that date
+    const exists = db.prepare(
+      'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? LIMIT 1'
+    ).get(batch_date, parseInt(customer_id));
+    if (!exists) {
+      return res.status(404).json({ error: 'No shipments found for this batch_date + customer_id' });
+    }
+
+    db.prepare(`
+      INSERT INTO batch_info (batch_date, customer_id, van_don_code)
+      VALUES (?, ?, ?)
+      ON CONFLICT(batch_date, customer_id) DO UPDATE SET van_don_code = excluded.van_don_code
+    `).run(batch_date, parseInt(customer_id), van_don_code || null);
+
+    const updated = db.prepare(
+      'SELECT * FROM batch_info WHERE batch_date = ? AND customer_id = ?'
+    ).get(batch_date, parseInt(customer_id));
+
+    res.json(updated);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -340,43 +380,6 @@ router.get('/bao-khach', (req, res) => {
     });
 
     res.json(result);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ═════════════════════════════════════════════════════════════════════════════
-// PUT /api/shipments/batch
-// Update batch_info van_don_code for a (batch_date, customer_id) combo
-// Body: { batch_date, customer_id, van_don_code }
-// ═════════════════════════════════════════════════════════════════════════════
-router.put('/batch', (req, res) => {
-  try {
-    const { batch_date, customer_id, van_don_code } = req.body;
-    if (!batch_date || !customer_id) {
-      return res.status(400).json({ error: 'batch_date and customer_id are required' });
-    }
-
-    // Ensure the customer has shipments on that date
-    const exists = db.prepare(
-      'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? LIMIT 1'
-    ).get(batch_date, parseInt(customer_id));
-    if (!exists) {
-      return res.status(404).json({ error: 'No shipments found for this batch_date + customer_id' });
-    }
-
-    db.prepare(`
-      INSERT INTO batch_info (batch_date, customer_id, van_don_code)
-      VALUES (?, ?, ?)
-      ON CONFLICT(batch_date, customer_id) DO UPDATE SET van_don_code = excluded.van_don_code
-    `).run(batch_date, parseInt(customer_id), van_don_code || null);
-
-    const updated = db.prepare(
-      'SELECT * FROM batch_info WHERE batch_date = ? AND customer_id = ?'
-    ).get(batch_date, parseInt(customer_id));
-
-    res.json(updated);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

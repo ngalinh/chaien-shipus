@@ -59,6 +59,7 @@ export default function Shipping() {
   const q = (searchParams.get('q') || '').trim().toLowerCase();
 
   const [ttFilter, setTtFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => { fetchSettings(); }, []);
   useEffect(() => { fetchShipments(); }, [period, startDate, endDate]);
@@ -170,6 +171,19 @@ export default function Shipping() {
   function openShipNotif(data) {
     setShipNotifModal(data);
     setShipNotifText(buildShipText(data));
+  }
+
+  async function updateBatchStatus(custId, dateKey, status) {
+    try {
+      await axios.patch('/api/shipments/batch-status', { batch_date: dateKey, customer_id: custId, status });
+      setShipments((prev) =>
+        prev.map((s) =>
+          s.import_date === dateKey && s.customer_id === custId ? { ...s, batch_status: status } : s
+        )
+      );
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không thể cập nhật trạng thái', 'error');
+    }
   }
 
   async function saveRate(custId, dateKey, value) {
@@ -709,7 +723,7 @@ export default function Shipping() {
       {vanDonModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-ink-900/50" onClick={() => setVanDonModal(null)} />
-          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-ink-900">Mã vận đơn</h2>
               <button onClick={() => setVanDonModal(null)} className="text-ink-400 hover:text-ink-900">
@@ -761,7 +775,7 @@ export default function Shipping() {
       {shipNotifModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-ink-900/50" onClick={() => setShipNotifModal(null)} />
-          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-lg p-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-ink-900">
                 Báo ship – {shipNotifModal.customerName}
