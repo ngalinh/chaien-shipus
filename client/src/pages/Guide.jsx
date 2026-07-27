@@ -138,27 +138,30 @@ function Section({ section }) {
   const [open, setOpen] = useState(false);
   const Icon = section.icon;
   return (
-    <div className="bg-white rounded-card shadow-card overflow-hidden">
+    <div className="card overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-greige-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left transition-colors"
+        style={{ ':hover': { background: 'var(--sf2)' } }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--sf2)'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = ''; }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <span className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-            <Icon className="w-4 h-4 text-primary-500" strokeWidth={1.9} />
+          <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--acBg)' }}>
+            <Icon className="w-4 h-4 text-primary-400" strokeWidth={1.9} />
           </span>
-          <span className="text-base font-bold text-ink-900 truncate">{section.title}</span>
+          <span className="text-base font-bold truncate" style={{ color: 'var(--tx)' }}>{section.title}</span>
         </div>
         {open
-          ? <ChevronDown className="w-5 h-5 text-ink-400 flex-shrink-0" />
-          : <ChevronRight className="w-5 h-5 text-ink-400 flex-shrink-0" />}
+          ? <ChevronDown className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--mu)' }} />
+          : <ChevronRight className="w-5 h-5 flex-shrink-0" style={{ color: 'var(--mu)' }} />}
       </button>
       {open && (
-        <div className="border-t border-greige-100 divide-y divide-greige-50">
+        <div className="divide-y" style={{ borderTop: '1px solid var(--ln2)', borderColor: 'var(--ln2)' }}>
           {section.content.map((item, i) => (
-            <div key={i} className="px-5 py-4">
-              <div className="text-sm font-semibold text-primary-600 mb-1">{item.heading}</div>
-              <div className="text-sm text-ink-700 leading-relaxed">{item.body}</div>
+            <div key={i} className="px-5 py-4" style={{ borderColor: 'var(--ln2)' }}>
+              <div className="text-sm font-semibold mb-1 text-primary-400">{item.heading}</div>
+              <div className="text-sm leading-relaxed" style={{ color: 'var(--tx2)' }}>{item.body}</div>
             </div>
           ))}
         </div>
@@ -171,8 +174,8 @@ export default function Guide() {
   return (
     <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-3">
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-ink-900">Hướng dẫn sử dụng</h1>
-        <p className="text-sm text-ink-500 mt-1">Click vào từng mục để xem chi tiết hướng dẫn.</p>
+        <h1 className="text-2xl font-extrabold" style={{ color: 'var(--tx)' }}>Hướng dẫn sử dụng</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--mu)' }}>Click vào từng mục để xem chi tiết hướng dẫn.</p>
       </div>
       {SECTIONS.map((s, i) => (
         <Section key={i} section={s} />

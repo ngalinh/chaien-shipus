@@ -590,7 +590,7 @@ export default function Shipping() {
                       return (
                         <div key={custKey}>
                           <div
-                            className="px-4 py-3 cursor-pointer active:bg-greige-50"
+                            className="px-4 py-3 cursor-pointer"
                             onClick={() => toggleCustomer(custKey)}
                           >
                             <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -598,11 +598,11 @@ export default function Shipping() {
                                 <Link
                                   to={`/customers/${cust.custId}`}
                                   onClick={(e) => e.stopPropagation()}
-                                  className="font-mono text-xs text-primary-700 block truncate"
+                                  className="font-mono text-xs text-primary-400 block truncate"
                                 >
                                   {cust.customerCode}
                                 </Link>
-                                <div className="font-semibold text-ink-900 text-sm mt-0.5">{cust.customerName || '–'}</div>
+                                <div className="font-semibold text-sm mt-0.5" style={{ color: 'var(--tx)' }}>{cust.customerName || '–'}</div>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
                                 <PaidBadge status={cust.paidStatus} />
@@ -611,16 +611,17 @@ export default function Shipping() {
                                   : <ChevronRight className="w-4 h-4 text-ink-400" />}
                               </div>
                             </div>
-                            <div className="flex items-center justify-between text-xs text-ink-500 mb-2">
+                            <div className="flex items-center justify-between text-xs mb-2" style={{ color: 'var(--mu)' }}>
                               <span>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện) · {formatCurrency(cust.customerRate)}/kg</span>
-                              <span className="font-semibold text-primary-700 text-sm">{formatCurrency(cust.totalFee)}</span>
+                              <span className="font-semibold text-primary-400 text-sm">{formatCurrency(cust.totalFee)}</span>
                             </div>
                             <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
-                              <span className="text-xs text-ink-500 shrink-0">Trạng thái:</span>
+                              <span className="text-xs shrink-0" style={{ color: 'var(--mu)' }}>Trạng thái:</span>
                               <select
                                 value={cust.batchStatus}
                                 onChange={(e) => updateBatchStatus(cust.custId, dateKey, e.target.value)}
-                                className={`text-xs border rounded-lg px-2 py-1 flex-1 ${getStatusClass(cust.batchStatus) || 'border-greige-200 bg-white text-ink-700'}`}
+                                className={`text-xs border rounded-lg px-2 py-1 flex-1 ${getStatusClass(cust.batchStatus) || ''}`}
+                                style={!getStatusClass(cust.batchStatus) ? { borderColor: 'var(--ln)', background: 'var(--sf2)', color: 'var(--tx)' } : {}}
                               >
                                 <option value="">Chưa báo</option>
                                 <option value="Đã báo hàng">Đã báo hàng</option>
@@ -641,14 +642,14 @@ export default function Shipping() {
                                   van_don_code: cust.vanDonCode,
                                   totalFee: cust.totalFee,
                                 })}
-                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full bg-greige-100 text-ink-700"
+                                className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}
                               >
                                 <Send className="w-3 h-3" /> Báo ship
                               </button>
                               {getUserRole() !== 'staff' && cust.paidStatus !== 'paid' && (
                                 <button
                                   onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                  className="inline-flex items-center justify-center p-2 rounded-full bg-greige-100 text-ink-700"
+                                  className="inline-flex items-center justify-center p-2 rounded-full" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}
                                   title="Thanh toán"
                                 >
                                   <CreditCard className="w-3.5 h-3.5" />
@@ -671,21 +672,21 @@ export default function Shipping() {
                           </div>
 
                           {isExpanded && (
-                            <div className="bg-greige-50/60 px-3 pb-3 space-y-2 border-t border-greige-100">
+                            <div className="px-3 pb-3 space-y-2 mt-0" style={{ background: 'var(--sunk)', borderTop: '1px solid var(--ln2)' }}>
                               {cust.rows.map((s) => (
-                                <div key={s.id} className="bg-white rounded-xl p-3 shadow-sm mt-2">
+                                <div key={s.id} className="rounded-xl p-3 mt-2" style={{ background: 'var(--sf)', border: '1px solid var(--ln)' }}>
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                      <span className="font-mono text-xs text-ink-700 block truncate">{s.tracking_no || '–'}</span>
-                                      <div className="text-xs text-ink-400 mt-0.5">{s.warehouse_code || '–'} · {s.product || '–'}</div>
+                                      <span className="font-mono text-xs block truncate" style={{ color: 'var(--tx2)' }}>{s.tracking_no || '–'}</span>
+                                      <div className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>{s.warehouse_code || '–'} · {s.product || '–'}</div>
                                     </div>
                                     <div className="text-right flex-shrink-0">
-                                      <div className="font-semibold text-primary-700 text-sm">{formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}</div>
-                                      <div className="text-xs text-ink-400">{s.weight} kg{s.surcharge ? ` + ${formatCurrency(s.surcharge)}` : ''}</div>
+                                      <div className="font-semibold text-primary-400 text-sm">{formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}</div>
+                                      <div className="text-xs" style={{ color: 'var(--mu)' }}>{s.weight} kg{s.surcharge ? ` + ${formatCurrency(s.surcharge)}` : ''}</div>
                                     </div>
                                   </div>
                                   <div className="flex justify-end gap-1 mt-2">
-                                    <button onClick={() => startEdit(s)} className="btn-icon text-primary-600 hover:bg-primary-50" title="Chỉnh sửa">
+                                    <button onClick={() => startEdit(s)} className="btn-icon text-primary-400 hover:bg-primary-900/30" title="Chỉnh sửa">
                                       <Edit2 className="w-3.5 h-3.5" />
                                     </button>
                                     <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50" title="Xóa">
