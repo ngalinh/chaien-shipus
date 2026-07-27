@@ -8,10 +8,14 @@ import Transactions from './pages/Transactions.jsx';
 import RevenueVC from './pages/RevenueVC.jsx';
 import Settings from './pages/Settings.jsx';
 import Guide from './pages/Guide.jsx';
+import MobilePWA from './pages/MobilePWA.jsx';
 
 export default function App() {
   return (
     <Routes>
+      {/* Mobile PWA standalone — no Layout wrapper */}
+      <Route path="/mobile" element={<MobilePWA />} />
+
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/customers" element={<Customers />} />
