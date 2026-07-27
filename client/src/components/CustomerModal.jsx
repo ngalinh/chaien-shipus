@@ -310,9 +310,14 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                 } ${totalImages >= 2 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <Upload className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                <p className="text-sm text-gray-500">
-                  {totalImages >= 2 ? 'Đã đủ 2 ảnh' : 'Kéo thả hoặc click để chọn ảnh (tối đa 2)'}
-                </p>
+                {totalImages >= 2 ? (
+                  <p className="text-sm text-gray-500">Đã đủ 2 ảnh</p>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-500">Kéo thả hoặc click để chọn ảnh</p>
+                    <p className="text-xs text-green-600 font-medium mt-0.5">hoặc nhấn Ctrl+V / ⌘V để dán ảnh từ clipboard</p>
+                  </>
+                )}
               </div>
               <input
                 ref={fileInputRef}
