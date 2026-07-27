@@ -227,8 +227,8 @@ export default function Layout() {
 
           {/* Footer */}
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* Theme + AI Basso + Collapse — cùng 1 hàng */}
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {/* Theme + AI Basso + Collapse — 1 hàng khi mở, xếp dọc khi thu gọn */}
+            <div style={{ display: 'flex', flexDirection: showLabels ? 'row' : 'column', gap: 6, alignItems: 'center' }}>
               {/* Theme toggle */}
               <button
                 onClick={toggleTheme}
