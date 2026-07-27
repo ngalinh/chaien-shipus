@@ -130,7 +130,7 @@ export default function Customers() {
               <th className="w-24">Cước VC</th>
               <th>Ghi chú</th>
               <th className="w-24">Ngày tạo</th>
-              <th className="w-24 text-right">Thao tác</th>
+              <th className="w-24 !text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>

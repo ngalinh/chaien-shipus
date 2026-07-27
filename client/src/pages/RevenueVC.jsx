@@ -120,11 +120,11 @@ export default function RevenueVC() {
             <thead>
               <tr>
                 <th>Mã KH</th>
-                <th className="text-right">Tổng cân nặng</th>
-                <th className="text-right">Tổng phí VC</th>
+                <th className="!text-right">Tổng cân nặng</th>
+                <th className="!text-right">Tổng phí VC</th>
                 <th>NV SALE</th>
-                <th className="text-right">Profit SALE</th>
-                <th className="text-right">Profit CSKH</th>
+                <th className="!text-right">Profit SALE</th>
+                <th className="!text-right">Profit CSKH</th>
               </tr>
             </thead>
             <tbody>
@@ -167,10 +167,10 @@ export default function RevenueVC() {
             <thead>
               <tr>
                 <th>Nhân viên</th>
-                <th className="text-right">Số KH</th>
-                <th className="text-right">Tổng cân nặng</th>
-                <th className="text-right">Tổng phí VC</th>
-                <th className="text-right">Profit</th>
+                <th className="!text-right">Số KH</th>
+                <th className="!text-right">Tổng cân nặng</th>
+                <th className="!text-right">Tổng phí VC</th>
+                <th className="!text-right">Profit</th>
               </tr>
             </thead>
             <tbody>

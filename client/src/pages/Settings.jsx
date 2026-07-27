@@ -428,7 +428,7 @@ function RatesSection({ rates, setRates }) {
             <tr>
               <th>Tên gói</th>
               <th>Cước (VND/kg)</th>
-              <th className="text-right">Thao tác</th>
+              <th className="!text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -617,7 +617,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
               <th>Tên kho</th>
               <th>Cước (VND/kg)</th>
               <th>Mã gộp (alias)</th>
-              <th className="text-right">Thao tác</th>
+              <th className="!text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -846,8 +846,8 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
               <th>Ngân hàng</th>
               <th>Số tài khoản</th>
               <th>Chủ tài khoản</th>
-              <th className="text-center">Mặc định</th>
-              <th className="text-right">Thao tác</th>
+              <th className="!text-center">Mặc định</th>
+              <th className="!text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
