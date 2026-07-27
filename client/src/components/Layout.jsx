@@ -227,36 +227,9 @@ export default function Layout() {
 
           {/* Footer */}
           <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {/* AI Basso */}
-            <a
-              href="https://ai.basso.vn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Về trang AI Basso"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: showLabels ? 'flex-start' : 'center',
-                gap: 8,
-                height: 38,
-                padding: showLabels ? '0 12px' : '0',
-                borderRadius: 13,
-                border: '1px solid var(--acLn)',
-                background: 'var(--acBg)',
-                color: 'var(--ac)',
-                fontSize: 12.5,
-                fontWeight: 600,
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-              }}
-            >
-              <ExternalLink className="w-[15px] h-[15px] flex-shrink-0" />
-              {showLabels && 'AI Basso'}
-            </a>
-
-            {/* Theme + Collapse */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {/* Theme + AI Basso + Collapse — cùng 1 hàng */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {/* Theme toggle */}
               <button
                 onClick={toggleTheme}
                 title={isDark ? 'Chuyển sáng' : 'Chuyển tối'}
@@ -265,19 +238,49 @@ export default function Layout() {
                   border: '1px solid var(--ln)',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  width: 40, height: 40,
-                  borderRadius: 13,
+                  flexShrink: 0,
+                  width: 36, height: 36,
+                  borderRadius: 11,
                   display: 'grid', placeItems: 'center',
                   color: 'var(--tx2)',
                   background: 'var(--sf2)',
-                  transition: 'color 160ms ease',
                 }}
               >
-                {isDark
-                  ? <Moon className="w-[17px] h-[17px]" />
-                  : <Sun className="w-[17px] h-[17px]" />
-                }
+                {isDark ? <Moon className="w-[15px] h-[15px]" /> : <Sun className="w-[15px] h-[15px]" />}
               </button>
+
+              {/* AI Basso */}
+              <a
+                href="https://ai.basso.vn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Về trang AI Basso"
+                style={{
+                  flex: showLabels ? 1 : 'none',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                  height: 36,
+                  padding: showLabels ? '0 10px' : '0',
+                  width: showLabels ? 'auto' : 36,
+                  borderRadius: 11,
+                  border: '1px solid var(--acLn)',
+                  background: 'var(--acBg)',
+                  color: 'var(--ac)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                }}
+              >
+                <ExternalLink className="w-[13px] h-[13px] flex-shrink-0" />
+                {showLabels && 'AI Basso'}
+              </a>
+
+              {/* Thu gọn */}
               <button
                 onClick={toggleCollapsed}
                 title={collapsed ? 'Mở menu' : 'Thu gọn'}
@@ -286,25 +289,26 @@ export default function Layout() {
                   border: '1px solid var(--ln)',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
-                  flex: 1, minWidth: 40,
-                  height: 40,
-                  padding: '0 12px',
-                  borderRadius: 13,
+                  flex: showLabels ? 1 : 'none',
+                  flexShrink: 0,
+                  height: 36,
+                  width: showLabels ? 'auto' : 36,
+                  padding: showLabels ? '0 10px' : '0',
+                  borderRadius: 11,
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
-                  fontSize: 12.5,
+                  gap: 6,
+                  fontSize: 12,
                   fontWeight: 600,
                   color: 'var(--tx2)',
                   background: 'var(--sf2)',
-                  transition: 'color 160ms ease',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                 }}
               >
-                {collapsed ? <ChevronRight className="w-[14px] h-[14px]" /> : <ChevronLeft className="w-[14px] h-[14px]" />}
-                {showLabels && (collapsed ? '»' : 'Thu gọn')}
+                {collapsed ? <ChevronRight className="w-[13px] h-[13px]" /> : <ChevronLeft className="w-[13px] h-[13px]" />}
+                {showLabels && 'Thu gọn'}
               </button>
             </div>
 
@@ -381,7 +385,7 @@ export default function Layout() {
               background: 'linear-gradient(150deg,rgba(58,175,211,.4),rgba(58,175,211,.08))',
               border: '1px solid rgba(58,175,211,.42)',
             }}>
-              <img src="/shipus-logo.png" alt="" style={{ height: 22, display: 'block' }} />
+              <img src={`${import.meta.env.BASE_URL}shipus-logo.png`} alt="" style={{ height: 22, display: 'block' }} />
             </span>
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '.05em', color: 'var(--tx)' }}>
               SHIP<span style={{ color: 'var(--brand)' }}>US</span>
