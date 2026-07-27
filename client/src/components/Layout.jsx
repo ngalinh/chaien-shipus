@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Truck, Receipt, TrendingUp, Settings, BookOpen,
-  Bell, X, Moon, Sun, ChevronLeft, ChevronRight,
+  Bell, X, Moon, Sun, ChevronLeft, ChevronRight, ExternalLink,
 } from 'lucide-react';
 import axios from 'axios';
 import { getUserRole } from '../utils.jsx';
@@ -147,7 +147,7 @@ export default function Layout() {
               border: '1px solid rgba(58,175,211,.42)',
               boxShadow: '0 0 26px -6px rgba(58,175,211,.7)',
             }}>
-              <img src="/shipus-logo.png" alt="ShipUS" style={{ height: 26, width: 'auto', display: 'block' }} />
+              <img src={`${import.meta.env.BASE_URL}shipus-logo.png`} alt="ShipUS" style={{ height: 26, width: 'auto', display: 'block' }} />
             </span>
             {showLabels && (
               <div>
@@ -226,7 +226,35 @@ export default function Layout() {
           </nav>
 
           {/* Footer */}
-          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* AI Basso */}
+            <a
+              href="https://ai.basso.vn/"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Về trang AI Basso"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: showLabels ? 'flex-start' : 'center',
+                gap: 8,
+                height: 38,
+                padding: showLabels ? '0 12px' : '0',
+                borderRadius: 13,
+                border: '1px solid var(--acLn)',
+                background: 'var(--acBg)',
+                color: 'var(--ac)',
+                fontSize: 12.5,
+                fontWeight: 600,
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+              }}
+            >
+              <ExternalLink className="w-[15px] h-[15px] flex-shrink-0" />
+              {showLabels && 'AI Basso'}
+            </a>
+
             {/* Theme + Collapse */}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
               <button
