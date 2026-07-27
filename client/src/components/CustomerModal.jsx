@@ -102,6 +102,18 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
     addFiles(e.dataTransfer.files);
   }
 
+  function handlePaste(e) {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageFiles = items
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter(Boolean);
+    if (imageFiles.length > 0) {
+      e.preventDefault();
+      addFiles(imageFiles);
+    }
+  }
+
   function removeNewImage(idx) {
     setNewImages((prev) => prev.filter((_, i) => i !== idx));
   }
@@ -192,7 +204,7 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} onPaste={handlePaste}>
           <div className="modal-body">
             {/* Mã KH */}
             <div>
