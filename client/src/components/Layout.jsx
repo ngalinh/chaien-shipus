@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { getUserRole } from '../utils.jsx';
+import shipusLogo from '../assets/shipus-logo.png';
 
 const NAV_ITEMS = [
   { to: '/',             label: 'Tổng quan',  short: 'TQ', icon: LayoutDashboard, end: true,  badgeKey: null },
@@ -147,7 +148,7 @@ export default function Layout() {
               border: '1px solid rgba(58,175,211,.42)',
               boxShadow: '0 0 26px -6px rgba(58,175,211,.7)',
             }}>
-              <img src={`${import.meta.env.BASE_URL}shipus-logo.png`} alt="ShipUS" style={{ height: 26, width: 'auto', display: 'block' }} />
+              <img src={shipusLogo} alt="ShipUS" style={{ height: 26, width: 'auto', display: 'block' }} />
             </span>
             {showLabels && (
               <div>
@@ -385,7 +386,7 @@ export default function Layout() {
               background: 'linear-gradient(150deg,rgba(58,175,211,.4),rgba(58,175,211,.08))',
               border: '1px solid rgba(58,175,211,.42)',
             }}>
-              <img src={`${import.meta.env.BASE_URL}shipus-logo.png`} alt="" style={{ height: 22, display: 'block' }} />
+              <img src={shipusLogo} alt="" style={{ height: 22, display: 'block' }} />
             </span>
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '.05em', color: 'var(--tx)' }}>
               SHIP<span style={{ color: 'var(--brand)' }}>US</span>
