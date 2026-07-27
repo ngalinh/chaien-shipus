@@ -504,3 +504,8 @@ body[data-theme="light"] {
 .toast-exit  { animation: fadeOut 0.25s ease-in forwards; }
 .expand-row  { animation: expandDown 0.2s ease-out; }
 .modal-pop   { animation: dcPop 240ms cubic-bezier(.2,.9,.3,1); }
+
+@keyframes pillUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

@@ -97,6 +97,19 @@ export default function Layout() {
   const showLabels = !collapsed;
   const isDark = theme === 'dark';
 
+  const currentPageTitle = navItems.find(({ to, end }) =>
+    end ? location.pathname === to : location.pathname.startsWith(to)
+  )?.label ?? 'ShipUS';
+
+  const mobileTabs = MOBILE_TABS.filter(({ to }) => {
+    if (role === 'staff') return to !== '/' && to !== '/transactions';
+    return true;
+  });
+
+  const activeMobileIndex = mobileTabs.findIndex(({ to, end }) =>
+    end ? location.pathname === to : location.pathname.startsWith(to)
+  );
+
   return (
     <div
       style={{
@@ -388,8 +401,8 @@ export default function Layout() {
             }}>
               <img src={shipusLogo} alt="" style={{ height: 22, display: 'block' }} />
             </span>
-            <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '.05em', color: 'var(--tx)' }}>
-              SHIP<span style={{ color: 'var(--brand)' }}>US</span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--tx)' }}>
+              {currentPageTitle}
             </span>
           </Link>
 
@@ -426,65 +439,81 @@ export default function Layout() {
         </header>
 
         {/* Page content */}
-        <main style={{ flex: 1, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}>
+        <main style={{ flex: 1, paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), 12px) + 80px)' }}>
           <Outlet />
         </main>
 
-        {/* Bottom tab bar */}
+        {/* Floating pill tab bar */}
         <nav style={{
           position: 'fixed',
           bottom: 0, left: 0, right: 0,
-          background: 'var(--sf)',
-          borderTop: '1px solid var(--ln)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
           display: 'flex',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          justifyContent: 'center',
+          padding: '0 20px',
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
           zIndex: 30,
+          pointerEvents: 'none',
         }}>
-          {MOBILE_TABS.filter(({ to }) => {
-            if (role === 'staff') return to !== '/' && to !== '/transactions';
-            return true;
-          }).map(({ to, label, icon: Icon, end }) => {
-            const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 4,
-                  padding: '10px 0',
-                  textDecoration: 'none',
-                  color: isActive ? 'var(--brand)' : 'var(--mu)',
-                  fontSize: 10,
-                  fontWeight: 600,
-                  position: 'relative',
-                  transition: 'color 160ms ease',
-                }}
-              >
-                {isActive && (
-                  <span style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 22,
-                    height: 3,
-                    borderRadius: '0 0 3px 3px',
-                    background: 'var(--brand)',
-                  }} />
-                )}
-                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.1 : 1.7} />
-                <span>{label}</span>
-              </NavLink>
-            );
-          })}
+          <div style={{
+            pointerEvents: 'auto',
+            position: 'relative',
+            display: 'flex',
+            width: '100%',
+            maxWidth: 360,
+            height: 68,
+            background: 'var(--sf)',
+            border: '1px solid var(--ln)',
+            backdropFilter: 'blur(28px) saturate(1.5)',
+            WebkitBackdropFilter: 'blur(28px) saturate(1.5)',
+            borderRadius: 999,
+            boxShadow: '0 20px 48px -16px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.12)',
+            animation: 'pillUp 400ms cubic-bezier(.2,.9,.3,1) both',
+          }}>
+            {/* Sliding active indicator */}
+            {activeMobileIndex >= 0 && (
+              <div style={{
+                position: 'absolute',
+                top: 6,
+                bottom: 6,
+                width: `calc(${100 / mobileTabs.length}% - 8px)`,
+                left: `calc(${activeMobileIndex * (100 / mobileTabs.length)}% + 4px)`,
+                borderRadius: 999,
+                background: 'linear-gradient(100deg,#1c7691,#2f9dbf)',
+                boxShadow: '0 6px 22px -4px rgba(47,157,191,.85)',
+                transition: 'left 300ms cubic-bezier(.4,0,.2,1)',
+                pointerEvents: 'none',
+              }} />
+            )}
+            {mobileTabs.map(({ to, label, icon: Icon, end }, idx) => {
+              const isActive = activeMobileIndex === idx;
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    flex: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 3,
+                    textDecoration: 'none',
+                    color: isActive ? '#fff' : 'var(--mu)',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: '.01em',
+                    transition: 'color 200ms ease',
+                  }}
+                >
+                  <Icon size={18} strokeWidth={isActive ? 2.1 : 1.7} />
+                  <span style={{ lineHeight: 1 }}>{label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </div>
