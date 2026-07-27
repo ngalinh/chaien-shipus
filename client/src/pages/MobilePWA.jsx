@@ -326,7 +326,7 @@ export default function MobilePWA() {
 
   // Tx stats
   const txFiltered = useMemo(() => transactions.filter((t) => t.category !== 'partner_payment'), [transactions]);
-  const txPaid = txFiltered.reduce((s, t) => s + (t.amount || 0), 0);
+  const txPaid = txFiltered.reduce((s, t) => s + (t.thu || 0), 0);
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   function toggleTheme() {
@@ -721,7 +721,7 @@ export default function MobilePWA() {
               <span style={{ display: 'block', fontSize: 10, color: 'var(--mu)', marginTop: 3 }}>{fmtDate(t.trans_date)} · Chuyển khoản</span>
             </span>
             <span style={{ flexShrink: 0, textAlign: 'right' }}>
-              <span style={{ display: 'block', font: '700 13px "JetBrains Mono",monospace', color: 'var(--ac)' }}>+{fmt(t.amount)}</span>
+              <span style={{ display: 'block', font: '700 13px "JetBrains Mono",monospace', color: 'var(--ac)' }}>+{fmt(t.thu)}</span>
               <span style={{ display: 'inline-block', marginTop: 5, padding: '3px 8px', borderRadius: 20, fontSize: 9.5, fontWeight: 700, background: 'var(--okBg)', color: 'var(--okTx)' }}>Đã thu</span>
             </span>
           </Btn>
