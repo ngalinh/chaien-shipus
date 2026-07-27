@@ -52,14 +52,14 @@ export default function RevenueVC() {
       {/* Header */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-page font-bold text-ink-900 leading-tight">Doanh thu VC</h1>
-          <p className="text-body-md text-ink-500 mt-1.5">
+          <h1 className="text-page font-bold leading-tight" style={{ color: 'var(--tx)' }}>Doanh thu VC</h1>
+          <p className="text-body-md mt-1.5" style={{ color: 'var(--mu)' }}>
             Profit SALE = 1% phí VC · Profit CSKH = 0.5% phí VC
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div>
-            <label className="block text-2xs font-semibold text-ink-400 mb-1">Tháng</label>
+            <label className="block text-2xs font-semibold mb-1" style={{ color: 'var(--mu)' }}>Tháng</label>
             <input
               type="month"
               value={month}
@@ -68,7 +68,7 @@ export default function RevenueVC() {
             />
           </div>
           <div>
-            <label className="block text-2xs font-semibold text-ink-400 mb-1">NV SALE</label>
+            <label className="block text-2xs font-semibold mb-1" style={{ color: 'var(--mu)' }}>NV SALE</label>
             <select
               value={sale}
               onChange={(e) => setSale(e.target.value)}
@@ -95,11 +95,14 @@ export default function RevenueVC() {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`px-4 py-2 rounded-full text-sm font-semibold ${
-              tab === t.key
-                ? 'bg-primary-500 text-white shadow-pill'
-                : 'bg-white text-ink-500 hover:bg-greige-50'
+              tab === t.key ? 'bg-primary-500 text-white shadow-pill' : ''
             }`}
-            style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
+            style={tab !== t.key ? {
+              background: 'var(--sf2)',
+              color: 'var(--tx2)',
+              border: '1px solid var(--ln)',
+              transition: 'background-color 150ms ease-out, color 150ms ease-out',
+            } : { transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
           >
             {t.label}
           </button>
@@ -139,9 +142,12 @@ export default function RevenueVC() {
                   {byCustomer.map((r) => (
                     <tr key={r.id}>
                       <td>
-                        <Link to={`/customers/${r.id}`} className="font-semibold text-primary-700 hover:underline" title={`Xem hồ sơ ${r.customer_code}`}>
+                        <Link to={`/customers/${r.id}`} className="font-semibold text-primary-400 hover:underline" title={`Xem hồ sơ ${r.customer_code}`}>
                           {r.customer_code}
                         </Link>
+                        {r.customer_name && (
+                          <div className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>{r.customer_name}</div>
+                        )}
                       </td>
                       <td className="text-right">{fmtKg(r.total_weight)}</td>
                       <td className="text-right">{formatCurrency(r.total_vc_fee)}</td>
@@ -150,7 +156,7 @@ export default function RevenueVC() {
                       <td className="text-right font-medium">{formatCurrency(r.profit_cskh)}</td>
                     </tr>
                   ))}
-                  <tr className="font-bold bg-greige-50">
+                  <tr className="font-bold" style={{ background: 'var(--sunk)' }}>
                     <td>Tổng cộng</td>
                     <td className="text-right">{fmtKg(Math.round(custTotals.weight * 100) / 100)}</td>
                     <td className="text-right">{formatCurrency(custTotals.fee)}</td>
@@ -192,12 +198,12 @@ export default function RevenueVC() {
                     </tr>
                   ))}
                   {cskhRow && (
-                    <tr className="bg-primary-50">
-                      <td className="font-semibold text-primary-800">{cskhRow.sale_name}</td>
+                    <tr style={{ background: 'var(--acBg)' }}>
+                      <td className="font-semibold" style={{ color: 'var(--ac)' }}>{cskhRow.sale_name}</td>
                       <td className="text-right">{cskhRow.customer_count}</td>
                       <td className="text-right">{fmtKg(cskhRow.total_weight)}</td>
                       <td className="text-right">{formatCurrency(cskhRow.total_vc_fee)}</td>
-                      <td className="text-right font-semibold text-primary-800">{formatCurrency(cskhRow.profit)}</td>
+                      <td className="text-right font-semibold" style={{ color: 'var(--ac)' }}>{formatCurrency(cskhRow.profit)}</td>
                     </tr>
                   )}
                 </>

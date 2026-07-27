@@ -45,27 +45,36 @@ export default function Settings() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="p-6 max-w-4xl space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-page font-bold text-ink-900 leading-tight">Cài đặt</h1>
-        <p className="text-body-md text-ink-500 mt-1.5">Quản lý cấu hình hệ thống</p>
+        <h1 className="text-page font-bold leading-tight" style={{ color: 'var(--tx)' }}>Cài đặt</h1>
+        <p className="text-body-md mt-1.5" style={{ color: 'var(--mu)' }}>Quản lý cấu hình hệ thống</p>
       </div>
 
-      {/* Section 1: Customer Rates */}
-      <RatesSection rates={rates} setRates={setRates} />
+      {/* Nhóm: Vận chuyển */}
+      <div className="space-y-1">
+        <p className="text-2xs font-bold uppercase tracking-widest px-1" style={{ color: 'var(--mu)' }}>Vận chuyển</p>
+        <div className="space-y-4">
+          <RatesSection rates={rates} setRates={setRates} />
+          <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
+        </div>
+      </div>
 
-      {/* Section 2: Partner Warehouses */}
-      <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
+      {/* Nhóm: Thanh toán */}
+      <div className="space-y-1">
+        <p className="text-2xs font-bold uppercase tracking-widest px-1" style={{ color: 'var(--mu)' }}>Thanh toán</p>
+        <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
+      </div>
 
-      {/* Section 3: Bank Accounts */}
-      <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
-
-      {/* Section 4: Company Info */}
-      <CompanySection company={company} setCompany={setCompany} />
-
-      {/* Section 5: Import Customers */}
-      <ImportCustomersSection />
+      {/* Nhóm: Công ty */}
+      <div className="space-y-1">
+        <p className="text-2xs font-bold uppercase tracking-widest px-1" style={{ color: 'var(--mu)' }}>Công ty</p>
+        <div className="space-y-4">
+          <CompanySection company={company} setCompany={setCompany} />
+          <ImportCustomersSection />
+        </div>
+      </div>
     </div>
   );
 }
@@ -216,8 +225,8 @@ function ImportCustomersSection() {
     <section className="card p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-ink-900">Import danh sách khách hàng</h2>
+          <FileSpreadsheet className="w-5 h-5 text-primary-400" />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Import danh sách khách hàng</h2>
         </div>
         <button onClick={downloadTemplate} className="btn-secondary text-sm py-1.5">
           <Download className="w-4 h-4" />
@@ -231,23 +240,23 @@ function ImportCustomersSection() {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         onClick={() => fileRef.current?.click()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-          dragOver
-            ? 'border-primary-400 bg-primary-50'
-            : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'
-        }`}
+        className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
+        style={{
+          borderColor: dragOver ? 'var(--ac)' : 'var(--ln)',
+          background: dragOver ? 'var(--acBg)' : 'var(--sunk)',
+        }}
       >
-        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm font-medium text-gray-600">Kéo thả hoặc click để chọn file Excel</p>
-        <p className="text-xs text-gray-400 mt-1">Hỗ trợ .xlsx, .xls, .csv</p>
+        <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--mu)' }} />
+        <p className="text-sm font-medium" style={{ color: 'var(--tx2)' }}>Kéo thả hoặc click để chọn file Excel</p>
+        <p className="text-xs mt-1" style={{ color: 'var(--mu)' }}>Hỗ trợ .xlsx, .xls, .csv</p>
       </div>
       <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} className="hidden" />
 
       {/* Parse errors */}
       {parseErrors.length > 0 && (
-        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg space-y-0.5">
+        <div className="mt-3 p-3 rounded-lg space-y-0.5" style={{ background: 'var(--badBg)', border: '1px solid var(--badLn)' }}>
           {parseErrors.map((e, i) => (
-            <p key={i} className="text-xs text-red-600">{e}</p>
+            <p key={i} className="text-xs" style={{ color: 'var(--badTx)' }}>{e}</p>
           ))}
         </div>
       )}
@@ -256,8 +265,8 @@ function ImportCustomersSection() {
       {rows.length > 0 && (
         <div className="mt-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-gray-700">
-              Xem trước: <span className="text-primary-600">{rows.length} dòng</span> sẵn sàng import
+            <p className="text-sm font-medium" style={{ color: 'var(--tx2)' }}>
+              Xem trước: <span style={{ color: 'var(--ac)' }}>{rows.length} dòng</span> sẵn sàng import
             </p>
             <div className="flex gap-2">
               <button onClick={handleReset} className="btn-secondary text-sm py-1.5">
@@ -288,8 +297,8 @@ function ImportCustomersSection() {
               <tbody>
                 {rows.slice(0, 100).map((r, i) => (
                   <tr key={i}>
-                    <td className="text-center text-gray-400">{i + 1}</td>
-                    <td className="font-mono font-medium text-primary-700">{r.code}</td>
+                    <td className="text-center" style={{ color: 'var(--mu)' }}>{i + 1}</td>
+                    <td className="font-mono font-medium text-primary-400">{r.code}</td>
                     <td>{r.name}</td>
                     <td>{r.phone}</td>
                     <td>{r.email}</td>
@@ -303,25 +312,25 @@ function ImportCustomersSection() {
             </table>
           </div>
           {rows.length > 100 && (
-            <p className="text-xs text-gray-400 mt-1 text-center">Hiển thị 100 / {rows.length} dòng</p>
+            <p className="text-xs mt-1 text-center" style={{ color: 'var(--mu)' }}>Hiển thị 100 / {rows.length} dòng</p>
           )}
         </div>
       )}
 
       {/* Import result */}
       {result && (
-        <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-sm font-semibold text-green-800 mb-2">Kết quả import</p>
+        <div className="mt-4 p-4 rounded-lg" style={{ background: 'var(--okBg)', border: '1px solid var(--okLn)' }}>
+          <p className="text-sm font-semibold mb-2" style={{ color: 'var(--okTx)' }}>Kết quả import</p>
           <div className="flex flex-wrap gap-4">
-            <span className="text-sm text-green-700">
+            <span className="text-sm" style={{ color: 'var(--okTx)' }}>
               <Check className="w-4 h-4 inline mr-1" />
               Đã thêm: <strong>{result.imported}</strong>
             </span>
-            <span className="text-sm text-yellow-700">
+            <span className="text-sm" style={{ color: 'var(--warnTx)' }}>
               Đã tồn tại (bỏ qua): <strong>{result.skipped}</strong>
             </span>
             {result.errors?.length > 0 && (
-              <span className="text-sm text-red-700">
+              <span className="text-sm" style={{ color: 'var(--badTx)' }}>
                 Lỗi: <strong>{result.errors.length}</strong>
               </span>
             )}
@@ -329,7 +338,7 @@ function ImportCustomersSection() {
           {result.errors?.length > 0 && (
             <div className="mt-2 space-y-0.5">
               {result.errors.map((e, i) => (
-                <p key={i} className="text-xs text-red-600">Dòng {e.row}: {e.error}</p>
+                <p key={i} className="text-xs" style={{ color: 'var(--badTx)' }}>Dòng {e.row}: {e.error}</p>
               ))}
             </div>
           )}
@@ -337,9 +346,9 @@ function ImportCustomersSection() {
       )}
 
       {/* Format guide */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
-        <p className="text-xs font-medium text-blue-700 mb-1">Hướng dẫn định dạng file:</p>
-        <p className="text-xs text-blue-600">
+      <div className="mt-4 p-3 rounded-lg" style={{ background: 'var(--acBg)', border: '1px solid var(--acLn)' }}>
+        <p className="text-xs font-medium mb-1" style={{ color: 'var(--ac)' }}>Hướng dẫn định dạng file:</p>
+        <p className="text-xs" style={{ color: 'var(--tx2)' }}>
           Cột bắt buộc: <strong>Mã khách hàng</strong>, <strong>Tên khách</strong>.
           Cột Kênh LH nhận giá trị <strong>Zalo</strong> hoặc <strong>Facebook</strong>.
           Các mã KH đã tồn tại trong hệ thống sẽ được bỏ qua.
@@ -414,7 +423,7 @@ function RatesSection({ rates, setRates }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <Truck className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-ink-900">Cước vận chuyển – Khách hàng</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Cước vận chuyển – Khách hàng</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
@@ -433,7 +442,7 @@ function RatesSection({ rates, setRates }) {
           </thead>
           <tbody>
             {adding && (
-              <tr className="bg-primary-50">
+              <tr style={{ background: 'var(--acBg)' }}>
                 <td>
                   <input
                     value={form.name}
@@ -456,7 +465,7 @@ function RatesSection({ rates, setRates }) {
                     <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                       {saving ? '...' : 'Lưu'}
                     </button>
-                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300">
+                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
                       Hủy
                     </button>
                   </div>
@@ -469,7 +478,7 @@ function RatesSection({ rates, setRates }) {
               </tr>
             ) : (
               rates.map((r) => (
-                <tr key={r.id} className={editId === r.id ? 'bg-yellow-50' : ''}>
+                <tr key={r.id} style={editId === r.id ? { background: 'var(--warnBg)' } : {}}>
                   <td>
                     {editId === r.id ? (
                       <input
@@ -499,7 +508,7 @@ function RatesSection({ rates, setRates }) {
                           <button onClick={() => handleSaveEdit(r.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                             {saving ? '...' : 'Lưu'}
                           </button>
-                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300">
+                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
                             Hủy
                           </button>
                         </>
@@ -601,7 +610,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <Warehouse className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-ink-900">Cước vận chuyển – Đối tác (Kho)</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Cước vận chuyển – Đối tác (Kho)</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
@@ -622,7 +631,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
           </thead>
           <tbody>
             {adding && (
-              <tr className="bg-primary-50">
+              <tr style={{ background: 'var(--acBg)' }}>
                 <td>
                   <input
                     value={form.code}
@@ -661,7 +670,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                     <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                       {saving ? '...' : 'Lưu'}
                     </button>
-                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
+                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
                       Hủy
                     </button>
                   </div>
@@ -674,7 +683,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
               </tr>
             ) : (
               warehouses.map((w) => (
-                <tr key={w.id} className={editId === w.id ? 'bg-yellow-50' : ''}>
+                <tr key={w.id} style={editId === w.id ? { background: 'var(--warnBg)' } : {}}>
                   <td>
                     {editId === w.id ? (
                       <input
@@ -683,7 +692,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                         className="input-field py-1 text-sm uppercase"
                       />
                     ) : (
-                      <span className="font-mono font-medium text-primary-700">{w.code}</span>
+                      <span className="font-mono font-medium text-primary-400">{w.code}</span>
                     )}
                   </td>
                   <td>
@@ -715,7 +724,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                         placeholder="OR,NH"
                       />
                     ) : (
-                      <span className="font-mono text-xs text-gray-500">{w.aliases || '–'}</span>
+                      <span className="font-mono text-xs" style={{ color: 'var(--mu)' }}>{w.aliases || '–'}</span>
                     )}
                   </td>
                   <td className="text-right">
@@ -725,7 +734,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                           <button onClick={() => handleSaveEdit(w.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                             {saving ? '...' : 'Lưu'}
                           </button>
-                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
+                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
                             Hủy
                           </button>
                         </>
@@ -831,7 +840,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
       <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
         <div className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold text-ink-900">Tài khoản ngân hàng</h2>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Tài khoản ngân hàng</h2>
         </div>
         <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
           <Plus className="w-4 h-4" />
@@ -852,7 +861,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
           </thead>
           <tbody>
             {adding && (
-              <tr className="bg-primary-50">
+              <tr style={{ background: 'var(--acBg)' }}>
                 <td>
                   <input
                     value={form.bank_name}
@@ -891,7 +900,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                     <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                       {saving ? '...' : 'Lưu'}
                     </button>
-                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
+                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
                       Hủy
                     </button>
                   </div>
@@ -904,7 +913,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
               </tr>
             ) : (
               bankAccounts.map((b) => (
-                <tr key={b.id} className={editId === b.id ? 'bg-yellow-50' : ''}>
+                <tr key={b.id} style={editId === b.id ? { background: 'var(--warnBg)' } : {}}>
                   <td>
                     {editId === b.id ? (
                       <input
@@ -960,7 +969,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                           <button onClick={() => handleSaveEdit(b.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
                             {saving ? '...' : 'Lưu'}
                           </button>
-                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 bg-gray-200 text-gray-600 rounded">
+                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
                             Hủy
                           </button>
                         </>
@@ -1052,7 +1061,7 @@ function CompanySection({ company, setCompany }) {
     <section className="card p-5">
       <div className="flex items-center gap-2 mb-5">
         <Building2 className="w-5 h-5 text-primary-600" />
-        <h2 className="text-base font-semibold text-ink-900">Thông tin công ty</h2>
+        <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Thông tin công ty</h2>
       </div>
 
       <form onSubmit={handleSave} className="space-y-4 max-w-md">
@@ -1097,10 +1106,10 @@ function CompanySection({ company, setCompany }) {
               <img
                 src={form.logo_path}
                 alt="Logo"
-                className="w-16 h-16 object-contain border border-gray-200 rounded-lg p-1"
+                className="w-16 h-16 object-contain rounded-lg p-1" style={{ border: '1px solid var(--ln)' }}
               />
             ) : (
-              <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
+              <div className="w-16 h-16 border-2 border-dashed rounded-lg flex items-center justify-center" style={{ borderColor: 'var(--ln)', color: 'var(--mu)' }}>
                 <Building2 className="w-6 h-6" />
               </div>
             )}
@@ -1112,13 +1121,13 @@ function CompanySection({ company, setCompany }) {
                 className="btn-secondary text-sm"
               >
                 {uploadingLogo ? (
-                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--mu)', borderTopColor: 'transparent' }} />
                 ) : (
                   <Upload className="w-4 h-4" />
                 )}
                 {uploadingLogo ? 'Đang tải...' : 'Chọn ảnh'}
               </button>
-              <p className="text-xs text-gray-400 mt-1">PNG, JPG tối đa 5MB</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--mu)' }}>PNG, JPG tối đa 5MB</p>
             </div>
           </div>
           <input ref={fileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
