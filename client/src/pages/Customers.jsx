@@ -1,10 +1,45 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
-import { formatDate, StatusBadge, calcCustomerStatus } from '../utils.jsx';
+import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
+import { formatDate, calcCustomerStatus } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
+
+function StatusChip({ status }) {
+  const isActive = status === 'active';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 10px', borderRadius: 999,
+      fontSize: 11, fontWeight: 700,
+      color: isActive ? 'var(--okTx)' : 'var(--mu)',
+      background: isActive ? 'var(--okBg)' : 'var(--sf2)',
+      border: `1px solid ${isActive ? 'var(--okLn)' : 'var(--ln)'}`,
+    }}>
+      <span style={{ width: 5, height: 5, borderRadius: '50%', background: isActive ? 'var(--okTx)' : 'var(--mu)' }} />
+      {isActive ? 'Active' : 'Inactive'}
+    </span>
+  );
+}
+
+function RateChip({ name }) {
+  if (!name) return <span style={{ color: 'var(--mu)' }}>–</span>;
+  const isBuon = name.toLowerCase().includes('buôn') || name.toLowerCase().includes('buon');
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '3px 9px', borderRadius: 8,
+      fontSize: 11, fontWeight: 700,
+      color: isBuon ? 'var(--warnTx)' : 'var(--ac)',
+      background: isBuon ? 'var(--warnBg)' : 'var(--acBg)',
+      border: `1px solid ${isBuon ? 'var(--warnLn)' : 'var(--acLn)'}`,
+      maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    }} title={name}>
+      {name}
+    </span>
+  );
+}
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -14,9 +49,7 @@ export default function Customers() {
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
+  useEffect(() => { fetchCustomers(); }, []);
 
   async function fetchCustomers() {
     setLoading(true);
@@ -35,7 +68,7 @@ export default function Customers() {
     setDeleting(id);
     try {
       await axios.delete(`/api/customers/${id}`);
-      setCustomers((prev) => prev.filter((c) => c.id !== id));
+      setCustomers(prev => prev.filter(c => c.id !== id));
       toast('Đã xóa khách hàng', 'success');
     } catch (err) {
       toast(err.response?.data?.error || 'Không thể xóa khách hàng', 'error');
@@ -44,27 +77,20 @@ export default function Customers() {
     }
   }
 
-  function openCreate() {
-    setEditCustomer(null);
-    setModalOpen(true);
-  }
-
-  function openEdit(c) {
-    setEditCustomer(c);
-    setModalOpen(true);
-  }
+  function openCreate() { setEditCustomer(null); setModalOpen(true); }
+  function openEdit(c) { setEditCustomer(c); setModalOpen(true); }
 
   function handleSaved(saved) {
     if (editCustomer) {
-      setCustomers((prev) => prev.map((c) => (c.id === saved.id ? saved : c)));
+      setCustomers(prev => prev.map(c => (c.id === saved.id ? saved : c)));
     } else {
-      setCustomers((prev) => [saved, ...prev]);
+      setCustomers(prev => [saved, ...prev]);
     }
     setModalOpen(false);
     toast(editCustomer ? 'Đã cập nhật khách hàng' : 'Đã tạo khách hàng mới', 'success');
   }
 
-  const filtered = (Array.isArray(customers) ? customers : []).filter((c) => {
+  const filtered = (Array.isArray(customers) ? customers : []).filter(c => {
     const q = search.toLowerCase();
     return (
       c.code?.toLowerCase().includes(q) ||
@@ -74,10 +100,9 @@ export default function Customers() {
     );
   });
 
-  // Danh sách NV SALE đã có (distinct) để đổ vào dropdown gán NV khi sửa khách.
   const saleOptions = useMemo(() => {
     const map = new Map();
-    (Array.isArray(customers) ? customers : []).forEach((c) => {
+    (Array.isArray(customers) ? customers : []).forEach(c => {
       if (c.sale_username && !map.has(c.sale_username)) {
         map.set(c.sale_username, { sale_username: c.sale_username, sale_name: c.sale_name || c.sale_username });
       }
@@ -85,127 +110,131 @@ export default function Customers() {
     return [...map.values()].sort((a, b) => a.sale_name.localeCompare(b.sale_name, 'vi'));
   }, [customers]);
 
-  const channelLabel = (ch) => {
-    if (ch === 'fb') return 'Facebook';
-    if (ch === 'zalo') return 'Zalo';
-    return ch || '–';
-  };
-
   return (
-    <div className="p-6 space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
+
       {/* Header */}
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-page font-bold text-ink-900 leading-tight">Khách hàng</h1>
-          <p className="text-body-md text-ink-500 mt-1.5">{customers.length} khách hàng</p>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--tx)' }}>
+            Khách hàng
+          </h1>
+          <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>
+            {customers.length} khách hàng
+          </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-white rounded-full shadow-pill px-4 py-2.5">
-            <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Search pill */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 9,
+            padding: '0 15px', height: 42,
+            borderRadius: 999,
+            background: 'var(--sf)',
+            border: '1px solid var(--ln)',
+            backdropFilter: 'blur(14px)',
+          }}>
+            <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--mu)' }} />
             <input
               type="text"
-              placeholder="Tìm theo mã, tên, SĐT..."
+              placeholder="Tìm theo mã, tên, SĐT…"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border-none outline-none bg-transparent text-sm w-44 text-ink-900 placeholder-ink-400"
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                border: 'none', outline: 'none',
+                background: 'transparent',
+                fontSize: 13, color: 'var(--tx)',
+                width: 180, fontFamily: 'inherit',
+              }}
             />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mu)', display: 'flex', padding: 0 }}>
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           <button onClick={openCreate} className="btn-primary">
             <Plus className="w-4 h-4" />
             Tạo Mã KH
           </button>
         </div>
-      </div>
+      </header>
 
       {/* Table */}
-      <div className="table-container">
-        <table className="data-table">
+      <div className="table-container" style={{ overflowX: 'auto' }}>
+        <table className="data-table" style={{ minWidth: 1000 }}>
           <thead>
             <tr>
-              <th className="w-36">Mã KH</th>
-              <th className="w-24">Tình trạng</th>
-              <th>Họ tên</th>
-              <th className="w-24">SĐT</th>
-              <th>Địa chỉ</th>
-              <th className="w-24">Cước VC</th>
-              <th>Ghi chú</th>
-              <th className="w-24">Ngày tạo</th>
-              <th className="w-24 !text-right">Thao tác</th>
+              <th style={{ minWidth: 200 }}>Tên khách</th>
+              <th style={{ width: 108 }}>Tình trạng</th>
+              <th style={{ width: 120 }}>SĐT</th>
+              <th style={{ minWidth: 140 }}>Địa chỉ</th>
+              <th style={{ width: 118 }}>Cước VC</th>
+              <th style={{ minWidth: 120 }}>NV Sale</th>
+              <th style={{ minWidth: 120 }}>Ghi chú</th>
+              <th style={{ width: 108 }}>Ngày tạo</th>
+              <th style={{ width: 78, textAlign: 'right' }}>Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className="text-center py-10 text-ink-400">
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                <td colSpan={9} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--mu)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    <div style={{ width: 16, height: 16, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     Đang tải...
                   </div>
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="text-center py-12 text-ink-400">
+                <td colSpan={9} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--mu)' }}>
                   {search ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'}
                 </td>
               </tr>
-            ) : (
-              filtered.map((c) => {
-                const status = calcCustomerStatus(c.latest_shipment_date);
-                return (
-                  <tr key={c.id}>
-                    <td>
-                      <Link
-                        to={`/customers/${c.id}`}
-                        className="font-semibold text-primary-700 hover:text-primary-900 hover:underline block max-w-[160px] truncate"
-                        title={c.code}
-                      >
-                        {c.code}
-                      </Link>
-                    </td>
-                    <td>
-                      <StatusBadge status={status} />
-                    </td>
-                    <td className="font-medium"><div className="max-w-[160px] truncate" title={c.name}>{c.name}</div></td>
-                    <td><div className="max-w-[120px] truncate" title={c.phone}>{c.phone || '–'}</div></td>
-                    <td><div className="max-w-[200px] truncate" title={c.address}>{c.address || '–'}</div></td>
-                    <td>
-                      {c.rate_name ? (
-                        <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
-                          <span className="max-w-[100px] truncate inline-block align-bottom" title={c.rate_name}>{c.rate_name}</span>
-                        </span>
-                      ) : '–'}
-                    </td>
-                    <td><div className="max-w-[140px] truncate text-ink-400" title={c.notes}>{c.notes || '–'}</div></td>
-                    <td className="text-ink-400">{formatDate(c.created_at)}</td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openEdit(c)}
-                          className="btn-icon text-primary-600 hover:bg-primary-100"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(c.id)}
-                          disabled={deleting === c.id}
-                          className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
-                          title="Xóa"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+            ) : filtered.map(c => {
+              const status = calcCustomerStatus(c.latest_shipment_date);
+              return (
+                <tr key={c.id}>
+                  <td>
+                    <Link to={`/customers/${c.id}`} style={{ textDecoration: 'none' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {c.name}
                       </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
+                      <div style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--ac)', marginTop: 3 }}>
+                        {c.code}
+                      </div>
+                    </Link>
+                  </td>
+                  <td><StatusChip status={status} /></td>
+                  <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>{c.phone || '–'}</td>
+                  <td><div style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--tx2)' }} title={c.address}>{c.address || '–'}</div></td>
+                  <td><RateChip name={c.rate_name} /></td>
+                  <td style={{ color: 'var(--tx2)' }}>{c.sale_name || c.sale_username || '–'}</td>
+                  <td><div style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--mu)' }} title={c.notes}>{c.notes || '–'}</div></td>
+                  <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12, color: 'var(--mu)' }}>{formatDate(c.created_at)}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                      <button onClick={() => openEdit(c)} className="btn-icon" title="Chỉnh sửa">
+                        <Edit2 className="w-[14px] h-[14px]" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(c.id)}
+                        disabled={deleting === c.id}
+                        className="btn-icon"
+                        title="Xóa"
+                        style={{ color: 'var(--badTx)' }}
+                      >
+                        <Trash2 className="w-[14px] h-[14px]" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
-      {/* Modal */}
       {modalOpen && (
         <CustomerModal
           customer={editCustomer}
@@ -214,6 +243,8 @@ export default function Customers() {
           onSaved={handleSaved}
         />
       )}
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

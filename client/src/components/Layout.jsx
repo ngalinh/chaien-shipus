@@ -1,171 +1,48 @@
-import { useState, useEffect } from 'react';
-import { Outlet, NavLink, Link, useSearchParams, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Outlet, NavLink, Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Users,
-  Truck,
-  Receipt,
-  TrendingUp,
-  Settings,
-  BookOpen,
-  Menu,
-  X,
-  Bell,
-  ChevronRight,
-  ExternalLink,
-  Search,
-  PanelLeftClose,
-  PanelLeftOpen,
+  LayoutDashboard, Users, Truck, Receipt, TrendingUp, Settings, BookOpen,
+  Bell, X, Moon, Sun, ChevronLeft, ChevronRight,
 } from 'lucide-react';
+import axios from 'axios';
 import { getUserRole } from '../utils.jsx';
 
 const NAV_ITEMS = [
-  { to: '/',             label: 'Dashboard',   icon: LayoutDashboard, end: true },
-  { to: '/shipping',     label: 'Hàng về',     icon: Truck },
-  { to: '/customers',    label: 'Khách hàng',  icon: Users },
-  { to: '/transactions', label: 'Giao dịch',   icon: Receipt },
-  { to: '/revenue',      label: 'Doanh thu VC', icon: TrendingUp },
-  { to: '/settings',     label: 'Cài đặt',     icon: Settings },
-  { to: '/guide',        label: 'HDSD',        icon: BookOpen },
+  { to: '/',             label: 'Tổng quan',  short: 'TQ', icon: LayoutDashboard, end: true,  badgeKey: null },
+  { to: '/shipping',     label: 'Hàng về',    short: 'HV', icon: Truck,                         badgeKey: 'shipments' },
+  { to: '/customers',    label: 'Khách hàng', short: 'KH', icon: Users,                         badgeKey: 'customers' },
+  { to: '/transactions', label: 'Giao dịch',  short: 'GD', icon: Receipt,                       badgeKey: null },
+  { to: '/revenue',      label: 'Doanh thu VC', short: 'DV', icon: TrendingUp,                  badgeKey: null },
+  { to: '/settings',     label: 'Cài đặt',   short: 'CĐ', icon: Settings,                      badgeKey: null },
 ];
 
-function Mark({ size = 28 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <polygon points="5,3 5,29 28,16" fill="#3AAFD3" />
-      <polygon points="5,3 17,10 5,17" fill="#21809E" />
-    </svg>
-  );
-}
-
-function Wordmark() {
-  return (
-    <div>
-      <div className="text-wordmark font-extrabold tracking-wide leading-none">
-        <span className="text-ink-900">SHIP</span>
-        <span className="text-primary-500">US</span>
-      </div>
-      <div className="text-2xs text-ink-400 mt-1">Quản lý vận chuyển</div>
-    </div>
-  );
-}
-
-function Sidebar({ onNavigate, navItems, collapsed, toggleCollapsed }) {
-  return (
-    <div className="flex flex-col h-full">
-      {/* Logo → Dashboard */}
-      <NavLink
-        to="/"
-        end
-        onClick={onNavigate}
-        aria-label="Về Dashboard"
-        className={`flex items-center pt-7 pb-5 hover:opacity-80 ${collapsed ? 'justify-center px-3' : 'gap-3 px-5'}`}
-        style={{ transition: 'opacity 150ms ease-out' }}
-      >
-        <span className="w-11 h-11 rounded-tile bg-primary-100 grid place-items-center flex-shrink-0">
-          <Mark size={26} />
-        </span>
-        {!collapsed && <Wordmark />}
-      </NavLink>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={onNavigate}
-            title={collapsed ? label : undefined}
-            className={({ isActive }) =>
-              `flex items-center py-3 rounded-tile text-nav font-semibold ${
-                collapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
-              } ${
-                isActive
-                  ? 'bg-primary-500 text-white shadow-pill'
-                  : 'text-ink-500 hover:bg-greige-50 hover:text-ink-900'
-              }`
-            }
-            style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-          >
-            {({ isActive }) => (
-              <>
-                <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2.1 : 1.9} />
-                {!collapsed && <span className="flex-1">{label}</span>}
-                {!collapsed && isActive && <ChevronRight className="w-4 h-4 opacity-70" />}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-
-      {/* Sidebar footer */}
-      <div className={`py-4 border-t border-greige-100 ${collapsed ? 'px-2' : 'px-3.5'}`}>
-        {!collapsed ? (
-          <div className="flex items-center gap-1.5">
-            <a
-              href="https://ai.basso.vn/admin/dashboard.html"
-              onClick={onNavigate}
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-tile text-xs font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50"
-              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-            >
-              <ExternalLink className="w-4 h-4 flex-shrink-0" strokeWidth={1.9} />
-              <span>AI Basso</span>
-            </a>
-            <button
-              onClick={toggleCollapsed}
-              aria-label="Thu gọn menu"
-              className="hidden lg:flex flex-1 items-center justify-center gap-1.5 px-2 py-2.5 rounded-tile text-xs font-semibold text-ink-500 hover:bg-greige-50 hover:text-ink-900 border border-primary-500/50"
-              style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-            >
-              <PanelLeftClose className="w-4 h-4 flex-shrink-0" strokeWidth={1.9} />
-              <span>Thu gọn</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={toggleCollapsed}
-            aria-label="Mở menu"
-            title="Mở menu"
-            className="hidden lg:flex items-center justify-center w-9 h-9 rounded-full bg-greige-50 hover:bg-primary-500 text-ink-400 hover:text-white mx-auto border border-greige-200 hover:border-primary-500"
-            style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out' }}
-          >
-            <PanelLeftOpen className="w-4 h-4" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
+const MOBILE_TABS = [
+  { to: '/',             label: 'Tổng quan',  icon: LayoutDashboard, end: true },
+  { to: '/shipping',     label: 'Hàng về',    icon: Truck },
+  { to: '/transactions', label: 'Giao dịch',  icon: Receipt },
+  { to: '/customers',    label: 'Khách hàng', icon: Users },
+];
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('shipus_sidebar_collapsed') === '1');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [username, setUsername] = useState('Admin');
-  const role = getUserRole();
+  const [theme, setTheme] = useState(() => localStorage.getItem('shipus_theme') || 'dark');
+  const [username, setUsername] = useState('');
+  const [badges, setBadges] = useState({ shipments: 0, customers: 0 });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-
-  // Ép iOS cập nhật status-bar màu teal sau mỗi SPA navigation
-  // (iOS chỉ đọc theme-color lần đầu load; trong BASSO PWA scope nó revert về màu BASSO sau pushState)
-  useEffect(() => {
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#3AAFD3');
-  }, [location.pathname]);
+  const role = getUserRole();
+  const pillRef = useRef(null);
+  const navRef = useRef(null);
 
   const navItems = NAV_ITEMS.filter(({ to }) => {
     if (role === 'staff') return to !== '/' && to !== '/transactions';
     return true;
   });
 
-  function toggleCollapsed() {
-    setCollapsed((c) => {
-      const next = !c;
-      localStorage.setItem('shipus_sidebar_collapsed', next ? '1' : '0');
-      return next;
-    });
-  }
-  const [searchParams, setSearchParams] = useSearchParams();
-  const query = searchParams.get('q') || '';
+  // Tính vị trí pill
+  const activeIndex = navItems.findIndex(({ to, end }) =>
+    end ? location.pathname === to : location.pathname.startsWith(to)
+  );
 
   useEffect(() => {
     try {
@@ -178,159 +55,404 @@ export default function Layout() {
     } catch { /* keep default */ }
   }, []);
 
-  function handleSearch(value) {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      if (value) next.set('q', value);
-      else next.delete('q');
-      return next;
-    }, { replace: true });
+  // Fetch badge counts
+  useEffect(() => {
+    async function fetchBadges() {
+      try {
+        const [custRes] = await Promise.all([
+          axios.get('/api/customers'),
+        ]);
+        setBadges(prev => ({
+          ...prev,
+          customers: Array.isArray(custRes.data) ? custRes.data.length : 0,
+        }));
+      } catch { /* ignore */ }
+    }
+    fetchBadges();
+  }, []);
+
+  // iOS status bar
+  useEffect(() => {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#3AAFD3');
+  }, [location.pathname]);
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('shipus_theme', next);
+    document.body.setAttribute('data-theme', next);
+    document.body.style.backgroundColor = next === 'light' ? '#e9ecee' : '#07161d';
   }
 
+  function toggleCollapsed() {
+    setCollapsed(c => {
+      const next = !c;
+      localStorage.setItem('shipus_sidebar_collapsed', next ? '1' : '0');
+      return next;
+    });
+  }
+
+  const sideW = collapsed ? 76 : 236;
+  const showLabels = !collapsed;
+  const isDark = theme === 'dark';
+
   return (
-    <div className="flex min-h-screen bg-greige-200 lg:p-5 lg:gap-5">
+    <div
+      style={{
+        minHeight: '100vh',
+        background: isDark
+          ? 'radial-gradient(900px 560px at 6% -12%, rgba(58,175,211,.3), transparent 62%), radial-gradient(760px 520px at 96% 4%, rgba(33,128,158,.26), transparent 62%), radial-gradient(640px 620px at 58% 118%, rgba(58,175,211,.13), transparent 62%), #07161d'
+          : 'radial-gradient(760px 420px at 4% -8%, rgba(58,175,211,.28), transparent 62%), radial-gradient(680px 460px at 100% 4%, rgba(33,128,158,.16), transparent 60%), linear-gradient(180deg,#f3f5f6,#e7ebee)',
+        color: 'var(--tx)',
+      }}
+    >
+      {/* ── Desktop layout ── */}
+      <div className="hidden lg:flex gap-[18px] p-5 max-w-[1720px] mx-auto items-start">
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-30 bg-white flex flex-col overflow-hidden
-          lg:relative lg:translate-x-0 lg:flex-shrink-0
-          lg:rounded-frame lg:shadow-card lg:sticky lg:top-5 lg:self-start
-          lg:h-[calc(100vh-40px)]
-          ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
-          ${collapsed ? 'lg:w-16' : 'lg:w-64'}
-        `}
-        style={{
-          transition: 'transform 280ms cubic-bezier(0.4,0,0.2,1), width 280ms cubic-bezier(0.4,0,0.2,1)',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
-        }}
-      >
-        <button
-          onClick={() => setSidebarOpen(false)}
-          className="lg:hidden absolute top-4 right-4 text-ink-400 hover:text-ink-900 p-1"
-          aria-label="Đóng menu"
+        {/* Sidebar */}
+        <aside
+          style={{
+            flex: 'none',
+            width: sideW,
+            transition: 'width 260ms cubic-bezier(.4,0,.2,1)',
+            position: 'sticky',
+            top: 20,
+            borderRadius: 22,
+            padding: '22px 14px',
+            background: 'var(--sf)',
+            border: '1px solid var(--ln)',
+            backdropFilter: 'blur(22px) saturate(1.3)',
+            WebkitBackdropFilter: 'blur(22px) saturate(1.3)',
+            boxShadow: '0 26px 54px -26px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.14)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 24,
+            minHeight: 'calc(100vh - 40px)',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+          }}
         >
-          <X className="w-5 h-5" />
-        </button>
-        <Sidebar
-          onNavigate={() => setSidebarOpen(false)}
-          navItems={navItems}
-          collapsed={collapsed}
-          toggleCollapsed={toggleCollapsed}
-        />
-      </aside>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 gap-4 lg:h-[calc(100vh-40px)]">
-        {/* Mobile overlay — inside this stacking context so header (z-[25] within) paints above it (z-20) */}
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 bg-ink-900/40 z-20 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        {/* Top bar — full-bleed teal on mobile, floating white card on desktop */}
-        <header
-          className="relative z-[25] flex items-center gap-3 bg-primary-500 lg:bg-white lg:rounded-card lg:shadow-card px-4 lg:px-5 pb-3 flex-shrink-0"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
-        >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Mở menu"
-            className="lg:hidden p-2 rounded-full text-white hover:bg-white/20"
-            style={{ transition: 'background-color 150ms ease-out' }}
+          {/* Logo */}
+          <Link
+            to="/"
+            className="flex items-center"
+            style={{ gap: showLabels ? 11 : 0, padding: '0 8px', textDecoration: 'none' }}
           >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Search pill — desktop (sm+ with frosted look on teal, greige on white) */}
-          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md bg-white/20 lg:bg-greige-50 rounded-full px-4 py-2.5">
-            <Search className="w-4 h-4 text-white lg:text-ink-400 flex-shrink-0" />
-            <input
-              value={query}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Tìm theo mã KH, tracking #…"
-              className="border-none outline-none bg-transparent text-sm w-full text-white lg:text-ink-900 placeholder-white/60 lg:placeholder-ink-400"
-            />
-            {query && (
-              <button
-                onClick={() => handleSearch('')}
-                aria-label="Xóa tìm kiếm"
-                className="text-white/70 lg:text-ink-400 hover:text-white lg:hover:text-ink-900 flex-shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Mobile wordmark */}
-          <Link to="/" aria-label="Về Dashboard" className="flex items-center gap-2 sm:hidden">
-            <span style={{ filter: 'brightness(0) invert(1)' }}>
-              <Mark size={22} />
+            <span style={{
+              flexShrink: 0,
+              width: 40, height: 40,
+              borderRadius: 13,
+              display: 'grid', placeItems: 'center',
+              background: 'linear-gradient(150deg,rgba(58,175,211,.4),rgba(58,175,211,.08))',
+              border: '1px solid rgba(58,175,211,.42)',
+              boxShadow: '0 0 26px -6px rgba(58,175,211,.7)',
+            }}>
+              <img src="/shipus-logo.png" alt="ShipUS" style={{ height: 26, width: 'auto', display: 'block' }} />
             </span>
-            <span className="text-body-md font-extrabold tracking-wide text-white">
-              SHIPUS
+            {showLabels && (
+              <div>
+                <div style={{ fontWeight: 800, letterSpacing: '.06em', fontSize: 17, lineHeight: 1, color: 'var(--tx)' }}>
+                  SHIP<span style={{ color: 'var(--brand)' }}>US</span>
+                </div>
+                <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--mu)', marginTop: 5 }}>
+                  Quản lý vận chuyển
+                </div>
+              </div>
+            )}
+          </Link>
+
+          {/* Nav with sliding pill */}
+          <nav style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {/* Pill indicator */}
+            {activeIndex >= 0 && (
+              <div style={{
+                position: 'absolute',
+                left: 0, right: 0,
+                height: 44,
+                borderRadius: 13,
+                background: 'var(--navOn)',
+                boxShadow: 'var(--navGlow)',
+                transition: 'top 260ms cubic-bezier(.4,0,.2,1)',
+                top: activeIndex * 48,
+                pointerEvents: 'none',
+              }} />
+            )}
+            {navItems.map(({ to, label, short, icon: Icon, end, badgeKey }, idx) => {
+              const isActive = activeIndex === idx;
+              const badge = badgeKey ? badges[badgeKey] : null;
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: showLabels ? 10 : 0,
+                    justifyContent: showLabels ? 'flex-start' : 'center',
+                    height: 44,
+                    padding: showLabels ? '0 14px' : '0',
+                    borderRadius: 13,
+                    fontFamily: 'inherit',
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    color: isActive ? '#fff' : 'var(--tx2)',
+                    transition: 'color 160ms ease',
+                  }}
+                >
+                  <Icon className="w-[18px] h-[18px] flex-shrink-0" strokeWidth={isActive ? 2.1 : 1.9} />
+                  {showLabels && (
+                    <>
+                      <span style={{ flex: 1 }}>{label}</span>
+                      {badge ? (
+                        <span style={{
+                          font: '700 9.5px "JetBrains Mono", monospace',
+                          padding: '2px 6px',
+                          borderRadius: 20,
+                          background: 'var(--sf2)',
+                          color: 'var(--tx2)',
+                        }}>
+                          {badge}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+          </nav>
+
+          {/* Footer */}
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Theme + Collapse */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={toggleTheme}
+                title={isDark ? 'Chuyển sáng' : 'Chuyển tối'}
+                style={{
+                  appearance: 'none',
+                  border: '1px solid var(--ln)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  width: 40, height: 40,
+                  borderRadius: 13,
+                  display: 'grid', placeItems: 'center',
+                  color: 'var(--tx2)',
+                  background: 'var(--sf2)',
+                  transition: 'color 160ms ease',
+                }}
+              >
+                {isDark
+                  ? <Moon className="w-[17px] h-[17px]" />
+                  : <Sun className="w-[17px] h-[17px]" />
+                }
+              </button>
+              <button
+                onClick={toggleCollapsed}
+                title={collapsed ? 'Mở menu' : 'Thu gọn'}
+                style={{
+                  appearance: 'none',
+                  border: '1px solid var(--ln)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  flex: 1, minWidth: 40,
+                  height: 40,
+                  padding: '0 12px',
+                  borderRadius: 13,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  fontSize: 12.5,
+                  fontWeight: 600,
+                  color: 'var(--tx2)',
+                  background: 'var(--sf2)',
+                  transition: 'color 160ms ease',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                }}
+              >
+                {collapsed ? <ChevronRight className="w-[14px] h-[14px]" /> : <ChevronLeft className="w-[14px] h-[14px]" />}
+                {showLabels && (collapsed ? '»' : 'Thu gọn')}
+              </button>
+            </div>
+
+            {/* User */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: showLabels ? 11 : 0,
+              justifyContent: showLabels ? 'flex-start' : 'center',
+              padding: '12px 8px 0',
+              borderTop: '1px solid var(--ln2)',
+            }}>
+              <span style={{
+                flexShrink: 0,
+                width: 34, height: 34,
+                borderRadius: 11,
+                display: 'grid', placeItems: 'center',
+                fontWeight: 700,
+                fontSize: 13,
+                color: 'var(--onbtn)',
+                background: 'var(--btn)',
+              }}>
+                {(username || 'A').charAt(0).toUpperCase()}
+              </span>
+              {showLabels && (
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--tx)' }}>
+                    {username || 'Admin'}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: 'var(--mu)' }}>Quản trị viên</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        {/* Main content area */}
+        <main style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 18,
+          paddingBottom: 20,
+        }}>
+          <Outlet />
+        </main>
+      </div>
+
+      {/* ── Mobile layout ── */}
+      <div className="lg:hidden flex flex-col min-h-screen">
+        {/* Mobile header */}
+        <header
+          style={{
+            background: 'var(--sf)',
+            borderBottom: '1px solid var(--ln)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 16px',
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 30,
+          }}
+        >
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none' }}>
+            <span style={{
+              width: 36, height: 36,
+              borderRadius: 11,
+              display: 'grid', placeItems: 'center',
+              background: 'linear-gradient(150deg,rgba(58,175,211,.4),rgba(58,175,211,.08))',
+              border: '1px solid rgba(58,175,211,.42)',
+            }}>
+              <img src="/shipus-logo.png" alt="" style={{ height: 22, display: 'block' }} />
+            </span>
+            <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '.05em', color: 'var(--tx)' }}>
+              SHIP<span style={{ color: 'var(--brand)' }}>US</span>
             </span>
           </Link>
 
-          <div className="ml-auto flex items-center gap-2">
-            {/* Mobile search toggle */}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
             <button
-              onClick={() => setSearchOpen((v) => !v)}
-              aria-label="Tìm kiếm"
-              className="sm:hidden p-2 rounded-full text-white hover:bg-white/20"
-              style={{ transition: 'background-color 150ms ease-out' }}
+              onClick={toggleTheme}
+              style={{
+                appearance: 'none',
+                border: '1px solid var(--ln)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                width: 36, height: 36,
+                borderRadius: 11,
+                display: 'grid', placeItems: 'center',
+                color: 'var(--tx2)',
+                background: 'var(--sf2)',
+              }}
             >
-              <Search className="w-5 h-5" />
+              {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
-
-            <button
-              aria-label="Thông báo"
-              className="relative w-10 h-10 rounded-full bg-white/20 lg:bg-white lg:shadow-pill text-white lg:text-ink-700 grid place-items-center hover:bg-white/30 lg:hover:bg-greige-50"
-              style={{ transition: 'background-color 150ms ease-out' }}
-            >
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-danger-600 border-2 border-white" />
-            </button>
-
-            <div className="flex items-center gap-2.5 pl-1">
-              <span className="w-10 h-10 rounded-full bg-white/20 lg:bg-ink-900 text-white grid place-items-center font-bold uppercase text-sm border border-white/30 lg:border-0">
-                {username.charAt(0) || 'A'}
-              </span>
-              <div className="hidden sm:block leading-tight">
-                <div className="text-sm font-bold text-white lg:text-ink-900">{username}</div>
-                <div className="text-2xs text-white/70 lg:text-ink-400 whitespace-nowrap">Quản trị viên</div>
-              </div>
-            </div>
+            <span style={{
+              width: 36, height: 36,
+              borderRadius: 11,
+              display: 'grid', placeItems: 'center',
+              fontWeight: 700,
+              fontSize: 13,
+              color: 'var(--onbtn)',
+              background: 'var(--btn)',
+              flexShrink: 0,
+            }}>
+              {(username || 'A').charAt(0).toUpperCase()}
+            </span>
           </div>
         </header>
 
-        {/* Mobile search bar — expands below topbar when toggled */}
-        {searchOpen && (
-          <div className="sm:hidden flex items-center gap-2 bg-white mx-4 rounded-card shadow-card px-4 py-3 flex-shrink-0">
-            <Search className="w-4 h-4 text-ink-400 flex-shrink-0" />
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder="Tìm theo mã KH, tracking #…"
-              className="border-none outline-none bg-transparent text-sm w-full text-ink-900 placeholder-ink-400"
-            />
-            {query && (
-              <button onClick={() => handleSearch('')} aria-label="Xóa" className="text-ink-400 hover:text-ink-900">
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        )}
-
         {/* Page content */}
-        <main
-          className="flex-1 overflow-y-auto min-w-0"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        >
+        <main style={{ flex: 1, paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}>
           <Outlet />
         </main>
+
+        {/* Bottom tab bar */}
+        <nav style={{
+          position: 'fixed',
+          bottom: 0, left: 0, right: 0,
+          background: 'var(--sf)',
+          borderTop: '1px solid var(--ln)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          zIndex: 30,
+        }}>
+          {MOBILE_TABS.filter(({ to }) => {
+            if (role === 'staff') return to !== '/' && to !== '/transactions';
+            return true;
+          }).map(({ to, label, icon: Icon, end }) => {
+            const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  padding: '10px 0',
+                  textDecoration: 'none',
+                  color: isActive ? 'var(--brand)' : 'var(--mu)',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  position: 'relative',
+                  transition: 'color 160ms ease',
+                }}
+              >
+                {isActive && (
+                  <span style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 22,
+                    height: 3,
+                    borderRadius: '0 0 3px 3px',
+                    background: 'var(--brand)',
+                  }} />
+                )}
+                <Icon className="w-5 h-5" strokeWidth={isActive ? 2.1 : 1.7} />
+                <span>{label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

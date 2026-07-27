@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { Plus, Calendar, Receipt, Edit2, Trash2, Search, X } from 'lucide-react';
+import { Plus, Receipt, Edit2, Trash2, Search, X } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue, getUserRole } from '../utils.jsx';
 import TransactionModal from '../components/TransactionModal.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -19,9 +19,9 @@ const PERIODS = [
 ];
 
 const CAT_FILTERS = [
-  { label: 'Tất cả',      value: 'all' },
-  { label: 'Thu',         value: 'customer_payment' },
-  { label: 'Chi',         value: 'partner_payment' },
+  { label: 'Tất cả', value: 'all' },
+  { label: 'Thu',    value: 'customer_payment' },
+  { label: 'Chi',    value: 'partner_payment' },
 ];
 
 function rangeFor(period, customStart, customEnd) {
@@ -30,7 +30,7 @@ function rangeFor(period, customStart, customEnd) {
   return { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
 }
 
-const cleanCode = (code) => (code || '').replace(/\s+/g, ' ').trim();
+const cleanCode = code => (code || '').replace(/\s+/g, ' ').trim();
 
 export default function Transactions() {
   const [rows, setRows]           = useState([]);
@@ -40,7 +40,7 @@ export default function Transactions() {
   const [customEnd, setCustomEnd]     = useState(todayInputValue());
   const [catFilter, setCatFilter] = useState('all');
   const [search, setSearch]       = useState('');
-  const [modal, setModal]         = useState(null); // null | 'create' | row-object (edit)
+  const [modal, setModal]         = useState(null);
   const [deleting, setDeleting]   = useState(null);
   const role = getUserRole();
 
@@ -81,13 +81,11 @@ export default function Transactions() {
 
   const display = useMemo(() => {
     let list = [...rows].reverse();
-    if (catFilter !== 'all') {
-      list = list.filter((r) => r.category === catFilter);
-    }
+    if (catFilter !== 'all') list = list.filter(r => r.category === catFilter);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       const qNum = q.replace(/[,.\s]/g, '');
-      list = list.filter((r) => {
+      list = list.filter(r => {
         const code = cleanCode(r.customer_code || r.warehouse_code || '').toLowerCase();
         const name = (r.customer_name || r.warehouse_name || '').toLowerCase();
         const desc = (r.description || '').toLowerCase();
@@ -101,16 +99,40 @@ export default function Transactions() {
   const totalThu = display.reduce((a, r) => a + (r.thu || 0), 0);
   const totalChi = display.reduce((a, r) => a + (r.chi || 0), 0);
   const balance  = totalThu - totalChi;
+  const colSpan  = role !== 'staff' ? 7 : 6;
 
-  const colSpan = role !== 'staff' ? 7 : 6;
+  function PillGroup({ options, active, onSelect }) {
+    return (
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {options.map(o => (
+          <button
+            key={o.value}
+            onClick={() => onSelect(o.value)}
+            className="period-pill"
+            style={{
+              background: active === o.value ? 'var(--brand)' : 'transparent',
+              color:      active === o.value ? '#fff' : 'var(--mu)',
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 lg:p-6 space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
+
       {/* Header */}
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-page font-bold text-ink-900 leading-tight">Giao dịch</h1>
-          <p className="text-body-md text-ink-500 mt-1.5">Tổng hợp thanh toán & công nợ của khách</p>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--tx)' }}>
+            Giao dịch
+          </h1>
+          <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>
+            Tổng hợp thanh toán & công nợ của khách
+          </p>
         </div>
         {role !== 'staff' && (
           <button onClick={() => setModal('create')} className="btn-primary">
@@ -118,88 +140,67 @@ export default function Transactions() {
             Tạo thanh toán
           </button>
         )}
-      </div>
+      </header>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="card p-4">
-          <div className="text-sm text-ink-500">Tổng Thu (khách trả)</div>
-          <div className="text-2xl font-bold text-success-700 mt-1">{formatCurrency(totalThu)}</div>
+      {/* Summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        <div className="glass-tile" style={{ padding: 20 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mu)' }}>
+            Tổng Thu
+          </div>
+          <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: 22, color: 'var(--ac)', marginTop: 10 }}>
+            {formatCurrency(totalThu)}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 5 }}>Khách trả</div>
         </div>
-        <div className="card p-4">
-          <div className="text-sm text-ink-500">Tổng Chi (trả đối tác)</div>
-          <div className="text-2xl font-bold text-danger-600 mt-1">{formatCurrency(totalChi)}</div>
+        <div className="glass-tile" style={{ padding: 20 }}>
+          <div style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--mu)' }}>
+            Tổng Chi
+          </div>
+          <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: 22, color: 'var(--badTx)', marginTop: 10 }}>
+            {formatCurrency(totalChi)}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 5 }}>Trả đối tác</div>
         </div>
-        <div className="card p-4">
-          <div className="text-sm text-ink-500">Chênh lệch (Thu − Chi)</div>
-          <div className={`text-2xl font-bold mt-1 ${balance >= 0 ? 'text-success-700' : 'text-warning-500'}`}>
+        <div style={{
+          padding: 20,
+          borderRadius: 20,
+          background: 'linear-gradient(140deg,rgba(58,175,211,.22),rgba(58,175,211,.06))',
+          border: '1px solid var(--acLn)',
+          backdropFilter: 'blur(18px)',
+        }}>
+          <div style={{ fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ac)' }}>
+            Chênh lệch
+          </div>
+          <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: 22, color: 'var(--tx)', marginTop: 10 }}>
             {formatCurrency(balance)}
           </div>
+          <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 5 }}>Thu − Chi</div>
         </div>
       </div>
 
-      {/* Filters + Search row */}
-      <div className="flex flex-wrap gap-x-5 gap-y-3 items-center">
-        {/* Khoảng thời gian */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5 whitespace-nowrap">
-            <Calendar className="w-4 h-4" />
-            Thời gian:
-          </span>
-          <div className="flex flex-wrap gap-1.5">
-            {PERIODS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => setPeriod(p.value)}
-                className={`px-3 py-1.5 text-sm font-semibold rounded-full ${
-                  period === p.value
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
-                }`}
-                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+      {/* Filters */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Thời gian:</span>
+          <PillGroup options={PERIODS} active={period} onSelect={setPeriod} />
         </div>
-
-        {/* Danh mục */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-ink-500 whitespace-nowrap">Danh mục:</span>
-          <div className="flex flex-wrap gap-1.5">
-            {CAT_FILTERS.map((c) => (
-              <button
-                key={c.value}
-                onClick={() => setCatFilter(c.value)}
-                className={`px-3 py-1.5 text-sm font-semibold rounded-full ${
-                  catFilter === c.value
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
-                }`}
-                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Danh mục:</span>
+          <PillGroup options={CAT_FILTERS} active={catFilter} onSelect={setCatFilter} />
         </div>
-
         {/* Search */}
-        <div className="relative ml-auto">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-400 pointer-events-none" />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 9, padding: '0 15px', height: 40, borderRadius: 999, background: 'var(--sf)', border: '1px solid var(--ln)', backdropFilter: 'blur(14px)' }}>
+          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--mu)' }} />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm mã KH, đối tác, nội dung, số tiền…"
-            className="input-field pl-9 pr-8 text-sm w-64"
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Tìm mã KH, đối tác, nội dung…"
+            style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--tx)', width: 220, fontFamily: 'inherit' }}
           />
           {search && (
-            <button
-              onClick={() => setSearch('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-900"
-            >
-              <X className="w-4 h-4" />
+            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mu)', display: 'flex', padding: 0 }}>
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -207,35 +208,25 @@ export default function Transactions() {
 
       {/* Custom date range */}
       {period === 'custom' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-ink-500 whitespace-nowrap">Từ:</span>
-          <input
-            type="date"
-            value={customStart}
-            onChange={(e) => setCustomStart(e.target.value)}
-            className="input-field !w-auto text-sm"
-          />
-          <span className="text-sm font-semibold text-ink-500">đến:</span>
-          <input
-            type="date"
-            value={customEnd}
-            onChange={(e) => setCustomEnd(e.target.value)}
-            className="input-field !w-auto text-sm"
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Từ:</span>
+          <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="input-field" style={{ width: 'auto' }} />
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>đến:</span>
+          <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="input-field" style={{ width: 'auto' }} />
         </div>
       )}
 
       {/* Table */}
-      <div className="table-container">
-        <table className="data-table">
+      <div className="table-container" style={{ overflowX: 'auto' }}>
+        <table className="data-table" style={{ minWidth: 900 }}>
           <colgroup>
-            <col className="w-28" />
-            <col className="w-40" />
-            <col className="w-36" />
-            <col />
-            <col className="w-28" />
-            <col className="w-28" />
-            {role !== 'staff' && <col className="w-20" />}
+            <col style={{ width: 112 }} />
+            <col style={{ width: 148 }} />
+            <col style={{ minWidth: 160 }} />
+            <col style={{ minWidth: 240 }} />
+            <col style={{ width: 130 }} />
+            <col style={{ width: 120 }} />
+            {role !== 'staff' && <col style={{ width: 78 }} />}
           </colgroup>
           <thead>
             <tr>
@@ -243,102 +234,88 @@ export default function Transactions() {
               <th>Danh mục</th>
               <th>Mã KH / Đối tác</th>
               <th>Nội dung</th>
-              <th className="!text-right">Thu (đ)</th>
-              <th className="!text-right">Chi (đ)</th>
-              {role !== 'staff' && <th className="text-center">Thao tác</th>}
+              <th style={{ textAlign: 'right' }}>Thu (đ)</th>
+              <th style={{ textAlign: 'right' }}>Chi (đ)</th>
+              {role !== 'staff' && <th style={{ textAlign: 'center' }}>Thao tác</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={colSpan} className="text-center py-10 text-ink-400">
-                  <div className="inline-flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                <td colSpan={colSpan} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--mu)' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 16, height: 16, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     Đang tải...
                   </div>
                 </td>
               </tr>
             ) : display.length === 0 ? (
               <tr>
-                <td colSpan={colSpan} className="text-center py-14 text-ink-400">
-                  <Receipt className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
+                <td colSpan={colSpan} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--mu)' }}>
+                  <Receipt className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--sf2)', opacity: 0.5 }} strokeWidth={1.4} />
                   {search ? 'Không tìm thấy giao dịch phù hợp' : 'Chưa có giao dịch nào trong khoảng này'}
                 </td>
               </tr>
-            ) : (
-              display.map((t) => (
-                <tr key={t.key}>
-                  <td className="whitespace-nowrap font-medium">{formatDate(t.trans_date)}</td>
-
-                  {/* Danh mục */}
-                  <td>
-                    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${
-                      t.category === 'customer_payment'
-                        ? 'bg-success-100 text-success-700'
-                        : 'bg-danger-100 text-danger-600'
-                    }`}>
-                      {CATEGORY_LABEL[t.category] || '–'}
+            ) : display.map(t => (
+              <tr key={t.key}>
+                <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>
+                  {formatDate(t.trans_date)}
+                </td>
+                <td>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '3px 10px', borderRadius: 999,
+                    fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                    color:      t.category === 'customer_payment' ? 'var(--okTx)'  : 'var(--badTx)',
+                    background: t.category === 'customer_payment' ? 'var(--okBg)'  : 'var(--badBg)',
+                    border: `1px solid ${t.category === 'customer_payment' ? 'var(--okLn)' : 'var(--badLn)'}`,
+                  }}>
+                    {CATEGORY_LABEL[t.category] || '–'}
+                  </span>
+                </td>
+                <td>
+                  {t.category === 'customer_payment' ? (
+                    <Link to={`/customers/${t.customer_id}?tab=transactions`}
+                      style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12, color: 'var(--ac)', textDecoration: 'none', fontWeight: 600 }}>
+                      {cleanCode(t.customer_code) || `#${t.customer_id}`}
+                    </Link>
+                  ) : (
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)' }}>
+                      {t.warehouse_name || t.warehouse_code || '–'}
                     </span>
-                  </td>
-
-                  {/* Mã KH / Đối tác */}
-                  <td>
-                    {t.category === 'customer_payment' ? (
-                      <Link
-                        to={`/customers/${t.customer_id}?tab=transactions`}
-                        className="font-mono text-sm text-primary-700 hover:underline"
-                        title={`Xem giao dịch ${cleanCode(t.customer_code)}`}
-                      >
-                        {cleanCode(t.customer_code) || `#${t.customer_id}`}
-                      </Link>
-                    ) : (
-                      <span className="text-sm font-medium text-ink-700">
-                        {t.warehouse_name || t.warehouse_code || '–'}
-                      </span>
-                    )}
-                    {t.category === 'customer_payment' && t.customer_name && (
-                      <div className="text-xs text-ink-400 truncate">{t.customer_name}</div>
-                    )}
-                  </td>
-
-                  {/* Nội dung */}
-                  <td className="max-w-0">
-                    <span className="truncate block text-sm text-ink-700" title={t.description || ''}>
-                      {t.description || '–'}
-                    </span>
-                  </td>
-
-                  <td className="!text-right tabular-nums text-success-700 font-medium">
-                    {t.thu > 0 ? formatCurrency(t.thu) : '–'}
-                  </td>
-                  <td className="!text-right tabular-nums text-danger-600 font-medium">
-                    {t.chi > 0 ? formatCurrency(t.chi) : '–'}
-                  </td>
-
-                  {role !== 'staff' && (
-                    <td>
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => setModal(t)}
-                          className="btn-icon text-primary-600 hover:bg-primary-50"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(t)}
-                          disabled={deleting === t.key}
-                          className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
-                          title="Xoá"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
                   )}
-                </tr>
-              ))
-            )}
+                  {t.category === 'customer_payment' && t.customer_name && (
+                    <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {t.customer_name}
+                    </div>
+                  )}
+                </td>
+                <td style={{ maxWidth: 0 }}>
+                  <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 13, color: 'var(--tx2)' }} title={t.description || ''}>
+                    {t.description || '–'}
+                  </span>
+                </td>
+                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13, fontWeight: 600, color: 'var(--okTx)' }}>
+                  {t.thu > 0 ? formatCurrency(t.thu) : <span style={{ color: 'var(--mu)' }}>–</span>}
+                </td>
+                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13, fontWeight: 600, color: 'var(--badTx)' }}>
+                  {t.chi > 0 ? formatCurrency(t.chi) : <span style={{ color: 'var(--mu)' }}>–</span>}
+                </td>
+                {role !== 'staff' && (
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                      <button onClick={() => setModal(t)} className="btn-icon" title="Chỉnh sửa">
+                        <Edit2 className="w-[14px] h-[14px]" />
+                      </button>
+                      <button onClick={() => handleDelete(t)} disabled={deleting === t.key}
+                        className="btn-icon" title="Xoá" style={{ color: 'var(--badTx)' }}>
+                        <Trash2 className="w-[14px] h-[14px]" />
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -350,6 +327,8 @@ export default function Transactions() {
           onSaved={() => { setModal(null); fetchTransactions(); }}
         />
       )}
+
+      <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
     </div>
   );
 }

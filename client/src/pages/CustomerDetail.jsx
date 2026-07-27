@@ -177,15 +177,15 @@ export default function CustomerDetail() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-64">
-        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 256, padding: 24 }}>
+        <div style={{ width: 24, height: 24, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       </div>
     );
   }
 
   if (!customer) {
     return (
-      <div className="p-6 text-center text-gray-400">
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--mu)' }}>
         Không tìm thấy khách hàng
       </div>
     );
@@ -195,59 +195,68 @@ export default function CustomerDetail() {
   const stats = customer.stats || {};
   const txList = txData?.transactions || [];
 
+  const statItems = [
+    { label: 'Tổng kg', value: `${Number(stats.total_kg || 0).toFixed(2)} kg`, icon: Weight, color: 'var(--ac)' },
+    { label: 'Tổng cước VC', value: formatCurrency(stats.total_vc_fee || 0), icon: Banknote, color: 'var(--ac)' },
+    { label: 'Đã thanh toán', value: formatCurrency(stats.paid || 0), icon: CheckCircle, color: 'var(--okTx)' },
+    { label: 'Còn lại', value: formatCurrency(stats.remaining || 0), icon: CreditCard, color: 'var(--badTx)' },
+    { label: 'SL đã giao', value: stats.shipped_count || 0, icon: Package, color: 'var(--tx2)' },
+    { label: 'SL chưa giao', value: stats.pending_count || 0, icon: Clock, color: 'var(--warnTx)' },
+  ];
+
   return (
-    <div className="p-6 space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
       {/* Back */}
       <Link
         to="/customers"
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--mu)', textDecoration: 'none' }}
       >
         <ArrowLeft className="w-4 h-4" />
         Danh sách khách hàng
       </Link>
 
       {/* Customer header */}
-      <div className="card p-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="glass-card" style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <div className="flex items-center gap-3 mb-1 flex-wrap">
-              <h1 className="text-2xl font-bold text-ink-900">{customer.name}</h1>
-              <span className="text-sm font-mono bg-greige-100 text-ink-500 px-2.5 py-1 rounded-full">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--tx)' }}>{customer.name}</h1>
+              <span style={{ font: '400 11px "JetBrains Mono", monospace', color: 'var(--ac)', background: 'var(--acBg)', border: '1px solid var(--acLn)', padding: '3px 10px', borderRadius: 999 }}>
                 {customer.code}
               </span>
               <StatusBadge status={status} />
             </div>
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 8 }}>
               {customer.phone && (
-                <span className="flex items-center gap-1.5">
-                  <Phone className="w-4 h-4 text-gray-400" />
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--tx2)' }}>
+                  <Phone className="w-4 h-4" style={{ color: 'var(--mu)' }} />
                   {customer.phone}
                 </span>
               )}
               {customer.address && (
-                <span className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-gray-400" />
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--tx2)' }}>
+                  <MapPin className="w-4 h-4" style={{ color: 'var(--mu)' }} />
                   {customer.address}
                 </span>
               )}
               {customer.rate_name && (
-                <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full border border-primary-200">
+                <span style={{ fontSize: 11, color: 'var(--warnTx)', background: 'var(--warnBg)', border: '1px solid var(--warnLn)', padding: '3px 10px', borderRadius: 999 }}>
                   {customer.rate_name} ({Number(customer.rate_per_kg || 0).toLocaleString('en-US')} đ/kg)
                 </span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* CCCD images */}
             {customer.cccd_images && customer.cccd_images.length > 0 && (
-              <div className="flex gap-2">
+              <div style={{ display: 'flex', gap: 8 }}>
                 {customer.cccd_images.map((img) => (
-                  <button key={img.id} onClick={() => setLightbox(img.url)} className="relative group">
+                  <button key={img.id} onClick={() => setLightbox(img.url)} style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                     <img
                       src={img.url}
                       alt="CCCD"
-                      className="w-20 h-14 object-cover rounded-lg border border-gray-200"
+                      style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--ln)' }}
                     />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center transition-opacity">
                       <ZoomIn className="w-5 h-5 text-white" />
@@ -260,7 +269,8 @@ export default function CustomerDetail() {
             {/* Edit customer */}
             <button
               onClick={() => setEditOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm bg-primary-50 text-primary-700 border border-primary-200 rounded-lg hover:bg-primary-100"
+              className="btn-primary"
+              style={{ gap: 6, height: 36, padding: '0 14px', fontSize: 13 }}
             >
               <Edit2 className="w-4 h-4" />
               Chỉnh sửa
@@ -269,23 +279,16 @@ export default function CustomerDetail() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-5 pt-4 border-t border-gray-100">
-          {[
-            { label: 'Tổng kg', value: `${Number(stats.total_kg || 0).toFixed(2)} kg`, icon: Weight, color: 'text-purple-600' },
-            { label: 'Tổng cước VC', value: formatCurrency(stats.total_vc_fee || 0), icon: Banknote, color: 'text-primary-600' },
-            { label: 'Đã thanh toán', value: formatCurrency(stats.paid || 0), icon: CheckCircle, color: 'text-success-700' },
-            { label: 'Còn lại', value: formatCurrency(stats.remaining || 0), icon: CreditCard, color: 'text-danger-600' },
-            { label: 'SL đã giao', value: stats.shipped_count || 0, icon: Package, color: 'text-gray-600' },
-            { label: 'SL chưa giao', value: stats.pending_count || 0, icon: Clock, color: 'text-orange-600' },
-          ].map((stat) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--ln)' }}>
+          {statItems.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className="text-center">
-                <div className="flex items-center justify-center gap-1 text-xs text-gray-500 mb-0.5">
-                  <Icon className={`w-3.5 h-3.5 ${stat.color}`} />
+              <div key={stat.label} style={{ textAlign: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 11, color: 'var(--mu)', marginBottom: 4 }}>
+                  <Icon style={{ width: 14, height: 14, color: stat.color }} />
                   {stat.label}
                 </div>
-                <div className={`text-sm font-bold ${stat.color}`}>{stat.value}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: stat.color, fontFamily: '"JetBrains Mono", monospace' }}>{stat.value}</div>
               </div>
             );
           })}
@@ -293,16 +296,18 @@ export default function CustomerDetail() {
       </div>
 
       {/* Tabs */}
-      <div className="inline-flex gap-1 p-1.5 bg-white rounded-full shadow-pill">
+      <div style={{ display: 'inline-flex', gap: 4, padding: 5, borderRadius: 15, background: 'var(--sf)', border: '1px solid var(--ln)', backdropFilter: 'blur(14px)', alignSelf: 'flex-start' }}>
         <button
           onClick={() => setTab('batches')}
-          className={`tab-btn ${tab === 'batches' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
+          className="tab-btn"
+          style={{ background: tab === 'batches' ? 'var(--tx)' : 'transparent', color: tab === 'batches' ? 'var(--page-bg)' : 'var(--mu)' }}
         >
           Hàng về
         </button>
         <button
           onClick={() => setTab('transactions')}
-          className={`tab-btn ${tab === 'transactions' ? 'tab-btn-active' : 'tab-btn-inactive'}`}
+          className="tab-btn"
+          style={{ background: tab === 'transactions' ? 'var(--tx)' : 'transparent', color: tab === 'transactions' ? 'var(--page-bg)' : 'var(--mu)' }}
         >
           Giao dịch
         </button>
@@ -312,12 +317,12 @@ export default function CustomerDetail() {
       {tab === 'batches' && (
         <div>
           {batchesLoading ? (
-            <div className="text-center py-8 text-ink-400">
-              <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--mu)' }}>
+              <div style={{ width: 20, height: 20, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 8px' }} />
               Đang tải...
             </div>
           ) : batches.length === 0 ? (
-            <div className="text-center py-12 text-ink-400">Chưa có hàng về</div>
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--mu)' }}>Chưa có hàng về</div>
           ) : (
             <div className="table-container">
               <table className="data-table">
@@ -343,22 +348,24 @@ export default function CustomerDetail() {
                     return [
                       <tr
                         key={bKey}
-                        className="cursor-pointer hover:bg-primary-50"
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--acBg)'}
+                        onMouseLeave={e => e.currentTarget.style.background = ''}
                         onClick={() => toggleBatch(bKey)}
                       >
-                        <td className="text-center text-ink-400">
+                        <td style={{ textAlign: 'center', color: 'var(--mu)' }}>
                           {isOpen ? <ChevronDown className="w-4 h-4 inline" /> : <ChevronRight className="w-4 h-4 inline" />}
                         </td>
-                        <td className="font-medium">{formatDate(batch.batch_date)}</td>
+                        <td style={{ fontWeight: 500 }}>{formatDate(batch.batch_date)}</td>
                         <td>{batch.tracking_count}</td>
                         <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
                         <td>{formatCurrency(batch.total_surcharge)}</td>
-                        <td className="font-semibold text-primary-700">{formatCurrency(batch.total_vc_fee)}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--ac)' }}>{formatCurrency(batch.total_vc_fee)}</td>
                         <td onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1 flex-wrap">
                             <button
                               onClick={() => generateNotification(batch)}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded hover:bg-primary-100"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: 11, fontWeight: 600, color: 'var(--ac)', background: 'var(--acBg)', border: '1px solid var(--acLn)', borderRadius: 8, cursor: 'pointer' }}
                               title="Phiếu báo hàng về"
                             >
                               <Bell className="w-3.5 h-3.5" />
@@ -370,7 +377,7 @@ export default function CustomerDetail() {
                                   batchDate: batch.batch_date,
                                   amount: batch.total_vc_fee,
                                 })}
-                                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary-50 text-primary-700 border border-primary-200 rounded hover:bg-primary-100"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: 11, fontWeight: 600, color: 'var(--okTx)', background: 'var(--okBg)', border: '1px solid var(--okLn)', borderRadius: 8, cursor: 'pointer' }}
                               >
                                 <CreditCard className="w-3.5 h-3.5" />
                                 Thanh toán
@@ -380,13 +387,13 @@ export default function CustomerDetail() {
                         </td>
                       </tr>,
                       isOpen && (
-                        <tr key={`${bKey}-expand`} className="expand-row">
-                          <td colSpan={7} className="bg-primary-50/50 p-0">
-                            <div className="px-6 py-3 overflow-x-auto">
-                              <table className="min-w-[640px] w-full text-sm border-collapse">
+                        <tr key={`${bKey}-expand`}>
+                          <td colSpan={7} style={{ padding: 0, background: 'var(--sunk)' }}>
+                            <div style={{ padding: '12px 24px', overflowX: 'auto' }}>
+                              <table style={{ minWidth: 640, width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                                 <thead>
-                                  <tr className="bg-white">
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold w-8">
+                                  <tr style={{ background: 'var(--sf)' }}>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600, width: 32 }}>
                                       <input
                                         type="checkbox"
                                         checked={allSel}
@@ -394,21 +401,23 @@ export default function CustomerDetail() {
                                         className="rounded"
                                       />
                                     </th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold w-8">STT</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Tracking #</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Sản phẩm</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Cân nặng</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phụ thu</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Phí VC</th>
-                                    <th className="px-3 py-2 text-left text-xs text-ink-500 font-semibold">Ghi chú</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600, width: 32 }}>STT</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Tracking #</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Sản phẩm</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Cân nặng</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Phụ thu</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Phí VC</th>
+                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Ghi chú</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {details.map((s, idx) => {
                                     const vcFee = s.phi_vc || (s.weight * s.customer_rate + s.surcharge);
                                     return (
-                                      <tr key={s.id} className="border-t border-greige-100 hover:bg-white">
-                                        <td className="px-3 py-2">
+                                      <tr key={s.id} style={{ borderTop: '1px solid var(--ln)' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--sf)'}
+                                        onMouseLeave={e => e.currentTarget.style.background = ''}>
+                                        <td style={{ padding: '8px 12px' }}>
                                           <input
                                             type="checkbox"
                                             checked={sel.has(s.id)}
@@ -416,13 +425,13 @@ export default function CustomerDetail() {
                                             className="rounded"
                                           />
                                         </td>
-                                        <td className="px-3 py-2 text-ink-400">{idx + 1}</td>
-                                        <td className="px-3 py-2 font-mono text-xs">{s.tracking_no || '–'}</td>
-                                        <td className="px-3 py-2 max-w-[160px] truncate" title={s.product}>{s.product || '–'}</td>
-                                        <td className="px-3 py-2">{s.weight} kg</td>
-                                        <td className="px-3 py-2">{formatCurrency(s.surcharge)}</td>
-                                        <td className="px-3 py-2 font-semibold text-primary-700">{formatCurrency(vcFee)}</td>
-                                        <td className="px-3 py-2 text-ink-400 text-xs">{s.notes || '–'}</td>
+                                        <td style={{ padding: '8px 12px', color: 'var(--mu)' }}>{idx + 1}</td>
+                                        <td style={{ padding: '8px 12px', fontFamily: '"JetBrains Mono", monospace', fontSize: 11 }}>{s.tracking_no || '–'}</td>
+                                        <td style={{ padding: '8px 12px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--tx)' }} title={s.product}>{s.product || '–'}</td>
+                                        <td style={{ padding: '8px 12px', color: 'var(--tx2)' }}>{s.weight} kg</td>
+                                        <td style={{ padding: '8px 12px', color: 'var(--tx2)' }}>{formatCurrency(s.surcharge)}</td>
+                                        <td style={{ padding: '8px 12px', fontWeight: 600, color: 'var(--ac)' }}>{formatCurrency(vcFee)}</td>
+                                        <td style={{ padding: '8px 12px', color: 'var(--mu)', fontSize: 11 }}>{s.notes || '–'}</td>
                                       </tr>
                                     );
                                   })}
@@ -445,28 +454,28 @@ export default function CustomerDetail() {
       {tab === 'transactions' && (
         <div>
           {txLoading ? (
-            <div className="text-center py-8 text-ink-400">
-              <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+            <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--mu)' }}>
+              <div style={{ width: 20, height: 20, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 8px' }} />
               Đang tải...
             </div>
           ) : txList.length === 0 ? (
-            <div className="text-center py-12 text-ink-400">Chưa có giao dịch nào</div>
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--mu)' }}>Chưa có giao dịch nào</div>
           ) : (
             <>
               {/* Summary */}
               {txData && (
-                <div className="flex gap-4 mb-4 flex-wrap">
-                  <div className="bg-danger-50 border border-danger-200 rounded-lg px-4 py-2 text-sm">
-                    <span className="text-ink-500">Tổng chi phí: </span>
-                    <span className="font-semibold text-danger-700">{formatCurrency(txData.total_debit)}</span>
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                  <div style={{ background: 'var(--badBg)', border: '1px solid var(--badLn)', borderRadius: 12, padding: '8px 16px', fontSize: 13 }}>
+                    <span style={{ color: 'var(--mu)' }}>Tổng chi phí: </span>
+                    <span style={{ fontWeight: 600, color: 'var(--badTx)' }}>{formatCurrency(txData.total_debit)}</span>
                   </div>
-                  <div className="bg-primary-50 border border-primary-200 rounded-lg px-4 py-2 text-sm">
-                    <span className="text-ink-500">Đã thanh toán: </span>
-                    <span className="font-semibold text-primary-700">{formatCurrency(txData.total_credit)}</span>
+                  <div style={{ background: 'var(--acBg)', border: '1px solid var(--acLn)', borderRadius: 12, padding: '8px 16px', fontSize: 13 }}>
+                    <span style={{ color: 'var(--mu)' }}>Đã thanh toán: </span>
+                    <span style={{ fontWeight: 600, color: 'var(--ac)' }}>{formatCurrency(txData.total_credit)}</span>
                   </div>
-                  <div className={`border rounded-lg px-4 py-2 text-sm ${txData.net_balance >= 0 ? 'bg-success-50 border-success-200' : 'bg-warning-50 border-warning-200'}`}>
-                    <span className="text-ink-500">Số dư: </span>
-                    <span className={`font-semibold ${txData.net_balance >= 0 ? 'text-success-700' : 'text-warning-700'}`}>{formatCurrency(txData.net_balance)}</span>
+                  <div style={{ background: txData.net_balance >= 0 ? 'var(--okBg)' : 'var(--warnBg)', border: `1px solid ${txData.net_balance >= 0 ? 'var(--okLn)' : 'var(--warnLn)'}`, borderRadius: 12, padding: '8px 16px', fontSize: 13 }}>
+                    <span style={{ color: 'var(--mu)' }}>Số dư: </span>
+                    <span style={{ fontWeight: 600, color: txData.net_balance >= 0 ? 'var(--okTx)' : 'var(--warnTx)' }}>{formatCurrency(txData.net_balance)}</span>
                   </div>
                 </div>
               )}
@@ -493,13 +502,13 @@ export default function CustomerDetail() {
                       <tr key={tx.id}>
                         <td>{formatDate(tx.trans_date)}</td>
                         <td className="max-w-0" title={tx.description}><span className="block truncate">{tx.description || '–'}</span></td>
-                        <td className="text-right text-success-700 font-medium">
+                        <td style={{ textAlign: 'right', color: 'var(--okTx)', fontWeight: 500 }}>
                           {tx.credit > 0 ? formatCurrency(tx.credit) : '–'}
                         </td>
-                        <td className="text-right text-danger-600 font-medium">
+                        <td style={{ textAlign: 'right', color: 'var(--badTx)', fontWeight: 500 }}>
                           {tx.debit > 0 ? formatCurrency(tx.debit) : '–'}
                         </td>
-                        <td className={`text-right font-semibold ${(tx.running_balance || 0) >= 0 ? 'text-success-700' : 'text-danger-600'}`}>
+                        <td style={{ textAlign: 'right', fontWeight: 600, color: (tx.running_balance || 0) >= 0 ? 'var(--okTx)' : 'var(--badTx)' }}>
                           {formatCurrency(tx.running_balance || 0)}
                         </td>
                       </tr>

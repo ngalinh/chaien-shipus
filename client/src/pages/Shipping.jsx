@@ -13,11 +13,12 @@ import NotificationModal from '../components/NotificationModal.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 
-function getStatusClass(v) {
-  if (v === 'Đã báo hàng') return 'bg-amber-50 !text-amber-700 !border-amber-300';
-  if (v === 'Đã báo ship') return 'bg-green-50 !text-green-700 !border-green-300';
-  return '';
+function getStatusStyle(v) {
+  if (v === 'Đã báo hàng') return { background: 'var(--warnBg)', color: 'var(--warnTx)', borderColor: 'var(--warnLn)' };
+  if (v === 'Đã báo ship') return { background: 'var(--okBg)', color: 'var(--okTx)', borderColor: 'var(--okLn)' };
+  return { background: 'var(--sf2)', color: 'var(--tx2)', borderColor: 'var(--ln)' };
 }
+function getStatusClass() { return ''; }
 
 const PERIODS = [
   { label: 'Trong tháng', value: 'month' },
@@ -248,82 +249,52 @@ export default function Shipping() {
   }
 
   return (
-    <div className="p-6 space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
       {/* Header */}
-      <div className="flex items-end justify-between gap-4 flex-wrap">
+      <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-page font-bold text-ink-900 leading-tight">Hàng về</h1>
-          <p className="text-body-md text-ink-500 mt-1.5">Quản lý kiện hàng về</p>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--tx)' }}>Hàng về</h1>
+          <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>Quản lý kiện hàng về</p>
         </div>
         <button onClick={() => setImportModal(true)} className="btn-primary">
           <Plus className="w-4 h-4" />
           Nhập kho
         </button>
-      </div>
+      </header>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-ink-500">Tình trạng TT:</span>
-          <select
-            value={ttFilter}
-            onChange={(e) => setTtFilter(e.target.value)}
-            className="input-field w-auto py-1.5 text-sm"
-          >
-            {PAID_FILTERS.map((f) => (
-              <option key={f.value} value={f.value}>{f.label}</option>
-            ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', columnGap: 26, rowGap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Tình trạng TT:</span>
+          <select value={ttFilter} onChange={e => setTtFilter(e.target.value)} className="select-dark">
+            {PAID_FILTERS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-2.5">
-          <span className="text-sm font-semibold text-ink-500">Trạng thái:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="input-field w-auto py-1.5 text-sm"
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Trạng thái:</span>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="select-dark">
             <option value="all">Tất cả</option>
             <option value="">Chưa báo</option>
             <option value="Đã báo hàng">Đã báo hàng</option>
             <option value="Đã báo ship">Đã báo ship</option>
           </select>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 sm:ml-auto">
-          <span className="text-sm font-semibold text-ink-500 inline-flex items-center gap-1.5">
-            <Calendar className="w-4 h-4" />
-            Khoảng thời gian:
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {PERIODS.map((p) => (
-              <button
-                key={p.value}
-                onClick={() => handlePeriodChange(p.value)}
-                className={`px-4 py-2 text-sm font-semibold rounded-full ${
-                  period === p.value
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-white text-ink-500 shadow-pill hover:bg-greige-50'
-                }`}
-                style={{ transition: 'background-color 150ms ease-out, color 150ms ease-out' }}
-              >
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Khoảng thời gian:</span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {PERIODS.map(p => (
+              <button key={p.value} onClick={() => handlePeriodChange(p.value)} className="period-pill"
+                style={{ background: period === p.value ? 'var(--brand)' : 'transparent', color: period === p.value ? '#fff' : 'var(--mu)' }}>
                 {p.label}
               </button>
             ))}
           </div>
           {period === 'custom' && (
-            <div className="flex items-center gap-3 flex-wrap w-full sm:w-auto">
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-ink-500 font-semibold">Từ:</label>
-                <input type="date" value={startDate} max={endDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="input-field w-auto py-1.5 text-sm" />
-              </div>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-ink-500 font-semibold">Đến:</label>
-                <input type="date" value={endDate} min={startDate} max={todayInputValue()}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="input-field w-auto py-1.5 text-sm" />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Từ:</span>
+              <input type="date" value={startDate} max={endDate} onChange={e => setStartDate(e.target.value)} className="input-field" style={{ width: 'auto' }} />
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Đến:</span>
+              <input type="date" value={endDate} min={startDate} max={todayInputValue()} onChange={e => setEndDate(e.target.value)} className="input-field" style={{ width: 'auto' }} />
             </div>
           )}
         </div>
@@ -331,40 +302,48 @@ export default function Shipping() {
 
       {/* Content */}
       {loading ? (
-        <div className="table-container p-12 text-center text-ink-400">
-          <div className="inline-flex items-center gap-2">
-            <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+        <div className="glass-card" style={{ padding: 48, textAlign: 'center', color: 'var(--mu)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 16, height: 16, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             Đang tải...
           </div>
         </div>
       ) : dateGroups.length === 0 ? (
-        <div className="table-container p-14 text-center">
-          <PackageOpen className="w-10 h-10 text-ink-300 mx-auto mb-3" strokeWidth={1.6} />
-          <p className="text-ink-500 font-medium">{(q || ttFilter !== 'all' || statusFilter !== 'all') ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
-          <p className="text-ink-400 text-sm mt-1">{(q || ttFilter !== 'all' || statusFilter !== 'all') ? 'Thử đổi bộ lọc hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
+        <div className="glass-card" style={{ padding: '56px 24px', textAlign: 'center' }}>
+          <PackageOpen className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--mu)', opacity: 0.5 }} strokeWidth={1.4} />
+          <p style={{ color: 'var(--tx2)', fontWeight: 500 }}>{(q || ttFilter !== 'all' || statusFilter !== 'all') ? 'Không tìm thấy kiện hàng khớp' : 'Chưa có hàng về trong khoảng này'}</p>
+          <p style={{ color: 'var(--mu)', fontSize: 13, marginTop: 4 }}>{(q || ttFilter !== 'all' || statusFilter !== 'all') ? 'Thử đổi bộ lọc hoặc xóa ô tìm kiếm.' : 'Nhấn "Nhập kho" để thêm đợt hàng mới.'}</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {dateGroups.map(({ dateKey, customers }) => {
             const isDateCollapsed = collapsedDates[dateKey];
             return (
-              <div key={dateKey} className="card overflow-hidden">
+              <div key={dateKey} className="glass-card" style={{ overflow: 'hidden' }}>
                 {/* Date group header */}
                 <button
-                  onClick={() => setCollapsedDates((p) => ({ ...p, [dateKey]: !p[dateKey] }))}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-greige-50 transition-colors text-left"
+                  onClick={() => setCollapsedDates(p => ({ ...p, [dateKey]: !p[dateKey] }))}
+                  style={{ appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '15px 20px', textAlign: 'left', background: 'var(--acBg)', transition: 'background 160ms ease' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(58,175,211,.16)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'var(--acBg)'}
                 >
-                  {isDateCollapsed ? <ChevronRight className="w-4 h-4 text-ink-400" /> : <ChevronDown className="w-4 h-4 text-ink-400" />}
-                  <span className="text-body-md font-bold text-ink-900">Đợt {formatDate(dateKey)}</span>
-                  <span className="text-sm text-ink-400">
+                  {isDateCollapsed
+                    ? <ChevronRight className="w-4 h-4" style={{ color: 'var(--ac)', flexShrink: 0 }} />
+                    : <ChevronDown className="w-4 h-4" style={{ color: 'var(--ac)', flexShrink: 0 }} />}
+                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Đợt {formatDate(dateKey)}</span>
+                  <span style={{ fontSize: 12, color: 'var(--mu)' }}>
                     {customers.length} khách · {customers.reduce((a, c) => a + c.count, 0)} kiện
+                  </span>
+                  <span style={{ marginLeft: 'auto', display: 'flex', gap: 20, font: '600 12px "JetBrains Mono", monospace', color: 'var(--tx2)' }}>
+                    <span>{customers.reduce((a, c) => a + c.totalWeight, 0).toFixed(2)} kg</span>
+                    <span>{formatCurrency(customers.reduce((a, c) => a + c.totalFee, 0))} đ</span>
                   </span>
                 </button>
 
                 {!isDateCollapsed && (
                   <>
-                  <div className="hidden sm:block table-container rounded-none shadow-none border-t border-greige-100">
-                    <table className="data-table table-fixed w-full min-w-[1100px]">
+                  <div className="hidden sm:block" style={{ overflowX: 'auto', borderTop: '1px solid var(--ln2)' }}>
+                    <table className="data-table table-fixed w-full" style={{ minWidth: 1100 }}>
                       <colgroup>
                         <col style={{width:'32px'}} />
                         <col style={{width:'200px'}} />
@@ -394,27 +373,29 @@ export default function Shipping() {
                           return (
                             <Fragment key={custKey}>
                               <tr
-                                className="cursor-pointer hover:bg-greige-50/60 transition-colors"
+                                style={{ cursor: 'pointer', transition: 'background 160ms ease' }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--acBg)'}
+                                onMouseLeave={e => e.currentTarget.style.background = ''}
                                 onClick={() => toggleCustomer(custKey)}
                               >
-                                <td className="!px-0 text-center">
+                                <td style={{ paddingLeft: 0, paddingRight: 0, textAlign: 'center' }}>
                                   {isExpanded
-                                    ? <ChevronDown className="w-4 h-4 text-ink-400 mx-auto" />
-                                    : <ChevronRight className="w-4 h-4 text-ink-400 mx-auto" />}
+                                    ? <ChevronDown className="w-[14px] h-[14px] mx-auto" style={{ color: 'var(--ac)' }} />
+                                    : <ChevronRight className="w-[14px] h-[14px] mx-auto" style={{ color: 'var(--ac)' }} />}
                                 </td>
                                 <td>
-                                  <div className="font-medium text-ink-900 truncate" title={cust.customerName}>{cust.customerName || '–'}</div>
+                                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={cust.customerName}>{cust.customerName || '–'}</div>
                                   <Link
                                     to={`/customers/${cust.custId}`}
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="font-mono text-xs text-primary-700 hover:underline block truncate"
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--ac)', textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 3 }}
                                     title={cust.customerCode}
                                   >
                                     {cust.customerCode}
                                   </Link>
                                 </td>
-                                <td className="text-right tabular-nums">{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
-                                <td className="text-right tabular-nums text-ink-600" onClick={(e) => e.stopPropagation()}>
+                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12.5, fontWeight: 600, color: 'var(--tx)' }}>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
+                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12.5, color: 'var(--mu)' }} onClick={e => e.stopPropagation()}>
                                   {getUserRole() === 'admin' && editingRate?.custKey === custKey ? (
                                     <input
                                       type="number"
@@ -437,26 +418,27 @@ export default function Shipping() {
                                     </span>
                                   )}
                                 </td>
-                                <td className="text-right tabular-nums font-semibold text-primary-700">
+                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 700, color: 'var(--tx)' }}>
                                   {formatCurrency(cust.totalFee)}
                                 </td>
-                                <td onClick={(e) => e.stopPropagation()}>
+                                <td onClick={e => e.stopPropagation()}>
                                   <select
                                     value={cust.batchStatus}
-                                    onChange={(e) => updateBatchStatus(cust.custId, dateKey, e.target.value)}
-                                    className={`input-field py-1 text-xs w-full ${getStatusClass(cust.batchStatus)}`}
+                                    onChange={e => updateBatchStatus(cust.custId, dateKey, e.target.value)}
+                                    className="select-dark"
+                                    style={{ width: '100%', fontSize: 11.5, fontWeight: 600, padding: '7px 10px', borderRadius: 10, ...getStatusStyle(cust.batchStatus) }}
                                   >
                                     <option value="">Chưa báo</option>
                                     <option value="Đã báo hàng">Đã báo hàng</option>
                                     <option value="Đã báo ship">Đã báo ship</option>
                                   </select>
                                 </td>
-                                <td onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex flex-col items-center gap-1.5">
+                                <td onClick={e => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                                     {cust.paidStatus !== 'paid' && getUserRole() !== 'staff' ? (
                                       <button
                                         onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
-                                        className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-500 text-white hover:bg-primary-600 whitespace-nowrap"
+                                        style={{ appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '6px 13px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', boxShadow: '0 10px 20px -10px rgba(58,175,211,.9)', whiteSpace: 'nowrap' }}
                                       >
                                         Thanh toán
                                       </button>
@@ -464,56 +446,36 @@ export default function Shipping() {
                                       <PaidBadge status={cust.paidStatus} />
                                     )}
                                     {cust.paidStatus !== 'paid' && (
-                                      <span className="text-xs text-ink-400">
+                                      <span style={{ fontSize: 11, color: 'var(--mu)' }}>
                                         {cust.paidStatus === 'partial' ? 'TT 1 phần' : 'Chưa TT'}
                                       </span>
                                     )}
                                   </div>
                                 </td>
-                                <td className="text-right" onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex items-center justify-end gap-1">
-                                    <button
-                                      onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
-                                      className="inline-flex items-center p-2 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
-                                      title="Báo hàng về"
-                                    >
-                                      <Bell className="w-4 h-4" />
+                                <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
+                                    <button onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
+                                      className="btn-icon" title="Báo hàng về">
+                                      <Bell className="w-[15px] h-[15px]" />
                                     </button>
-                                    <button
-                                      onClick={() => openShipNotif({
-                                        customerName: cust.customerName,
-                                        carrier: settings.company?.delivery_carrier || '',
-                                        van_don_code: cust.vanDonCode,
-                                        totalFee: cust.totalFee,
-                                      })}
-                                      className="inline-flex items-center p-2 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
-                                      title="Báo ship hàng"
-                                    >
-                                      <Send className="w-4 h-4" />
+                                    <button onClick={() => openShipNotif({ customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee })}
+                                      className="btn-icon" title="Báo ship hàng">
+                                      <Send className="w-[15px] h-[15px]" />
                                     </button>
-                                    <button
-                                      onClick={() => setVanDonModal({
-                                        custId: cust.custId,
-                                        dateKey,
-                                        customerName: cust.customerName,
-                                        totalFee: cust.totalFee,
-                                        van_don_code: cust.vanDonCode,
-                                      })}
-                                      className="inline-flex items-center p-2 rounded-full bg-greige-100 text-ink-700 hover:bg-greige-200"
-                                      title="Mã vận đơn"
-                                    >
-                                      <Truck className="w-4 h-4" />
+                                    <button onClick={() => setVanDonModal({ custId: cust.custId, dateKey, customerName: cust.customerName, totalFee: cust.totalFee, van_don_code: cust.vanDonCode })}
+                                      className="btn-icon" title="Mã vận đơn">
+                                      <Truck className="w-[15px] h-[15px]" />
                                     </button>
                                   </div>
                                 </td>
                               </tr>
                               {isExpanded && (
-                                <tr>
-                                  <td colSpan={8} className="p-0">
-                                    <div className="border-t border-greige-100 bg-greige-50/40">
-                                      <table className="data-table w-full min-w-[960px]">
+                                <tr className="expand-row">
+                                  <td colSpan={8} style={{ padding: '14px 20px 18px 54px', background: 'var(--sunk)' }}>
+                                    <div style={{ borderRadius: 14, overflow: 'hidden', background: 'var(--sf)', border: '1px solid var(--ln)' }}>
+                                      <table className="data-table w-full" style={{ minWidth: 760 }}>
                                         <thead>
-                                          <tr className="bg-greige-50">
+                                          <tr>
                                             <th className="w-16">Kho</th>
                                             <th className="w-44">Tracking #</th>
                                             <th className="w-36">Sản phẩm</th>
@@ -525,11 +487,11 @@ export default function Shipping() {
                                           </tr>
                                         </thead>
                                         <tbody>
-                                          {cust.rows.map((s) => {
+                                          {cust.rows.map(s => {
                                             const isEditing = editingId === s.id;
                                             return (
-                                              <tr key={s.id} className={isEditing ? 'bg-primary-50/40' : ''}>
-                                                <td>{s.warehouse_code || '–'}</td>
+                                              <tr key={s.id} style={isEditing ? { background: 'var(--acBg)' } : {}}>
+                                                <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10.5, fontWeight: 700, color: 'var(--ac)' }}>{s.warehouse_code || '–'}</td>
                                                 <td>
                                                   {isEditing ? (
                                                     <input value={editValues.tracking_no}
@@ -566,7 +528,7 @@ export default function Shipping() {
                                                     formatCurrency(s.surcharge)
                                                   )}
                                                 </td>
-                                                <td className="tabular-nums font-semibold text-primary-700">
+                                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12, fontWeight: 600, color: 'var(--tx)' }}>
                                                   {isEditing ? '–' : formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}
                                                 </td>
                                                 <td>
@@ -583,23 +545,22 @@ export default function Shipping() {
                                                     {isEditing ? (
                                                       <>
                                                         <button onClick={() => saveEdit(s.id)}
-                                                          className="text-xs px-2.5 py-1 bg-primary-500 text-white rounded-full font-semibold hover:bg-primary-600">
+                                                          style={{ appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 20, color: 'var(--onbtn)', background: 'var(--btn)' }}>
                                                           Lưu
                                                         </button>
                                                         <button onClick={cancelEdit}
-                                                          className="text-xs px-2.5 py-1 bg-greige-100 text-ink-500 rounded-full font-semibold hover:bg-greige-200">
+                                                          style={{ appearance: 'none', border: '1px solid var(--ln)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 20, color: 'var(--tx2)', background: 'var(--sf2)' }}>
                                                           Hủy
                                                         </button>
                                                       </>
                                                     ) : (
                                                       <>
-                                                        <button onClick={() => startEdit(s)} aria-label="Chỉnh sửa"
-                                                          className="btn-icon text-primary-600 hover:bg-primary-50" title="Chỉnh sửa">
-                                                          <Edit2 className="w-4 h-4" />
+                                                        <button onClick={() => startEdit(s)} className="btn-icon" title="Chỉnh sửa">
+                                                          <Edit2 className="w-[14px] h-[14px]" />
                                                         </button>
-                                                        <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id} aria-label="Xóa"
-                                                          className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50" title="Xóa">
-                                                          <Trash2 className="w-4 h-4" />
+                                                        <button onClick={() => handleDelete(s.id)} disabled={deleting === s.id}
+                                                          className="btn-icon" title="Xóa" style={{ color: 'var(--badTx)' }}>
+                                                          <Trash2 className="w-[14px] h-[14px]" />
                                                         </button>
                                                       </>
                                                     )}
@@ -622,7 +583,7 @@ export default function Shipping() {
                   </div>
 
                   {/* Mobile: card list */}
-                  <div className="sm:hidden divide-y divide-greige-100 border-t border-greige-100">
+                  <div className="sm:hidden" style={{ borderTop: '1px solid var(--ln2)' }}>
                     {customers.map((cust) => {
                       const custKey = `${dateKey}_${cust.custId}`;
                       const isExpanded = expandedCustomers[custKey];
@@ -770,25 +731,26 @@ export default function Shipping() {
 
       {/* Van đơn modal */}
       {vanDonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-ink-900/50" onClick={() => setVanDonModal(null)} />
-          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-lg p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink-900">Mã vận đơn</h2>
-              <button onClick={() => setVanDonModal(null)} className="text-ink-400 hover:text-ink-900">
-                <X className="w-5 h-5" />
+        <div className="modal-overlay">
+          <div className="modal-box modal-pop" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>Mã vận đơn</h2>
+              <button onClick={() => setVanDonModal(null)} className="btn-icon">
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="text-sm text-ink-500">{vanDonModal.customerName} · {formatDate(vanDonModal.dateKey)}</p>
-            <input
-              type="text"
-              value={vanDonModal.van_don_code}
-              onChange={(e) => setVanDonModal((p) => ({ ...p, van_don_code: e.target.value }))}
-              placeholder="Nhập mã vận đơn..."
-              className="input-field"
-              autoFocus
-            />
-            <div className="flex gap-2 justify-end">
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>{vanDonModal.customerName} · {formatDate(vanDonModal.dateKey)}</p>
+              <input
+                type="text"
+                value={vanDonModal.van_don_code}
+                onChange={e => setVanDonModal(p => ({ ...p, van_don_code: e.target.value }))}
+                placeholder="Nhập mã vận đơn..."
+                className="input-field"
+                autoFocus
+              />
+            </div>
+            <div className="modal-footer">
               <button onClick={() => setVanDonModal(null)} className="btn-secondary">Đóng</button>
               <button
                 className="btn-primary"
@@ -822,39 +784,38 @@ export default function Shipping() {
 
       {/* Ship notification modal */}
       {shipNotifModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-ink-900/50" onClick={() => setShipNotifModal(null)} />
-          <div className="relative bg-white rounded-frame shadow-2xl w-full max-w-lg p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-ink-900">
+        <div className="modal-overlay">
+          <div className="modal-box modal-pop" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>
                 Báo ship – {shipNotifModal.customerName}
               </h2>
-              <button onClick={() => setShipNotifModal(null)} className="text-ink-400 hover:text-ink-900">
-                <X className="w-5 h-5" />
+              <button onClick={() => setShipNotifModal(null)} className="btn-icon">
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <textarea
-              className="w-full rounded-card border border-greige-200 p-3 text-sm text-ink-800 leading-relaxed resize-none focus:outline-none focus:ring-2 focus:ring-primary-300"
-              rows={10}
-              value={shipNotifText}
-              onChange={(e) => setShipNotifText(e.target.value)}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => { navigator.clipboard.writeText(shipNotifText); toast('Đã copy nội dung!', 'success'); }}
-                className="flex-1 btn-secondary inline-flex items-center justify-center gap-2"
-              >
-                <Copy className="w-4 h-4" />
-                Copy nội dung
-              </button>
-              <button
-                disabled
-                className="flex-1 btn-primary opacity-50 cursor-not-allowed inline-flex items-center justify-center gap-2"
-                title="Tính năng sắp ra mắt"
-              >
-                <Send className="w-4 h-4" />
-                Gửi báo ship qua Zalo
-              </button>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <textarea
+                className="input-field"
+                style={{ width: '100%', resize: 'none', lineHeight: 1.6, fontSize: 13 }}
+                rows={10}
+                value={shipNotifText}
+                onChange={e => setShipNotifText(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(shipNotifText); toast('Đã copy nội dung!', 'success'); }}
+                  className="btn-secondary"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy nội dung
+                </button>
+                <button disabled className="btn-primary" style={{ flex: 1, opacity: 0.5, cursor: 'not-allowed' }} title="Tính năng sắp ra mắt">
+                  <Send className="w-4 h-4" />
+                  Gửi qua Zalo
+                </button>
+              </div>
             </div>
           </div>
         </div>
