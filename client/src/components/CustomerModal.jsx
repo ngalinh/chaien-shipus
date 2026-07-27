@@ -195,7 +195,7 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
       <div className="modal-box">
         {/* Header */}
         <div className="modal-header">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--tx)' }}>
             {isEdit ? 'Chỉnh sửa khách hàng' : 'Tạo mã khách hàng mới'}
           </h2>
           <button onClick={onClose} className="btn-icon">
@@ -305,17 +305,19 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 onClick={() => totalImages < 2 && fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors duration-150 ${
-                  dragOver ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50 hover:border-green-400 hover:bg-green-50'
-                } ${totalImages >= 2 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors duration-150 ${totalImages >= 2 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                style={{
+                  borderColor: dragOver ? 'var(--brand)' : 'var(--ln)',
+                  background: dragOver ? 'rgba(58,175,211,.08)' : 'var(--sf2)',
+                }}
               >
-                <Upload className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                <Upload className="w-6 h-6 mx-auto mb-1" style={{ color: 'var(--mu)' }} />
                 {totalImages >= 2 ? (
-                  <p className="text-sm text-gray-500">Đã đủ 2 ảnh</p>
+                  <p className="text-sm" style={{ color: 'var(--mu)' }}>Đã đủ 2 ảnh</p>
                 ) : (
                   <>
-                    <p className="text-sm text-gray-500">Kéo thả hoặc click để chọn ảnh</p>
-                    <p className="text-xs text-green-600 font-medium mt-0.5">hoặc nhấn Ctrl+V / ⌘V để dán ảnh từ clipboard</p>
+                    <p className="text-sm" style={{ color: 'var(--tx2)' }}>Kéo thả hoặc click để chọn ảnh</p>
+                    <p className="text-xs font-medium mt-0.5" style={{ color: 'var(--ac)' }}>hoặc nhấn Ctrl+V / ⌘V để dán ảnh từ clipboard</p>
                   </>
                 )}
               </div>

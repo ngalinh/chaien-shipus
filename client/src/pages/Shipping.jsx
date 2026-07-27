@@ -481,9 +481,9 @@ export default function Shipping() {
                                             <th className="w-36">Sản phẩm</th>
                                             <th className="w-28">Cân nặng</th>
                                             <th className="w-28">Phụ thu</th>
-                                            <th className="w-32">Tổng phí VC</th>
+                                            <th className="w-32 !text-right">Tổng phí VC</th>
                                             <th className="w-28">Ghi chú</th>
-                                            <th className="w-24 text-right">Thao tác</th>
+                                            <th className="w-32 !text-right">Thao tác</th>
                                           </tr>
                                         </thead>
                                         <tbody>

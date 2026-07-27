@@ -235,8 +235,8 @@ body[data-theme="light"] {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     color: var(--mu);
     background: var(--sf2);

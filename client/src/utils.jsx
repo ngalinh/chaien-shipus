@@ -191,13 +191,13 @@ export const PAID_FILTERS = [
 
 export function PaidBadge({ status }) {
   const map = {
-    paid:    { label: 'Đã TT',       cls: 'bg-success-100 text-success-700' },
-    partial: { label: 'TT một phần', cls: 'bg-warning-100 text-warning-700' },
-    unpaid:  { label: 'Chưa TT',     cls: 'bg-danger-100 text-danger-600' },
+    paid:    { label: 'Đã TT',       style: { background: 'var(--okBg)', color: 'var(--okTx)', border: '1px solid var(--okLn)' } },
+    partial: { label: 'TT một phần', style: { background: 'var(--warnBg)', color: 'var(--warnTx)', border: '1px solid var(--warnLn)' } },
+    unpaid:  { label: 'Chưa TT',     style: { background: 'var(--badBg)', color: 'var(--badTx)', border: '1px solid var(--badLn)' } },
   };
   const s = map[status] || map.unpaid;
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap ${s.cls}`}>
+    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap" style={s.style}>
       {s.label}
     </span>
   );
