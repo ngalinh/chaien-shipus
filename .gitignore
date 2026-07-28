@@ -13,3 +13,11 @@ test_webapp.py
 .playwright-mcp/
 /notif-*dataurl.txt
 baokhach.md
+
+# local-runner (Zalo automation) — session/screenshots/runtime data, KHÔNG commit
+# (đường dẫn ở REPO ROOT, không phải local-runner/ — xem local-runner/config.js)
+/playwright-data/
+/screenshots/
+/config/zalo-accounts.json
+/config/login-history.json
+/config/test-mode.json
