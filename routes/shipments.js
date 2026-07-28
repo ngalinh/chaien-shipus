@@ -16,7 +16,8 @@ function todayStr() {
 // can share it without circular deps.
 function triggerAutoDebit(importDate, customerId) {
   const feeRow = db.prepare(`
-    SELECT COALESCE(SUM(weight * customer_rate + surcharge), 0) AS total_vc_fee,
+    SELECT ROUND(MAX(0.5, COALESCE(SUM(weight), 0)) * COALESCE(MAX(customer_rate), 0)
+                 + COALESCE(SUM(surcharge), 0), 0) AS total_vc_fee,
            COUNT(*) AS cnt
     FROM shipments
     WHERE import_date = ? AND customer_id = ?
@@ -149,7 +150,7 @@ router.post('/import', (req, res) => {
           warehouseId,
           tracking_no || null,
           product     || null,
-          Math.max(0.5, parseFloat(weight) || 0),
+          parseFloat(weight) || 0,
           0,
           partnerRate,
           customerRate
@@ -340,7 +341,8 @@ router.get('/bao-khach', (req, res) => {
         ROUND(SUM(s.weight),   2)                                        AS total_weight,
         ROUND(SUM(s.weight * s.partner_rate),  2)                        AS total_partner_fee,
         ROUND(SUM(s.surcharge), 2)                                       AS total_surcharge,
-        ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)          AS total_vc_fee,
+        ROUND(MAX(0.5, SUM(s.weight)) * MAX(s.customer_rate)
+              + COALESCE(SUM(s.surcharge), 0), 2)                        AS total_vc_fee,
         bi.van_don_code,
         bi.notified_at,
         COALESCE(bi.status, '')                                          AS status,
