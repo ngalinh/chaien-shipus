@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import {
   Plus, Edit2, Trash2, X,
@@ -10,7 +11,7 @@ import MoneyInput from '../components/MoneyInput.jsx';
 
 // ─── Generic modal wrapper ────────────────────────────────────────────────────
 function Modal({ title, onClose, children }) {
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-box">
         <div className="modal-header">
@@ -19,7 +20,8 @@ function Modal({ title, onClose, children }) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
