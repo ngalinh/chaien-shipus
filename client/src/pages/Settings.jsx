@@ -338,7 +338,6 @@ function WarehousesSection({ warehouses, setWarehouses }) {
               <th>Mã kho</th>
               <th>Tên kho</th>
               <th>Cước (VND/kg)</th>
-              <th>Mã gộp (alias)</th>
               <th className="!text-right">Thao tác</th>
             </tr>
           </thead>
@@ -355,12 +354,20 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                   />
                 </td>
                 <td>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="Kho Hà Nội"
-                  />
+                  <div className="space-y-1">
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                      className="input-field py-1 text-sm"
+                      placeholder="Kho Hà Nội"
+                    />
+                    <input
+                      value={form.aliases}
+                      onChange={(e) => setForm((p) => ({ ...p, aliases: e.target.value }))}
+                      className="input-field py-1 text-xs uppercase"
+                      placeholder="Alias: OR,NH"
+                    />
+                  </div>
                 </td>
                 <td>
                   <MoneyInput
@@ -368,14 +375,6 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                     onChange={(v) => setForm((p) => ({ ...p, rate_per_kg: v }))}
                     className="input-field py-1 text-sm"
                     placeholder="30000"
-                  />
-                </td>
-                <td>
-                  <input
-                    value={form.aliases}
-                    onChange={(e) => setForm((p) => ({ ...p, aliases: e.target.value }))}
-                    className="input-field py-1 text-sm uppercase"
-                    placeholder="OR,NH"
                   />
                 </td>
                 <td className="text-right">
@@ -392,7 +391,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
             )}
             {warehouses.length === 0 && !adding ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-ink-400">Chưa có kho nào</td>
+                <td colSpan={4} className="text-center py-6 text-ink-400">Chưa có kho nào</td>
               </tr>
             ) : (
               warehouses.map((w) => (
@@ -410,12 +409,25 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                   </td>
                   <td>
                     {editId === w.id ? (
-                      <input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
-                        className="input-field py-1 text-sm"
-                      />
-                    ) : w.name}
+                      <div className="space-y-1">
+                        <input
+                          value={editForm.name}
+                          onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                          className="input-field py-1 text-sm"
+                        />
+                        <input
+                          value={editForm.aliases}
+                          onChange={(e) => setEditForm((p) => ({ ...p, aliases: e.target.value }))}
+                          className="input-field py-1 text-xs uppercase"
+                          placeholder="Alias: OR,NH"
+                        />
+                      </div>
+                    ) : (
+                      <div>
+                        <span>{w.name}</span>
+                        {w.aliases && <span className="block font-mono text-xs mt-0.5" style={{ color: 'var(--mu)' }}>{w.aliases}</span>}
+                      </div>
+                    )}
                   </td>
                   <td>
                     {editId === w.id ? (
@@ -426,18 +438,6 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                       />
                     ) : (
                       formatCurrency(w.rate_per_kg)
-                    )}
-                  </td>
-                  <td>
-                    {editId === w.id ? (
-                      <input
-                        value={editForm.aliases}
-                        onChange={(e) => setEditForm((p) => ({ ...p, aliases: e.target.value }))}
-                        className="input-field py-1 text-sm uppercase"
-                        placeholder="OR,NH"
-                      />
-                    ) : (
-                      <span className="font-mono text-xs" style={{ color: 'var(--mu)' }}>{w.aliases || '–'}</span>
                     )}
                   </td>
                   <td className="text-right">
@@ -568,7 +568,6 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
               <th>Ngân hàng</th>
               <th>Số tài khoản</th>
               <th>Chủ tài khoản</th>
-              <th className="!text-center">Mặc định</th>
               <th className="!text-right">Thao tác</th>
             </tr>
           </thead>
@@ -583,6 +582,15 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                     placeholder="Vietcombank"
                     autoFocus
                   />
+                  <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.is_default}
+                      onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))}
+                      className="w-3.5 h-3.5"
+                    />
+                    <span className="text-xs" style={{ color: 'var(--mu)' }}>Mặc định</span>
+                  </label>
                 </td>
                 <td>
                   <input
@@ -600,14 +608,6 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                     placeholder="NGUYEN VAN A"
                   />
                 </td>
-                <td className="text-center">
-                  <input
-                    type="checkbox"
-                    checked={form.is_default}
-                    onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))}
-                    className="w-4 h-4 text-primary-600"
-                  />
-                </td>
                 <td className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
@@ -622,20 +622,39 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
             )}
             {bankAccounts.length === 0 && !adding ? (
               <tr>
-                <td colSpan={5} className="text-center py-6 text-ink-400">Chưa có tài khoản nào</td>
+                <td colSpan={4} className="text-center py-6 text-ink-400">Chưa có tài khoản nào</td>
               </tr>
             ) : (
               bankAccounts.map((b) => (
                 <tr key={b.id} style={editId === b.id ? { background: 'var(--warnBg)' } : {}}>
                   <td>
                     {editId === b.id ? (
-                      <input
-                        value={editForm.bank_name}
-                        onChange={(e) => setEditForm((p) => ({ ...p, bank_name: e.target.value }))}
-                        className="input-field py-1 text-sm"
-                      />
+                      <div className="space-y-1.5">
+                        <input
+                          value={editForm.bank_name}
+                          onChange={(e) => setEditForm((p) => ({ ...p, bank_name: e.target.value }))}
+                          className="input-field py-1 text-sm"
+                        />
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editForm.is_default}
+                            onChange={(e) => setEditForm((p) => ({ ...p, is_default: e.target.checked }))}
+                            className="w-3.5 h-3.5"
+                          />
+                          <span className="text-xs" style={{ color: 'var(--mu)' }}>Mặc định</span>
+                        </label>
+                      </div>
                     ) : (
-                      <span className="font-medium">{b.bank_name}</span>
+                      <div>
+                        <span className="font-medium">{b.bank_name}</span>
+                        {b.is_default && (
+                          <span className="flex items-center gap-1 text-yellow-500 text-xs font-medium mt-0.5">
+                            <Star className="w-3 h-3 fill-current" />
+                            Mặc định
+                          </span>
+                        )}
+                      </div>
                     )}
                   </td>
                   <td>
@@ -657,23 +676,6 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                         className="input-field py-1 text-sm"
                       />
                     ) : b.account_holder}
-                  </td>
-                  <td className="text-center">
-                    {editId === b.id ? (
-                      <input
-                        type="checkbox"
-                        checked={editForm.is_default}
-                        onChange={(e) => setEditForm((p) => ({ ...p, is_default: e.target.checked }))}
-                        className="w-4 h-4 text-primary-600"
-                      />
-                    ) : (
-                      b.is_default ? (
-                        <span className="inline-flex items-center gap-1 text-yellow-600 text-xs font-medium">
-                          <Star className="w-3.5 h-3.5 fill-current" />
-                          Mặc định
-                        </span>
-                      ) : '–'
-                    )}
                   </td>
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
