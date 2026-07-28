@@ -3,6 +3,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import shipusLogo from '../assets/shipus-logo.png';
 import ImportModal from '../components/ImportModal.jsx';
+import NotificationModal from '../components/NotificationModal.jsx';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (v) => (v == null || isNaN(v) ? '0' : Number(v).toLocaleString('en-US'));
@@ -187,6 +188,7 @@ export default function MobilePWA() {
   const [settingsData, setSettingsData] = useState(null);
   const [vanDonData, setVanDonData] = useState(null); // { cust, code }
   const [shipMsgData, setShipMsgData] = useState(null); // { customerName, text }
+  const [notifModalData, setNotifModalData] = useState(null); // { notifData, company, bank }
 
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
@@ -410,6 +412,33 @@ export default function MobilePWA() {
     } catch {
       setNotifyState((s) => ({ ...s, [cust.id]: prev }));
     }
+  }
+
+  async function handleBaoHang(c) {
+    handleNotify(c, 'Đã báo hàng');
+    let sd = settingsData;
+    if (!sd) {
+      try {
+        const r = await axios.get('/api/settings');
+        sd = r.data;
+        setSettingsData(sd);
+      } catch { sd = {}; }
+    }
+    setNotifModalData({
+      notifData: {
+        customerName: c.name,
+        date: batchDate,
+        items: c.parcels.map((p) => ({
+          tracking_no: p.tracking_no,
+          product: p.product,
+          weight: p.weight,
+          customer_fee: p.phi_vc || (p.weight * p.customer_rate + p.surcharge),
+        })),
+        fileName: `thong-bao-${c.code || 'kh'}-${batchDate}.png`,
+      },
+      company: sd.company || {},
+      bank: (sd.bank_accounts || []).find((b) => b.is_default) || (sd.bank_accounts || [])[0] || null,
+    });
   }
 
   function openShipMsg(cust) {
@@ -653,14 +682,23 @@ export default function MobilePWA() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
                 <span style={{ padding: '5px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--tx2)' }}>{fmtKg(c.kg)} kg</span>
                 <span style={{ padding: '5px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--tx2)' }}>{fmt(c.rate)} đ/kg</span>
-                <span style={{ padding: '5px 9px', borderRadius: 10, fontSize: 10.5, fontWeight: 700, background: nui.bg, border: `1px solid ${nui.border}`, color: nui.color }}>{nui.label}</span>
+                <select
+                  value={ns || 'Chưa báo'}
+                  onChange={(e) => { e.stopPropagation(); handleNotify(c, e.target.value); }}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ padding: '5px 9px', borderRadius: 10, fontSize: 10.5, fontWeight: 700, background: nui.bg, border: `1px solid ${nui.border}`, color: nui.color, outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="Chưa báo">Chưa báo</option>
+                  <option value="Đã báo hàng">Đã báo hàng</option>
+                  <option value="Đã báo ship">Đã báo ship</option>
+                </select>
               </div>
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 {c.paidStatus !== 'paid' && (
                   <Btn onClick={() => openPay(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Thanh toán</Btn>
                 )}
-                <Btn onClick={() => handleNotify(c, 'Đã báo hàng')} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
+                <Btn onClick={() => handleBaoHang(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
                 <Btn onClick={() => openShipMsg(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo ship</Btn>
                 <Btn onClick={() => setVanDonData({ cust: c, code: c.van_don_code || '' })} style={{
                   flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
@@ -1144,10 +1182,10 @@ export default function MobilePWA() {
                   href="https://ai.basso.vn/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ height: 38, padding: '0 12px', borderRadius: 13, display: 'inline-flex', alignItems: 'center', gap: 7, background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)', textDecoration: 'none' }}
+                  title="Basso"
+                  style={{ width: 38, height: 38, borderRadius: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)', textDecoration: 'none' }}
                 >
                   <IcoGrid />
-                  <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.02em' }}>Basso</span>
                 </a>
               </>
             )}
@@ -1348,6 +1386,15 @@ export default function MobilePWA() {
         <ImportModal
           onClose={() => setImportOpen(false)}
           onImported={() => { setImportOpen(false); fetchShipments(); showToast('✓ Nhập kho thành công'); }}
+        />
+      )}
+
+      {notifModalData && (
+        <NotificationModal
+          notifData={notifModalData.notifData}
+          company={notifModalData.company}
+          bank={notifModalData.bank}
+          onClose={() => setNotifModalData(null)}
         />
       )}
 
