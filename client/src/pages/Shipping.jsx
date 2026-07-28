@@ -394,8 +394,8 @@ export default function Shipping() {
                                     {cust.customerCode}
                                   </Link>
                                 </td>
-                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12.5, fontWeight: 600, color: 'var(--tx)' }}>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
-                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12.5, color: 'var(--mu)' }} onClick={e => e.stopPropagation()}>
+                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 600, color: 'var(--tx)' }}>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
+                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, color: 'var(--mu)' }} onClick={e => e.stopPropagation()}>
                                   {getUserRole() === 'admin' && editingRate?.custKey === custKey ? (
                                     <input
                                       type="number"
