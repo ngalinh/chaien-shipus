@@ -224,7 +224,7 @@ export default function NotificationTemplate({
             }}
           >
             <div data-nudge="4">STT</div>
-            <div data-nudge="4">Tracking #</div>
+            <div data-nudge="4" style={{ textAlign: 'left' }}>Tracking #</div>
             <div data-nudge="4">Sản phẩm</div>
             <div data-nudge="4">Cân nặng</div>
             <div data-nudge="4">Phí VC</div>
@@ -240,7 +240,7 @@ export default function NotificationTemplate({
               }}
             >
               <div data-nudge="7" style={{ fontSize: 15, color: '#90a6b3', fontWeight: 500 }}>{idx + 1}</div>
-              <div data-nudge="7" style={{ fontFamily: MONO, fontSize: 14, color: '#1a3a4d', letterSpacing: -0.2, wordBreak: 'break-all' }}>
+              <div data-nudge="7" style={{ fontFamily: MONO, fontSize: 14, color: '#1a3a4d', letterSpacing: -0.2, wordBreak: 'break-all', textAlign: 'left' }}>
                 {item.tracking_no || '–'}
               </div>
               <div data-nudge="7" style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
