@@ -450,9 +450,9 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                           flex: 1,
                           padding: '8px 0',
                           borderRadius: 10,
-                          border: `1.5px solid ${active ? '#7aabe0' : 'var(--ln)'}`,
-                          background: active ? '#ddeeff' : 'var(--sf2)',
-                          color: '#111',
+                          border: `1.5px solid ${active ? 'var(--ac)' : 'var(--ln)'}`,
+                          background: active ? 'var(--acBg)' : 'var(--sf2)',
+                          color: active ? 'var(--ac)' : 'var(--tx2)',
                           fontWeight: 600,
                           fontSize: 13,
                           cursor: 'pointer',
@@ -504,9 +504,9 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                   )}
                 </select>
               ) : (
-                <p className="text-sm text-gray-600 py-2">
+                <p className="text-sm py-2" style={{ color: 'var(--tx2)' }}>
                   {bassoUser?.name
-                    ? <>Sẽ gán cho <span className="font-semibold text-gray-900">{bassoUser.name}</span> (bạn)</>
+                    ? <>Sẽ gán cho <span className="font-semibold" style={{ color: 'var(--tx)' }}>{bassoUser.name}</span> (bạn)</>
                     : <span className="text-amber-600">Chưa đăng nhập BASSO — mã KH sẽ không có NV phụ trách</span>}
                 </p>
               )}
@@ -542,17 +542,17 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
       {/* Rate change timing popup */}
       {ratePopup && (
         <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-xs w-full relative">
+          <div className="rounded-xl shadow-xl p-6 max-w-xs w-full relative" style={{ background: 'var(--sf)', border: '1px solid var(--ln)', backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)' }}>
             <button
               type="button"
               onClick={() => { setRatePopup(false); }}
-              className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              className="btn-icon absolute top-3 right-3"
               aria-label="Đóng"
             >
               <X className="w-4 h-4" />
             </button>
-            <p className="font-semibold text-gray-900 mb-1">Thay đổi cước vận chuyển</p>
-            <p className="text-sm text-gray-600 mb-5">Bạn muốn thay đổi cước vận chuyển từ tháng này hay tháng sau?</p>
+            <p className="font-semibold mb-1" style={{ color: 'var(--tx)' }}>Thay đổi cước vận chuyển</p>
+            <p className="text-sm mb-5" style={{ color: 'var(--tx2)' }}>Bạn muốn thay đổi cước vận chuyển từ tháng này hay tháng sau?</p>
             <div className="flex gap-3">
               <button
                 type="button"
