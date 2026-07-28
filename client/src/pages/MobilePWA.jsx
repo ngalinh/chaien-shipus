@@ -132,6 +132,16 @@ const IcoPlus = () => (
     <path d="M12 5v14"/><path d="M5 12h14"/>
   </svg>
 );
+const IcoTruck = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3"/><rect x="9" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+  </svg>
+);
+const IcoCopy = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+  </svg>
+);
 
 const NAV_ITEMS = [
   { key: 'dash',  label: 'Tổng quan',   Icon: IcoHome    },
@@ -175,6 +185,8 @@ export default function MobilePWA() {
   const [revData, setRevData]       = useState(null);
   const [revTab, setRevTab]         = useState('customer');
   const [settingsData, setSettingsData] = useState(null);
+  const [vanDonData, setVanDonData] = useState(null); // { cust, code }
+  const [shipMsgData, setShipMsgData] = useState(null); // { customerName, text }
 
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
@@ -275,13 +287,14 @@ export default function MobilePWA() {
         map[cid] = {
           id: cid, name: s.customer_name, code: s.customer_code,
           kg: 0, fee: 0, rate: s.customer_rate, parcels: [],
-          paidStatuses: [], notifyStatus: s.batch_status || '',
+          paidStatuses: [], notifyStatus: s.batch_status || '', van_don_code: '',
         };
       }
       map[cid].kg  += s.weight;
       map[cid].fee += s.phi_vc || (s.weight * s.customer_rate + s.surcharge);
       map[cid].paidStatuses.push(s.paid_status || 'unpaid');
       if (s.batch_status) map[cid].notifyStatus = s.batch_status;
+      if (s.van_don_code) map[cid].van_don_code = s.van_don_code;
       map[cid].parcels.push(s);
     }
     return Object.values(map).map((c) => ({
@@ -376,6 +389,11 @@ export default function MobilePWA() {
     setDrawerOpen(false);
   }
 
+  function buildShipText(customerName, van_don_code) {
+    const code = van_don_code || '';
+    return `Anh/Chị ${customerName} ơi, đơn hàng của mình đã được bàn giao cho đơn vị vận chuyển rồi ạ 🚚\n📦 Mã vận đơn: ${code}\n🔎 Theo dõi: https://i.ghtk.vn/${code}\nPhí ship anh/chị vui lòng thanh toán cho shipper khi nhận hàng.\nDự kiến 2–5 ngày mình sẽ nhận được hàng. Cần hỗ trợ cứ nhắn bên em nhé 💕`;
+  }
+
   async function handleNotify(cust, status) {
     const prev = notifyState[cust.id] ?? cust.notifyStatus;
     setNotifyState((s) => ({ ...s, [cust.id]: status }));
@@ -386,8 +404,31 @@ export default function MobilePWA() {
         customer_id: cust.id,
         status,
       });
+      if (status === 'Đã báo hàng') {
+        axios.post('/api/shipments/batch/notify', { batch_date: batchDate, customer_id: cust.id }).catch(() => {});
+      }
     } catch {
       setNotifyState((s) => ({ ...s, [cust.id]: prev }));
+    }
+  }
+
+  function openShipMsg(cust) {
+    setShipMsgData({ customerName: cust.name, text: buildShipText(cust.name, cust.van_don_code) });
+  }
+
+  async function saveVanDon() {
+    if (!vanDonData) return;
+    try {
+      await axios.put('/api/shipments/batch', {
+        batch_date: batchDate,
+        customer_id: vanDonData.cust.id,
+        van_don_code: vanDonData.code,
+      });
+      setVanDonData(null);
+      fetchShipments();
+      openShipMsg({ name: vanDonData.cust.name, van_don_code: vanDonData.code });
+    } catch {
+      showToast('Lỗi lưu mã vận đơn');
     }
   }
 
@@ -617,10 +658,14 @@ export default function MobilePWA() {
               {/* Action buttons */}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 {c.paidStatus !== 'paid' && (
-                  <Btn onClick={() => openPay(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Thanh toán</Btn>
+                  <Btn onClick={() => openPay(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Thanh toán</Btn>
                 )}
-                <Btn onClick={() => handleNotify(c, 'Đã báo hàng')} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12.5, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
-                <Btn onClick={() => handleNotify(c, 'Đã báo ship')} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12.5, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo ship</Btn>
+                <Btn onClick={() => handleNotify(c, 'Đã báo hàng')} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
+                <Btn onClick={() => openShipMsg(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo ship</Btn>
+                <Btn onClick={() => setVanDonData({ cust: c, code: c.van_don_code || '' })} style={{
+                  flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
+                  color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
+                }} title="Mã vận đơn"><IcoTruck /></Btn>
                 <Btn onClick={() => setOpenCards((s) => ({ ...s, [c.id]: !s[c.id] }))} style={{
                   flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
                   color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
@@ -1080,7 +1125,7 @@ export default function MobilePWA() {
               </div>
             )}
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <div style={{ flexShrink: 0, display: 'flex', gap: 8 }}>
             {isCust ? (
               <>
                 <Btn style={{ width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)' }}>
@@ -1244,6 +1289,55 @@ export default function MobilePWA() {
             <div style={{ display: 'flex', gap: 9, marginTop: 12 }}>
               <Btn onClick={() => setPayOpen(false)} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
               <Btn onClick={confirmPay} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0, boxShadow: '0 18px 34px -16px rgba(58,175,211,.9)' }}>Xác nhận đã thu</Btn>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Van Don Modal ── */}
+      {vanDonData && (
+        <>
+          <div onClick={() => setVanDonData(null)} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both' }}>
+            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
+              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Mã vận đơn</div>
+            <div style={{ fontSize: 11.5, color: 'var(--mu)', marginTop: 4 }}>{vanDonData.cust.name}</div>
+            <input
+              value={vanDonData.code}
+              onChange={(e) => setVanDonData((d) => ({ ...d, code: e.target.value }))}
+              placeholder="Nhập mã vận đơn..."
+              style={{ width: '100%', marginTop: 14, height: 48, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 15, fontFamily: '"JetBrains Mono", monospace', padding: '0 16px', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
+              <Btn onClick={() => setVanDonData(null)} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
+              <Btn onClick={saveVanDon} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Lưu & Báo ship</Btn>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Ship Msg Modal ── */}
+      {shipMsgData && (
+        <>
+          <div onClick={() => setShipMsgData(null)} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both' }}>
+            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
+              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Báo ship – {shipMsgData.customerName}</div>
+            <textarea
+              value={shipMsgData.text}
+              onChange={(e) => setShipMsgData((d) => ({ ...d, text: e.target.value }))}
+              rows={8}
+              style={{ width: '100%', marginTop: 14, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '12px 16px', boxSizing: 'border-box', resize: 'none', lineHeight: 1.6 }}
+            />
+            <div style={{ display: 'flex', gap: 9, marginTop: 12 }}>
+              <Btn onClick={() => setShipMsgData(null)} style={{ flexShrink: 0, padding: '0 16px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Đóng</Btn>
+              <Btn onClick={() => { navigator.clipboard.writeText(shipMsgData.text); showToast('✓ Đã copy nội dung'); }} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <IcoCopy />Copy nội dung
+              </Btn>
             </div>
           </div>
         </>
