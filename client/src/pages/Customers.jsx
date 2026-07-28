@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, FileSpreadsheet } from 'lucide-react';
 import { formatDate, calcCustomerStatus } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
+import ImportCustomersModal from '../components/ImportCustomersModal.jsx';
 
 function StatusChip({ status }) {
   const isActive = status === 'active';
@@ -46,6 +47,7 @@ export default function Customers() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
@@ -152,6 +154,10 @@ export default function Customers() {
               </button>
             )}
           </div>
+          <button onClick={() => setImportOpen(true)} className="btn-secondary">
+            <FileSpreadsheet className="w-4 h-4" />
+            Import Excel
+          </button>
           <button onClick={openCreate} className="btn-primary">
             <Plus className="w-4 h-4" />
             Tạo Mã KH
@@ -241,6 +247,13 @@ export default function Customers() {
           saleOptions={saleOptions}
           onClose={() => setModalOpen(false)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {importOpen && (
+        <ImportCustomersModal
+          onClose={() => setImportOpen(false)}
+          onImported={fetchCustomers}
         />
       )}
 
