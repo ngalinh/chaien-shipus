@@ -1,25 +1,26 @@
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Truck, Users, Receipt, TrendingUp, Settings } from 'lucide-react';
+import { Truck, Users, Receipt, TrendingUp } from 'lucide-react';
 
-import imgDashboard from '../assets/guide/01-dashboard.jpg';
 import imgShipping from '../assets/guide/02-shipping.jpg';
+import imgNhapKho from '../assets/guide/07-nhap-kho.jpg';
+import imgBaoHangVe from '../assets/guide/08-bao-hang-ve.jpg';
+import imgBaoShip from '../assets/guide/09-bao-ship.jpg';
 import imgCustomers from '../assets/guide/03-customers.jpg';
+import imgTaoKH from '../assets/guide/10-tao-kh.jpg';
+import imgKhDetail from '../assets/guide/11-kh-detail.jpg';
 import imgTransactions from '../assets/guide/04-transactions.jpg';
+import imgTaoThanhToan from '../assets/guide/12-tao-thanh-toan.jpg';
 import imgRevenue from '../assets/guide/05-revenue.jpg';
-import imgSettings from '../assets/guide/06-settings.jpg';
 
 const SECTIONS = [
   {
-    num: '01', title: 'Tổng quan', icon: LayoutDashboard, route: '/', img: imgDashboard,
-    features: [
-      'Lợi nhuận gộp = phí khách trả − phí trả đối tác',
-      'Bộ lọc kỳ: Tháng này · 3 tháng · 6 tháng · Năm nay · Tuỳ chỉnh',
-      'Các tile: Còn phải thu · Tổng cân nặng · Số khách · Trả đối tác',
-      'Bảng xếp hạng Top khách theo phí VC trong kỳ',
+    num: '01', title: 'Hàng về', icon: Truck, route: '/shipping',
+    mainImg: imgShipping,
+    subImgs: [
+      { img: imgNhapKho, caption: 'Nhập kho — dán dữ liệu Excel từ đối tác' },
+      { img: imgBaoHangVe, caption: 'Phiếu báo hàng về — xem và gửi Zalo' },
+      { img: imgBaoShip, caption: 'Báo ship — copy mã vận đơn hoặc gửi Zalo' },
     ],
-  },
-  {
-    num: '02', title: 'Hàng về', icon: Truck, route: '/shipping', img: imgShipping,
     features: [
       'Nhập kho: dán dữ liệu Excel từ đối tác (Tab-separated, 5 cột)',
       'Trạng thái lô: Chưa báo → Đã báo hàng → Đã báo ship',
@@ -29,7 +30,12 @@ const SECTIONS = [
     ],
   },
   {
-    num: '03', title: 'Khách hàng', icon: Users, route: '/customers', img: imgCustomers,
+    num: '02', title: 'Khách hàng', icon: Users, route: '/customers',
+    mainImg: imgCustomers,
+    subImgs: [
+      { img: imgTaoKH, caption: 'Tạo mã KH mới — điền thông tin và gán nhóm cước' },
+      { img: imgKhDetail, caption: 'Trang khách hàng — lịch sử hàng & sổ giao dịch' },
+    ],
     features: [
       'Badge trạng thái: Active 1m / 2m / 3m / Inactive',
       'Click tên khách → xem tài khoản: lịch sử hàng + sổ giao dịch',
@@ -38,7 +44,11 @@ const SECTIONS = [
     ],
   },
   {
-    num: '04', title: 'Giao dịch', icon: Receipt, route: '/transactions', img: imgTransactions,
+    num: '03', title: 'Giao dịch', icon: Receipt, route: '/transactions',
+    mainImg: imgTransactions,
+    subImgs: [
+      { img: imgTaoThanhToan, caption: 'Tạo thanh toán — chọn loại thu/chi và khách hàng' },
+    ],
     features: [
       'Tổng Thu · Chi · Chênh lệch trong kỳ hiển thị đầu trang',
       'Lọc theo danh mục Thu / Chi, mã KH, từ khóa nội dung',
@@ -47,23 +57,24 @@ const SECTIONS = [
     ],
   },
   {
-    num: '05', title: 'Doanh thu VC', icon: TrendingUp, route: '/revenue', img: imgRevenue,
+    num: '04', title: 'Doanh thu VC', icon: TrendingUp, route: '/revenue',
+    mainImg: imgRevenue,
+    subImgs: [],
     features: [
       'Bảng doanh thu từng tháng: tổng phí · đã thu · còn phải thu',
       'Gán NV SALE phụ trách cho từng mã khách',
       'Lọc theo tháng, xem chi tiết từng khách trong kỳ',
     ],
   },
-  {
-    num: '06', title: 'Cài đặt', icon: Settings, route: '/settings', img: imgSettings,
-    features: [
-      'Cước VC khách hàng: thêm / sửa nhóm (Khách buôn · Khách lẻ…)',
-      'Cước VC đối tác kho: thêm / sửa kho và đơn giá',
-      'Tài khoản ngân hàng nhận tiền mặc định',
-      'Thông tin công ty: tên · hotline · địa chỉ',
-    ],
-  },
 ];
+
+const imgStyle = {
+  width: '100%',
+  borderRadius: 10,
+  border: '1px solid var(--ln)',
+  display: 'block',
+  boxShadow: '0 6px 28px -10px rgba(0,0,0,0.55)',
+};
 
 export default function Guide() {
   return (
@@ -97,20 +108,29 @@ export default function Guide() {
                 </Link>
               </div>
 
-              {/* Screenshot */}
+              {/* Main screenshot */}
               <div style={{ padding: '18px 22px 0' }}>
-                <img
-                  src={s.img}
-                  alt={s.title}
-                  style={{
-                    width: '100%',
-                    borderRadius: 10,
-                    border: '1px solid var(--ln)',
-                    display: 'block',
-                    boxShadow: '0 6px 28px -10px rgba(0,0,0,0.55)',
-                  }}
-                />
+                <img src={s.mainImg} alt={s.title} style={imgStyle} />
               </div>
+
+              {/* Sub-screenshots */}
+              {s.subImgs.length > 0 && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${Math.min(s.subImgs.length, 3)}, 1fr)`,
+                  gap: 12,
+                  padding: '12px 22px 0',
+                }}>
+                  {s.subImgs.map((sub, i) => (
+                    <div key={i}>
+                      <img src={sub.img} alt={sub.caption} style={imgStyle} />
+                      <p style={{ fontSize: 11, color: 'var(--mu)', marginTop: 6, lineHeight: 1.4, textAlign: 'center' }}>
+                        {sub.caption}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Feature list */}
               <div style={{
