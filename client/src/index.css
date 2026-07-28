@@ -148,7 +148,7 @@ body[data-theme="light"] {
   .data-table th {
     padding: 12px 20px 11px;
     text-align: left;
-    font-size: 9.5px;
+    font-size: 10.5px;
     font-weight: 700;
     letter-spacing: .1em;
     text-transform: uppercase;
@@ -159,7 +159,7 @@ body[data-theme="light"] {
 
   .data-table td {
     padding: 13px 20px;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--tx);
     white-space: nowrap;
     border-bottom: 1px solid var(--ln2);
@@ -189,7 +189,7 @@ body[data-theme="light"] {
     height: 42px;
     padding: 0 20px;
     border-radius: 13px;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 700;
     color: var(--onbtn);
     background: var(--btn);
@@ -210,7 +210,7 @@ body[data-theme="light"] {
     height: 36px;
     padding: 0 16px;
     border-radius: 11px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--tx2);
     background: var(--sf2);
@@ -270,7 +270,7 @@ body[data-theme="light"] {
     background: var(--sf2);
     color: var(--tx);
     padding: 9px 13px;
-    font-size: 13px;
+    font-size: 14px;
     font-family: inherit;
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
@@ -287,7 +287,7 @@ body[data-theme="light"] {
 
   .label {
     display: block;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -319,7 +319,7 @@ body[data-theme="light"] {
     align-items: center;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--okTx);
     background: var(--okBg);
@@ -331,7 +331,7 @@ body[data-theme="light"] {
     align-items: center;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--warnTx);
     background: var(--warnBg);
@@ -343,7 +343,7 @@ body[data-theme="light"] {
     align-items: center;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--warnTx);
     background: var(--warnBg);
@@ -354,7 +354,7 @@ body[data-theme="light"] {
     align-items: center;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     color: var(--mu);
     background: var(--sf2);
@@ -412,7 +412,7 @@ body[data-theme="light"] {
   .tab-btn {
     padding: 8px 15px;
     border-radius: 11px;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -439,7 +439,7 @@ body[data-theme="light"] {
   .period-pill {
     padding: 9px 17px;
     border-radius: 999px;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     border: none;
     cursor: pointer;
@@ -463,7 +463,7 @@ body[data-theme="light"] {
   .select-dark {
     appearance: none;
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 600;
     color: var(--tx);
     background: var(--sf);

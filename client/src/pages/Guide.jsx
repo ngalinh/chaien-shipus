@@ -81,8 +81,8 @@ export default function Guide() {
   return (
     <div style={{ padding: '24px 28px 56px', maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 25, fontWeight: 800, color: 'var(--tx)', margin: 0 }}>Hướng dẫn sử dụng</h1>
-        <p style={{ fontSize: 13.5, color: 'var(--mu)', marginTop: 6, lineHeight: 1.5 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 800, color: 'var(--tx)', margin: 0 }}>Hướng dẫn sử dụng</h1>
+        <p style={{ fontSize: 14.5, color: 'var(--mu)', marginTop: 6, lineHeight: 1.5 }}>
           ShipUS — hệ thống quản lý vận chuyển nội địa. Ảnh chụp thực tế từng màn hình.
         </p>
       </div>
@@ -104,20 +104,20 @@ export default function Guide() {
                 }}>
                   {/* Title */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, fontWeight: 700, color: 'var(--ac)', opacity: 0.65, letterSpacing: '0.1em' }}>
+                    <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11, fontWeight: 700, color: 'var(--ac)', opacity: 0.65, letterSpacing: '0.1em' }}>
                       {s.num}
                     </span>
                     <span style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--acBg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon size={14} style={{ color: 'var(--ac)' }} strokeWidth={1.9} />
+                      <Icon size={15} style={{ color: 'var(--ac)' }} strokeWidth={1.9} />
                     </span>
-                    <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--tx)' }}>{s.title}</span>
+                    <span style={{ fontSize: 15.5, fontWeight: 700, color: 'var(--tx)' }}>{s.title}</span>
                   </div>
 
                   {/* Features */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
                     {s.features.map((f, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12, color: 'var(--tx2)', lineHeight: 1.55 }}>
-                        <span style={{ color: 'var(--ac)', flexShrink: 0, marginTop: 3, fontSize: 8 }}>◆</span>
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 13, color: 'var(--tx2)', lineHeight: 1.55 }}>
+                        <span style={{ color: 'var(--ac)', flexShrink: 0, marginTop: 3, fontSize: 9 }}>◆</span>
                         {f}
                       </div>
                     ))}
@@ -126,7 +126,7 @@ export default function Guide() {
                   {/* Link */}
                   <Link
                     to={s.route}
-                    style={{ fontSize: 11.5, color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, opacity: 0.85 }}
+                    style={{ fontSize: 12.5, color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, opacity: 0.85 }}
                   >
                     Mở trang →
                   </Link>
@@ -139,7 +139,7 @@ export default function Guide() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                         <span style={{
                           fontFamily: '"JetBrains Mono", monospace',
-                          fontSize: 10,
+                          fontSize: 11,
                           fontWeight: 700,
                           color: 'var(--ac)',
                           background: 'var(--acBg)',
@@ -149,7 +149,7 @@ export default function Guide() {
                         }}>
                           {step.label}
                         </span>
-                        <span style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.4 }}>{step.caption}</span>
+                        <span style={{ fontSize: 13, color: 'var(--mu)', lineHeight: 1.4 }}>{step.caption}</span>
                       </div>
                       <img src={step.img} alt={step.label} style={stepImgStyle} />
                     </div>
