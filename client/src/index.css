@@ -398,6 +398,9 @@ body[data-theme="light"] {
 
   .modal-body {
     padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .modal-footer {

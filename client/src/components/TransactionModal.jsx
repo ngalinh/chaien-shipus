@@ -118,7 +118,7 @@ export default function TransactionModal({ onClose, onSaved, initialData }) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-box max-w-md">
         <div className="modal-header">
-          <h2 className="text-lg font-semibold text-ink-900">
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--tx)' }}>
             {isEdit ? 'Chỉnh sửa giao dịch' : 'Tạo giao dịch'}
           </h2>
           <button onClick={onClose} className="btn-icon"><X className="w-5 h-5" /></button>

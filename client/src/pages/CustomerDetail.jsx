@@ -193,7 +193,7 @@ export default function CustomerDetail() {
 
   const status = calcCustomerStatus(customer.latest_shipment_date);
   const stats = customer.stats || {};
-  const txList = txData?.transactions || [];
+  const txList = [...(txData?.transactions || [])].sort((a, b) => b.trans_date.localeCompare(a.trans_date));
 
   const statItems = [
     { label: 'Tổng kg', value: `${Number(stats.total_kg || 0).toFixed(2)} kg`, icon: Weight, color: 'var(--ac)' },
@@ -284,11 +284,11 @@ export default function CustomerDetail() {
             const Icon = stat.icon;
             return (
               <div key={stat.label} style={{ textAlign: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 11, color: 'var(--mu)', marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 12, color: 'var(--mu)', marginBottom: 4 }}>
                   <Icon style={{ width: 14, height: 14, color: stat.color }} />
                   {stat.label}
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: stat.color, fontFamily: '"JetBrains Mono", monospace' }}>{stat.value}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: stat.color, fontFamily: '"JetBrains Mono", monospace' }}>{stat.value}</div>
               </div>
             );
           })}
