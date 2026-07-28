@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Search, X, FileSpreadsheet } from 'lucide-react';
-import { formatDate, calcCustomerStatus } from '../utils.jsx';
+import { formatDate, calcCustomerStatus, getUserRole, getBassoUser } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
 import ImportCustomersModal from '../components/ImportCustomersModal.jsx';
@@ -46,10 +46,15 @@ export default function Customers() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [filterRate, setFilterRate] = useState('');
+  const [filterSale, setFilterSale] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleting, setDeleting] = useState(null);
+
+  const role = getUserRole();
+  const currentUser = getBassoUser();
 
   useEffect(() => { fetchCustomers(); }, []);
 
@@ -92,25 +97,41 @@ export default function Customers() {
     toast(editCustomer ? 'Đã cập nhật khách hàng' : 'Đã tạo khách hàng mới', 'success');
   }
 
-  const filtered = (Array.isArray(customers) ? customers : []).filter(c => {
+  const allCustomers = Array.isArray(customers) ? customers : [];
+
+  // Staff chỉ thấy KH được gán cho mình
+  const visibleCustomers = role === 'staff'
+    ? allCustomers.filter(c => c.sale_username === currentUser?.username)
+    : allCustomers;
+
+  const filtered = visibleCustomers.filter(c => {
     const q = search.toLowerCase();
-    return (
+    const matchSearch = (
       c.code?.toLowerCase().includes(q) ||
       c.name?.toLowerCase().includes(q) ||
       c.phone?.toLowerCase().includes(q) ||
       c.address?.toLowerCase().includes(q)
     );
+    const matchRate = !filterRate || c.rate_name === filterRate;
+    const matchSale = !filterSale || c.sale_username === filterSale;
+    return matchSearch && matchRate && matchSale;
   });
+
+  const rateOptions = useMemo(() => {
+    const set = new Set();
+    visibleCustomers.forEach(c => { if (c.rate_name) set.add(c.rate_name); });
+    return [...set].sort((a, b) => a.localeCompare(b, 'vi'));
+  }, [visibleCustomers]);
 
   const saleOptions = useMemo(() => {
     const map = new Map();
-    (Array.isArray(customers) ? customers : []).forEach(c => {
+    visibleCustomers.forEach(c => {
       if (c.sale_username && !map.has(c.sale_username)) {
         map.set(c.sale_username, { sale_username: c.sale_username, sale_name: c.sale_name || c.sale_username });
       }
     });
     return [...map.values()].sort((a, b) => a.sale_name.localeCompare(b.sale_name, 'vi'));
-  }, [customers]);
+  }, [visibleCustomers]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
@@ -122,7 +143,7 @@ export default function Customers() {
             Khách hàng
           </h1>
           <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>
-            {customers.length} khách hàng
+            {filtered.length}{filtered.length < visibleCustomers.length ? `/${visibleCustomers.length}` : ''} khách hàng
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -154,6 +175,26 @@ export default function Customers() {
               </button>
             )}
           </div>
+          {/* Filter Nhóm KH */}
+          <select
+            value={filterRate}
+            onChange={e => setFilterRate(e.target.value)}
+            style={{ height: 42, padding: '0 12px', borderRadius: 10, border: '1px solid var(--ln)', background: 'var(--sf)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="">Nhóm KH (tất cả)</option>
+            {rateOptions.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          {/* Filter NV Sale — ẩn với staff (họ chỉ thấy KH của mình) */}
+          {role !== 'staff' && (
+            <select
+              value={filterSale}
+              onChange={e => setFilterSale(e.target.value)}
+              style={{ height: 42, padding: '0 12px', borderRadius: 10, border: '1px solid var(--ln)', background: 'var(--sf)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}
+            >
+              <option value="">NV Sale (tất cả)</option>
+              {saleOptions.map(s => <option key={s.sale_username} value={s.sale_username}>{s.sale_name}</option>)}
+            </select>
+          )}
           <button onClick={() => setImportOpen(true)} className="btn-secondary">
             <FileSpreadsheet className="w-4 h-4" />
             Import Excel
@@ -174,7 +215,7 @@ export default function Customers() {
               <th style={{ width: 90 }}>Tình trạng</th>
               <th style={{ width: 100 }}>SĐT</th>
               <th style={{ width: 110 }}>Địa chỉ</th>
-              <th style={{ width: 85 }}>Cước VC</th>
+              <th style={{ width: 85 }}>Nhóm KH</th>
               <th style={{ width: 85 }}>NV Sale</th>
               <th style={{ width: 95 }}>Ghi chú</th>
               <th style={{ width: 88 }}>Ngày tạo</th>
