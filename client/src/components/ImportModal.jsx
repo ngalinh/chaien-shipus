@@ -143,17 +143,17 @@ export default function ImportModal({ onClose, onImported }) {
         <div className="modal-header">
           <div className="flex items-center gap-2">
             <ClipboardPaste className="w-5 h-5 text-green-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Nhập kho hàng về</h2>
+            <h2 className="text-lg font-semibold text-[var(--tx)]">Nhập kho hàng về</h2>
           </div>
           <button onClick={onClose} className="btn-icon"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="modal-body">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-            <p className="font-semibold mb-1">Hướng dẫn:</p>
+          <div className="rounded-lg p-3 text-sm" style={{background:'var(--acBg)',border:'1px solid var(--acLn)',color:'var(--tx)'}}>
+            <p className="font-semibold mb-1" style={{color:'var(--ac)'}}>Hướng dẫn:</p>
             <p>Paste dữ liệu từ file Excel đối tác (5 cột, phân cách Tab):</p>
-            <code className="block mt-1 text-xs bg-blue-100 px-2 py-1 rounded">Tên khách → Kho → Tracking # → Sản phẩm → Kg</code>
-            <p className="mt-1 text-xs">Hệ thống tự dò khách theo tên/mã (bỏ dấu). Dòng chưa chắc sẽ hiện <b>gợi ý</b> để chọn.</p>
+            <code className="block mt-1 text-xs px-2 py-1 rounded" style={{background:'var(--sunk)',color:'var(--tx2)'}}>Tên khách → Kho → Tracking # → Sản phẩm → Kg</code>
+            <p className="mt-1 text-xs" style={{color:'var(--tx2)'}}>Hệ thống tự dò khách theo tên/mã (bỏ dấu). Dòng chưa chắc sẽ hiện <b>gợi ý</b> để chọn.</p>
           </div>
 
           <div>
