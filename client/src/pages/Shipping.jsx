@@ -812,7 +812,7 @@ export default function Shipping() {
                   <Copy className="w-4 h-4" />
                   Copy nội dung
                 </button>
-                <button disabled className="btn-primary" style={{ flex: 1, opacity: 0.5, cursor: 'not-allowed' }} title="Tính năng sắp ra mắt">
+                <button disabled className="btn-primary" style={{ flex: 1, justifyContent: 'center', opacity: 0.5, cursor: 'not-allowed' }} title="Tính năng sắp ra mắt">
                   <Send className="w-4 h-4" />
                   Gửi qua Zalo
                 </button>

@@ -45,7 +45,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-box max-w-2xl">
         <div className="modal-header">
-          <h2 className="text-lg font-semibold text-ink-900">Phiếu báo hàng về</h2>
+          <h2 className="text-lg font-semibold text-[var(--tx)]">Phiếu báo hàng về</h2>
           <button onClick={onClose} className="btn-icon" aria-label="Đóng">
             <X className="w-5 h-5" />
           </button>
