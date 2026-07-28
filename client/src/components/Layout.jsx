@@ -271,37 +271,6 @@ export default function Layout() {
                 {isDark ? <Moon className="w-[15px] h-[15px]" /> : <Sun className="w-[15px] h-[15px]" />}
               </button>
 
-              {/* AI Basso */}
-              <a
-                href="https://ai.basso.vn/"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Về trang AI Basso"
-                style={{
-                  flex: showLabels ? 1 : 'none',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 5,
-                  height: 36,
-                  padding: showLabels ? '0 10px' : '0',
-                  width: showLabels ? 'auto' : 36,
-                  borderRadius: 11,
-                  border: '1px solid var(--acLn)',
-                  background: 'var(--acBg)',
-                  color: 'var(--ac)',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                }}
-              >
-                <ExternalLink className="w-[13px] h-[13px] flex-shrink-0" />
-                {showLabels && 'AI Basso'}
-              </a>
-
               {/* Thu gọn */}
               <button
                 onClick={toggleCollapsed}

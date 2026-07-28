@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import shipusLogo from '../assets/shipus-logo.png';
+import ImportModal from '../components/ImportModal.jsx';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (v) => (v == null || isNaN(v) ? '0' : Number(v).toLocaleString('en-US'));
@@ -169,6 +170,11 @@ export default function MobilePWA() {
   const [custId, setCustId]         = useState(null);
   const [toastMsg, setToastMsg]     = useState(null);
   const toastTimer = useRef(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [revMonth, setRevMonth]     = useState(() => dayjs().format('YYYY-MM'));
+  const [revData, setRevData]       = useState(null);
+  const [revTab, setRevTab]         = useState('customer');
+  const [settingsData, setSettingsData] = useState(null);
 
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
@@ -199,6 +205,19 @@ export default function MobilePWA() {
   useEffect(() => {
     fetchTransactions();
   }, [period]);
+
+  useEffect(() => {
+    if (route === 'rev') {
+      axios.get('/api/dashboard/vc-revenue', { params: { month: revMonth } })
+        .then((r) => setRevData(r.data)).catch(() => setRevData(null));
+    }
+  }, [route, revMonth]);
+
+  useEffect(() => {
+    if (route === 'set' && !settingsData) {
+      axios.get('/api/settings').then((r) => setSettingsData(r.data)).catch(() => {});
+    }
+  }, [route]);
 
   async function fetchShipments() {
     try {
@@ -446,47 +465,6 @@ export default function MobilePWA() {
     const paidStr = `${paidCount}/${batchCustomers.length} khách đã thanh toán`;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'dcFade 240ms ease both' }}>
-        {/* Batch card */}
-        <div style={{
-          padding: 18, borderRadius: 22,
-          background: 'linear-gradient(150deg,rgba(58,175,211,.26),rgba(58,175,211,.05))',
-          border: '1px solid var(--acLn)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <div>
-              <div style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ac)' }}>Đợt đang mở</div>
-              <div style={{ font: '700 22px "JetBrains Mono",monospace', color: 'var(--tx)', marginTop: 6 }}>
-                {batchDate ? fmtDate(batchDate) : '—'}
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--tx2)', marginTop: 4 }}>
-                {batchCustomers.length} khách · {totalKiels} kiện · {fmtKg(totalKg)} kg
-              </div>
-            </div>
-            <span style={{
-              marginLeft: 'auto', padding: '6px 11px', borderRadius: 20,
-              background: 'var(--okBg)', border: '1px solid var(--okLn)', color: 'var(--okTx)',
-              fontSize: 10.5, fontWeight: 700,
-            }}>Đang mở</span>
-          </div>
-          {/* Progress */}
-          <div style={{ height: 6, borderRadius: 6, background: 'rgba(0,0,0,.22)', marginTop: 14 }}>
-            <div style={{
-              height: '100%', borderRadius: 6,
-              background: 'linear-gradient(90deg,#3AAFD3,#8FDCF0)',
-              transition: 'width 400ms ease',
-              width: `${paidPct}%`,
-            }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 10.5, color: 'var(--tx2)' }}>
-            <span>{paidStr}</span>
-            <span style={{ color: 'var(--ac)', fontWeight: 700 }}>{paidPct}%</span>
-          </div>
-          <div style={{ display: 'flex', gap: 9, marginTop: 15 }}>
-            <Btn onClick={() => nav('hang')} style={{ ...btnPrimary, flex: 1 }}>Mở đợt hàng về</Btn>
-            <Btn onClick={() => nav('tx')} style={{ ...btnSecondary, flex: 'none', padding: '0 16px' }}>Sổ thu chi</Btn>
-          </div>
-        </div>
-
         {/* KPI tiles */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 11 }}>
           <div style={{ ...cardStyle, padding: 15 }}>
@@ -886,16 +864,168 @@ export default function MobilePWA() {
     );
   }
 
-  function renderPlaceholder(key) {
-    const titles = { rev: 'Doanh thu VC', set: 'Cài đặt' };
+  function renderRev() {
+    const byCustomer = revData?.by_customer || [];
+    const bySale = revData?.by_sale || [];
+    const cskhRow = revData?.cskh_row || null;
+    const loading = revData === undefined;
+    const custTotals = byCustomer.reduce((a, r) => ({
+      fee: a.fee + (r.total_vc_fee || 0),
+      sale: a.sale + (r.profit_sale || 0),
+      cskh: a.cskh + (r.profit_cskh || 0),
+    }), { fee: 0, sale: 0, cskh: 0 });
+
     return (
-      <div style={{ animation: 'dcFade 240ms ease both', padding: '28px 20px', borderRadius: 22, ...cardStyle, textAlign: 'center' }}>
-        <div style={{ width: 52, height: 52, margin: '0 auto', borderRadius: 18, display: 'grid', placeItems: 'center', background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)' }}>
-          <IcoClock />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
+        {/* Month picker */}
+        <input
+          type="month"
+          value={revMonth}
+          onChange={(e) => { setRevMonth(e.target.value); setRevData(undefined); }}
+          style={{ height: 44, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '0 14px' }}
+        />
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 6, padding: 4, borderRadius: 15, background: 'var(--sunk)' }}>
+          {[{ k: 'customer', l: 'Khách hàng' }, { k: 'sale', l: 'Nhân viên' }].map((t) => (
+            <Btn key={t.k} onClick={() => setRevTab(t.k)} style={{
+              flex: 1, height: 36, borderRadius: 12, fontSize: 12, fontWeight: 700, border: 0,
+              background: revTab === t.k ? 'var(--tx)' : 'none',
+              color: revTab === t.k ? 'var(--onbtn)' : 'var(--mu)',
+            }}>{t.l}</Btn>
+          ))}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)', marginTop: 14 }}>{titles[key]}</div>
-        <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 6, lineHeight: 1.5 }}>Màn hình này sẽ được dựng ở lượt thiết kế tiếp theo.</div>
-        <Btn onClick={() => nav('dash')} style={{ ...btnPrimary, padding: '0 22px', marginTop: 16 }}>Về Tổng quan</Btn>
+        {loading && <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--mu)' }}>Đang tải...</div>}
+        {/* Tab: Khách hàng */}
+        {!loading && revTab === 'customer' && (
+          <>
+            {/* Totals */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div style={{ ...cardStyle, padding: 13 }}>
+                <div style={{ fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--mu)' }}>Tổng phí VC</div>
+                <div style={{ font: '700 15px "JetBrains Mono",monospace', color: 'var(--tx)', marginTop: 7 }}>{fmt(Math.round(custTotals.fee))}</div>
+              </div>
+              <div style={{ ...cardStyle, padding: 13 }}>
+                <div style={{ fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--mu)' }}>Profit SALE</div>
+                <div style={{ font: '700 15px "JetBrains Mono",monospace', color: 'var(--ac)', marginTop: 7 }}>{fmt(Math.round(custTotals.sale))}</div>
+              </div>
+            </div>
+            {byCustomer.length === 0
+              ? <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--mu)' }}>Không có dữ liệu tháng này</div>
+              : byCustomer.map((r) => (
+                <div key={r.id} style={{ ...cardStyle, padding: '13px 14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{r.customer_code}</div>
+                      {r.customer_name && <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 2 }}>{r.customer_name}</div>}
+                      <div style={{ fontSize: 10.5, color: 'var(--tx2)', marginTop: 4 }}>NV: {r.sale_name || 'Chưa gán'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ font: '700 12.5px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(r.total_vc_fee)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--mu)', marginTop: 3 }}>{Number(r.total_weight || 0).toFixed(2)} kg</div>
+                      <div style={{ font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--ac)', marginTop: 3 }}>P.SALE: {fmt(r.profit_sale)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            }
+          </>
+        )}
+        {/* Tab: Nhân viên */}
+        {!loading && revTab === 'sale' && (
+          <>
+            {bySale.length === 0 && !cskhRow
+              ? <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--mu)' }}>Không có dữ liệu tháng này</div>
+              : [...bySale, ...(cskhRow ? [{ ...cskhRow, _isCskh: true }] : [])].map((r) => (
+                <div key={r.sale_username || '__cskh'} style={{
+                  ...cardStyle, padding: '13px 14px',
+                  ...(r._isCskh ? { background: 'var(--acBg)', border: '1px solid var(--acLn)' } : {}),
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: r._isCskh ? 'var(--ac)' : 'var(--tx)' }}>{r.sale_name}</div>
+                      <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 3 }}>{r.customer_count} KH · {Number(r.total_weight || 0).toFixed(2)} kg</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ font: '700 12.5px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(r.total_vc_fee)}</div>
+                      <div style={{ font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--ac)', marginTop: 3 }}>Profit: {fmt(r.profit)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            }
+          </>
+        )}
+      </div>
+    );
+  }
+
+  function renderSet() {
+    const sd = settingsData;
+    if (!sd) return <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--mu)' }}>Đang tải...</div>;
+    const rates = sd.rates || [];
+    const warehouses = sd.warehouses || [];
+    const bankAccounts = sd.bank_accounts || [];
+    const company = sd.company || {};
+    const Section = ({ title, children }) => (
+      <div style={{ ...cardStyle, padding: '14px 14px' }}>
+        <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ac)', marginBottom: 12, fontWeight: 700 }}>{title}</div>
+        {children}
+      </div>
+    );
+    const Row = ({ label, value }) => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
+        <span style={{ fontSize: 12, color: 'var(--mu)' }}>{label}</span>
+        <span style={{ font: '600 12px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{value}</span>
+      </div>
+    );
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
+        {/* Công ty */}
+        <Section title="Công ty">
+          <Row label="Tên" value={company.company_name || '—'} />
+          <Row label="Hotline" value={company.hotline || '—'} />
+          <Row label="Đơn vị giao hàng" value={company.delivery_carrier || '—'} />
+        </Section>
+        {/* Biểu phí */}
+        <Section title="Biểu phí">
+          {rates.length === 0
+            ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có biểu phí</div>
+            : rates.map((r) => (
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{r.name}</span>
+                <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--ac)' }}>{fmt(r.rate_per_kg)} đ/kg</span>
+              </div>
+            ))
+          }
+        </Section>
+        {/* Kho */}
+        <Section title="Kho">
+          {warehouses.length === 0
+            ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có kho</div>
+            : warehouses.map((w) => (
+              <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
+                <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{w.code}</span>
+                <span style={{ fontSize: 11.5, color: 'var(--mu)' }}>{w.name}</span>
+              </div>
+            ))
+          }
+        </Section>
+        {/* Tài khoản ngân hàng */}
+        <Section title="Tài khoản ngân hàng">
+          {bankAccounts.length === 0
+            ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có tài khoản</div>
+            : bankAccounts.map((b) => (
+              <div key={b.id} style={{ padding: '9px 0', borderTop: '1px solid var(--ln2)' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{b.bank_name}</div>
+                <div style={{ font: '600 11.5px "JetBrains Mono",monospace', color: 'var(--ac)', marginTop: 3 }}>{b.account_number}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 2 }}>{b.account_name}</div>
+              </div>
+            ))
+          }
+        </Section>
+        <div style={{ fontSize: 11, color: 'var(--mu)', textAlign: 'center', padding: '8px 0' }}>
+          Chỉnh sửa cài đặt trên giao diện máy tính
+        </div>
       </div>
     );
   }
@@ -987,13 +1117,13 @@ export default function MobilePWA() {
         {route === 'tx'    && renderTx()}
         {route === 'khach' && renderKhach()}
         {route === 'cust'  && renderCust()}
-        {route === 'rev'   && renderPlaceholder('rev')}
-        {route === 'set'   && renderPlaceholder('set')}
+        {route === 'rev'   && renderRev()}
+        {route === 'set'   && renderSet()}
       </div>
 
       {/* FAB for hang screen */}
       {route === 'hang' && (
-        <button style={{
+        <button onClick={() => setImportOpen(true)} style={{
           position: 'fixed', zIndex: 8, right: 18, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 46px)',
           width: 56, height: 56, borderRadius: 20, appearance: 'none', border: 0, cursor: 'pointer',
           display: 'grid', placeItems: 'center', color: 'var(--onbtn)', background: 'var(--btn)',
@@ -1061,25 +1191,8 @@ export default function MobilePWA() {
               })}
             </div>
 
-            {/* Bottom: batch mini + basso btn + user */}
+            {/* Bottom: user */}
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {/* Mini batch */}
-              <div style={{ padding: 14, borderRadius: 16, background: 'var(--acBg)', border: '1px solid var(--acLn)' }}>
-                <div style={{ fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--ac)' }}>Đợt đang mở</div>
-                <div style={{ font: '600 15px "JetBrains Mono",monospace', color: 'var(--tx)', marginTop: 6 }}>{batchDate ? fmtDate(batchDate) : '—'}</div>
-                <div style={{ height: 5, borderRadius: 5, background: 'rgba(0,0,0,.2)', marginTop: 10 }}>
-                  <div style={{ height: '100%', borderRadius: 5, background: 'linear-gradient(90deg,#3AAFD3,#8FDCF0)', width: `${paidPct}%` }} />
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--mu)', marginTop: 7 }}>{paidCount}/{batchCustomers.length} đã thanh toán</div>
-              </div>
-              {/* Basso button */}
-              <a href="https://ai.basso.vn/" target="_blank" rel="noopener noreferrer" style={{
-                display: 'flex', alignItems: 'center', gap: 10, height: 46, padding: '0 14px', borderRadius: 15,
-                background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--tx2)', textDecoration: 'none',
-              }}>
-                <IcoGrid />
-                <span style={{ flex: 1, textAlign: 'left', fontSize: 12.5, fontWeight: 700 }}>AI Basso Dashboard</span>
-              </a>
               {/* User */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, paddingTop: 12, borderTop: '1px solid var(--ln2)' }}>
                 <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 11, display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 13, color: 'var(--onbtn)', background: 'var(--btn)' }}>
@@ -1134,6 +1247,14 @@ export default function MobilePWA() {
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Import Modal ── */}
+      {importOpen && (
+        <ImportModal
+          onClose={() => setImportOpen(false)}
+          onImported={() => { setImportOpen(false); fetchShipments(); showToast('✓ Nhập kho thành công'); }}
+        />
       )}
 
       {/* ── Toast ── */}
