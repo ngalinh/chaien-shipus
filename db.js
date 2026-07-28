@@ -167,6 +167,9 @@ try { db.exec('ALTER TABLE customers ADD COLUMN warehouse TEXT'); } catch { /* a
 // Chỉ gán cho khách tạo mới (KH cũ để trống); admin sửa được sau.
 try { db.exec('ALTER TABLE customers ADD COLUMN sale_username TEXT'); } catch { /* already exists */ }
 try { db.exec('ALTER TABLE customers ADD COLUMN sale_name TEXT'); } catch { /* already exists */ }
+// Mã KH riêng theo từng kho (US / UK); code chính = code_us || code_uk
+try { db.exec("ALTER TABLE customers ADD COLUMN code_us TEXT NOT NULL DEFAULT ''"); } catch { /* already exists */ }
+try { db.exec("ALTER TABLE customers ADD COLUMN code_uk TEXT NOT NULL DEFAULT ''"); } catch { /* already exists */ }
 // aliases: comma-separated partner sub-warehouse codes that map to this warehouse
 // (e.g. Hải An's US hubs "OR,NH" both bill at the HA rate)
 try { db.exec('ALTER TABLE partner_warehouses ADD COLUMN aliases TEXT'); } catch { /* already exists */ }

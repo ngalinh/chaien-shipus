@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { X, Upload, Trash2, ZoomIn } from 'lucide-react';
 import { toast } from './Toast.jsx';
@@ -9,12 +10,13 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
   const bassoUser = useMemo(() => getBassoUser(), []);
   const isAdmin = getUserRole() === 'admin';
   const [form, setForm] = useState({
-    code: '',
+    code_us: '',
+    code_uk: '',
     name: '',
     phone: '',
     email: '',
     address: '',
-    channel: '',        // ẩn khỏi form nhưng giữ lại để không xoá dữ liệu cũ khi sửa
+    channel: '',
     rate_id: '',
     notes: '',
     warehouse: '',
@@ -38,15 +40,17 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
     if (isEdit) {
       const rateIdStr = String(customer.rate_id || '');
       originalRateRef.current = rateIdStr;
+      const wh = customer.warehouse || '';
       setForm({
-        code: customer.code || '',
+        code_us: customer.code_us || (wh.includes('US') ? customer.code || '' : ''),
+        code_uk: customer.code_uk || (wh.includes('UK') ? customer.code || '' : ''),
         name: customer.name || '',
         phone: customer.phone || '',
         email: customer.email || '',
         address: customer.address || '',
         rate_id: rateIdStr,
         notes: customer.notes || '',
-        warehouse: customer.warehouse || '',
+        warehouse: wh,
         sale_username: customer.sale_username || '',
         sale_name: customer.sale_name || '',
       });
@@ -133,8 +137,22 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.code.trim() || !form.name.trim()) {
-      toast('Vui lòng điền Mã KH và Họ tên', 'warning');
+    const hasUS = form.warehouse.includes('US');
+    const hasUK = form.warehouse.includes('UK');
+    if (!form.name.trim()) {
+      toast('Vui lòng điền Họ tên', 'warning');
+      return;
+    }
+    if (hasUS && !form.code_us.trim()) {
+      toast('Vui lòng điền Mã KH kho US', 'warning');
+      return;
+    }
+    if (hasUK && !form.code_uk.trim()) {
+      toast('Vui lòng điền Mã KH kho UK', 'warning');
+      return;
+    }
+    if (!hasUS && !hasUK) {
+      toast('Vui lòng chọn ít nhất 1 kho', 'warning');
       return;
     }
     setSaving(true);
@@ -149,7 +167,6 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
         });
         saved = res.data;
       } else {
-        // Gán NV SALE = nhân viên BASSO đang đăng nhập tạo mã KH này.
         const res = await axios.post('/api/customers', {
           ...form,
           rate_id: form.rate_id || null,
@@ -190,7 +207,13 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
 
   const totalImages = existingImages.length + newImages.length;
 
-  return (
+  const hasUS = form.warehouse.includes('US');
+  const hasUK = form.warehouse.includes('UK');
+  const leRate = rates.find((r) => r.name === 'Khách lẻ');
+  const buonRate = rates.find((r) => r.name === 'Khách buôn');
+  const groupRates = [leRate, buonRate].filter(Boolean);
+
+  return createPortal(
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-box">
         {/* Header */}
@@ -206,19 +229,6 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
         {/* Body */}
         <form onSubmit={handleSubmit} onPaste={handlePaste}>
           <div className="modal-body">
-            {/* Mã KH */}
-            <div>
-              <label className="label">Mã KH <span className="text-red-500">*</span></label>
-              <input
-                name="code"
-                value={form.code}
-                onChange={handleField}
-                className="input-field"
-                placeholder="VD: KH001"
-                required
-              />
-            </div>
-
             {/* Họ tên */}
             <div>
               <label className="label">Họ tên <span className="text-red-500">*</span></label>
@@ -228,7 +238,6 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
                 onChange={handleField}
                 className="input-field"
                 placeholder="Nguyễn Văn A"
-                required
               />
             </div>
 
@@ -256,43 +265,73 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
               />
             </div>
 
-            {/* Kho */}
+            {/* Kho + Mã KH per kho */}
             <div>
-              <label className="label">Kho</label>
+              <label className="label">Kho <span className="text-red-500">*</span></label>
               <div className="flex gap-4 mt-1">
                 {['US', 'UK'].map((wh) => {
-                  const checked = form.warehouse === wh || form.warehouse === 'US UK';
+                  const checked = wh === 'US' ? hasUS : hasUK;
                   return (
                     <label key={wh} className="flex items-center gap-2 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => {
-                          const hasUS = form.warehouse === 'US' || form.warehouse === 'US UK';
-                          const hasUK = form.warehouse === 'UK' || form.warehouse === 'US UK';
+                          const curUS = form.warehouse.includes('US');
+                          const curUK = form.warehouse.includes('UK');
                           let next;
                           if (wh === 'US') {
-                            const newUS = !hasUS;
-                            if (newUS && hasUK) next = 'US UK';
+                            const newUS = !curUS;
+                            if (newUS && curUK) next = 'US UK';
                             else if (newUS) next = 'US';
-                            else if (hasUK) next = 'UK';
+                            else if (curUK) next = 'UK';
                             else next = '';
                           } else {
-                            const newUK = !hasUK;
-                            if (newUK && hasUS) next = 'US UK';
+                            const newUK = !curUK;
+                            if (newUK && curUS) next = 'US UK';
                             else if (newUK) next = 'UK';
-                            else if (hasUS) next = 'US';
+                            else if (curUS) next = 'US';
                             else next = '';
                           }
                           setForm((prev) => ({ ...prev, warehouse: next }));
                         }}
                         className="w-4 h-4 accent-primary-600"
                       />
-                      <span className="text-sm font-medium text-gray-700">{wh}</span>
+                      <span className="text-sm font-medium" style={{ color: 'var(--tx)' }}>{wh}</span>
                     </label>
                   );
                 })}
               </div>
+
+              {/* Mã KH per kho — sổ ra khi tick */}
+              {(hasUS || hasUK) && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {hasUS && (
+                    <div>
+                      <label className="label text-xs">Mã KH kho US <span className="text-red-500">*</span></label>
+                      <input
+                        name="code_us"
+                        value={form.code_us}
+                        onChange={handleField}
+                        className="input-field"
+                        placeholder="VD: KH001"
+                      />
+                    </div>
+                  )}
+                  {hasUK && (
+                    <div>
+                      <label className="label text-xs">Mã KH kho UK <span className="text-red-500">*</span></label>
+                      <input
+                        name="code_uk"
+                        value={form.code_uk}
+                        onChange={handleField}
+                        className="input-field"
+                        placeholder="VD: KH001"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* CCCD Images */}
@@ -392,37 +431,48 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
               )}
             </div>
 
-            {/* Cước vận chuyển */}
+            {/* Nhóm KH */}
             <div>
-              <label className="label">Cước vận chuyển</label>
+              <label className="label">Nhóm KH</label>
               {isAdmin ? (
-                <select
-                  name="rate_id"
-                  value={form.rate_id}
-                  onChange={(e) => {
-                    handleField(e);
-                    if (isEdit) {
-                      setApplyThisMonth(null);
-                      setRatePopup(true);
-                    }
-                  }}
-                  className="input-field"
-                >
-                  <option value="">-- Chọn gói cước --</option>
-                  {rates.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')} đ/kg)
-                    </option>
-                  ))}
-                </select>
+                <div className="flex gap-2 mt-1">
+                  {groupRates.map((r) => {
+                    const active = String(form.rate_id) === String(r.id);
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, rate_id: String(r.id) }));
+                          if (isEdit) { setApplyThisMonth(null); setRatePopup(true); }
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '8px 0',
+                          borderRadius: 10,
+                          border: `1.5px solid ${active ? 'var(--ac)' : 'var(--ln)'}`,
+                          background: active ? 'var(--ac)' : 'var(--sf2)',
+                          color: active ? '#fff' : 'var(--tx2)',
+                          fontWeight: 600,
+                          fontSize: 13,
+                          cursor: 'pointer',
+                          transition: 'all 150ms',
+                        }}
+                      >
+                        {r.name}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : (
-                <p className="text-sm text-ink-600 py-2">
-                  {rates.find((r) => String(r.id) === String(form.rate_id))
-                    ? `${rates.find((r) => String(r.id) === String(form.rate_id)).name} (${Number(rates.find((r) => String(r.id) === String(form.rate_id)).rate_per_kg).toLocaleString('en-US')} đ/kg)`
-                    : 'Khách lẻ (240,000 đ/kg)'}
-                  <span className="ml-2 text-xs text-ink-400">(chỉ admin mới đổi được)</span>
+                <p className="text-sm py-2" style={{ color: 'var(--tx2)' }}>
+                  {rates.find((r) => String(r.id) === String(form.rate_id))?.name || 'Khách lẻ'}
+                  <span className="ml-2 text-xs" style={{ color: 'var(--mu)' }}>(chỉ admin mới đổi được)</span>
                 </p>
               )}
+              <p className="text-xs mt-1" style={{ color: 'var(--mu)' }}>
+                Cước tính tự động theo kho khi nhập hàng
+              </p>
             </div>
 
             {/* NV SALE phụ trách */}
@@ -543,6 +593,7 @@ export default function CustomerModal({ customer, onClose, onSaved, saleOptions 
           />
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

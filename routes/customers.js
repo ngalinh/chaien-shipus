@@ -151,15 +151,18 @@ router.get('/', (_req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name } = req.body;
+    const { code_us, code_uk, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name } = req.body;
+    const code = (code_us || code_uk || '').trim();
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(`
-      INSERT INTO customers (code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO customers (code, code_us, code_uk, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      code.trim(),
+      code,
+      (code_us || '').trim(),
+      (code_uk || '').trim(),
       name.trim(),
       phone     || null,
       email     || null,
@@ -270,16 +273,19 @@ router.get('/:id', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.put('/:id', (req, res) => {
   try {
-    const { code, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name, apply_rate_this_month } = req.body;
+    const { code_us, code_uk, name, phone, email, address, channel, notes, rate_id, warehouse, sale_username, sale_name, apply_rate_this_month } = req.body;
+    const code = (code_us || code_uk || '').trim();
     if (!code || !name) {
       return res.status(400).json({ error: 'code and name are required' });
     }
     const customerId = parseInt(req.params.id);
     const info = db.prepare(`
-      UPDATE customers SET code = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?, warehouse = ?, sale_username = ?, sale_name = ?
+      UPDATE customers SET code = ?, code_us = ?, code_uk = ?, name = ?, phone = ?, email = ?, address = ?, channel = ?, notes = ?, rate_id = ?, warehouse = ?, sale_username = ?, sale_name = ?
       WHERE id = ?
     `).run(
-      code.trim(),
+      code,
+      (code_us || '').trim(),
+      (code_uk || '').trim(),
       name.trim(),
       phone     || null,
       email     || null,
