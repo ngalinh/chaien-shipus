@@ -35,7 +35,7 @@ export function getBassoUser() {
   }
 }
 
-const ADMIN_EMAILS  = ['dzuong.bol@gmail.com', 'ngalinh@gmail.com', 'thuylinhbui0209@gmail.com'];
+const ADMIN_EMAILS  = ['dzuong.bol@gmail.com', 'ngalinh@gmail.com', 'thuylinhbui0209@gmail.com', 'tram@gmail.com'];
 const KETOAN_EMAILS = ['ketoan.basso@gmail.com'];
 
 // Phân quyền frontend dựa theo email đăng nhập BASSO.
