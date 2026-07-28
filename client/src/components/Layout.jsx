@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/customers',    label: 'Khách hàng', short: 'KH', icon: Users,                         badgeKey: 'customers' },
   { to: '/transactions', label: 'Giao dịch',  short: 'GD', icon: Receipt,                       badgeKey: null },
   { to: '/revenue',      label: 'Doanh thu VC', short: 'DV', icon: TrendingUp,                  badgeKey: null },
+  { to: '/guide',        label: 'HDSD',       short: 'HD', icon: BookOpen,                       badgeKey: null },
   { to: '/settings',     label: 'Cài đặt',   short: 'CĐ', icon: Settings,                      badgeKey: null },
 ];
 
