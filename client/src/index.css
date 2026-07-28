@@ -128,6 +128,7 @@ body[data-theme="light"] {
   .table-container {
     border-radius: 22px;
     overflow: hidden;
+    overflow-x: auto;
     background: var(--sf);
     border: 1px solid var(--ln);
     backdrop-filter: blur(20px);
@@ -250,6 +251,14 @@ body[data-theme="light"] {
   .btn-icon:hover {
     background: rgba(143,220,240,.25);
     color: var(--tx);
+  }
+
+  .btn-icon-danger {
+    color: var(--badTx);
+  }
+  .btn-icon-danger:hover {
+    background: var(--badBg) !important;
+    color: var(--badTx) !important;
   }
 
   /* Form inputs */

@@ -236,7 +236,7 @@ function RatesSection({ rates, setRates }) {
                           <button
                             onClick={() => handleDelete(r.id)}
                             disabled={deleting === r.id}
-                            className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
+                            className="btn-icon btn-icon-danger disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -462,7 +462,7 @@ function WarehousesSection({ warehouses, setWarehouses }) {
                           <button
                             onClick={() => handleDelete(w.id)}
                             disabled={deleting === w.id}
-                            className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
+                            className="btn-icon btn-icon-danger disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -697,7 +697,7 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                           <button
                             onClick={() => handleDelete(b.id)}
                             disabled={deleting === b.id}
-                            className="btn-icon text-danger-600 hover:bg-danger-100 disabled:opacity-50"
+                            className="btn-icon btn-icon-danger disabled:opacity-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
