@@ -32,9 +32,16 @@ export default function Layout() {
   const [badges, setBadges] = useState({ shipments: 0, customers: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const role = getUserRole();
   const pillRef = useRef(null);
   const navRef = useRef(null);
+
+  useEffect(() => {
+    if (window.innerWidth < 768 || /Mobi|Android/i.test(navigator.userAgent)) {
+      navigate('/mobile', { replace: true });
+    }
+  }, []);
 
   const navItems = NAV_ITEMS.filter(({ to }) => {
     if (role === 'staff') return to !== '/' && to !== '/transactions';
