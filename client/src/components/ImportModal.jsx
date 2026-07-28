@@ -177,10 +177,10 @@ export default function ImportModal({ onClose, onImported }) {
           </div>
 
           {parseError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="rounded-lg p-3" style={{ background: 'var(--badBg)', border: '1px solid var(--badLn)' }}>
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                <pre className="text-xs text-red-700 whitespace-pre-wrap">{parseError}</pre>
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--badTx)' }} />
+                <pre className="text-xs whitespace-pre-wrap" style={{ color: 'var(--badTx)' }}>{parseError}</pre>
               </div>
             </div>
           )}
@@ -192,9 +192,9 @@ export default function ImportModal({ onClose, onImported }) {
                 {pickedCount > 0 && <span className="inline-flex items-center gap-1 text-blue-600"><Check className="w-4 h-4" /> Đã chọn tay: <b>{pickedCount}</b></span>}
                 {unresolved > 0 && <span className="inline-flex items-center gap-1 text-amber-600"><HelpCircle className="w-4 h-4" /> Cần chọn khách: <b>{unresolved}</b></span>}
               </div>
-              <div className="overflow-x-auto rounded-lg border border-gray-200 max-h-[22rem] overflow-y-auto">
+              <div className="overflow-x-auto rounded-lg max-h-[22rem] overflow-y-auto" style={{ border: '1px solid var(--ln)', background: 'var(--sf)' }}>
                 <table className="data-table text-xs">
-                  <thead className="sticky top-0 bg-gray-50 z-10">
+                  <thead className="sticky top-0 z-10" style={{ background: 'var(--sf2)' }}>
                     <tr>
                       <th className="w-8">#</th>
                       <th>Tên trong file</th>
@@ -204,12 +204,12 @@ export default function ImportModal({ onClose, onImported }) {
                       <th>Kg</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody>
                     {parsed.map((row, i) => {
                       if (row._error) {
                         return (
-                          <tr key={i} className="bg-red-50">
-                            <td className="text-gray-400">{row._row}</td>
+                          <tr key={i} style={{ background: 'var(--badBg)' }}>
+                            <td style={{ color: 'var(--mu)' }}>{row._row}</td>
                             <td>{row.customer_raw}</td>
                             <td colSpan={4} className="text-red-600">{row._error}</td>
                           </tr>
@@ -221,13 +221,13 @@ export default function ImportModal({ onClose, onImported }) {
                       const tone = eid
                         ? (isManual ? 'manual' : 'auto')
                         : (r.status === 'none' ? 'missing' : 'suggest');
-                      const rowCls = { auto: 'bg-green-50/60', manual: 'bg-blue-50/60', suggest: 'bg-amber-50/60', missing: 'bg-red-50' }[tone];
+                      const rowStyle = { auto: 'var(--okBg)', manual: 'var(--acBg)', suggest: 'var(--warnBg)', missing: 'var(--badBg)' };
                       const suggestIds = (r.suggestions || []).filter((id) => customerById.has(id));
                       const wh = r.wh;
                       return (
-                        <tr key={i} className={rowCls}>
-                          <td className="text-gray-400">{row._row}</td>
-                          <td className="max-w-[150px] truncate" title={row.customer_raw}>{row.customer_raw}</td>
+                        <tr key={i} style={{ background: rowStyle[tone] }}>
+                          <td style={{ color: 'var(--mu)' }}>{row._row}</td>
+                          <td className="truncate" style={{ minWidth: 180, maxWidth: 220 }} title={row.customer_raw}>{row.customer_raw}</td>
                           <td>
                             <div className="flex items-center gap-1">
                               {tone === 'auto' && <Check className="w-3.5 h-3.5 text-green-600 flex-shrink-0" title="Tự khớp" />}
