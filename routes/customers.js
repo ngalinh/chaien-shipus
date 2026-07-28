@@ -197,11 +197,22 @@ router.get('/:id', (req, res) => {
     // ── Financial stats ──────────────────────────────────────────────────────
     const statsRow = db.prepare(`
       SELECT
-        COUNT(*)                                          AS shipped_count,
-        COALESCE(SUM(weight), 0)                          AS total_kg,
-        COALESCE(SUM(weight * customer_rate + surcharge), 0) AS total_vc_fee
+        COUNT(*)              AS shipped_count,
+        COALESCE(SUM(weight), 0) AS total_kg
       FROM shipments
       WHERE customer_id = ?
+    `).get(customer.id);
+
+    // Tổng phí VC tính theo lô (min 0.5kg/lô) — nhất quán với triggerAutoDebit
+    const feeRow = db.prepare(`
+      SELECT COALESCE(SUM(batch_fee), 0) AS total_vc_fee
+      FROM (
+        SELECT ROUND(MAX(0.5, COALESCE(SUM(weight), 0)) * COALESCE(MAX(customer_rate), 0)
+                     + COALESCE(SUM(surcharge), 0), 0) AS batch_fee
+        FROM shipments
+        WHERE customer_id = ?
+        GROUP BY import_date
+      )
     `).get(customer.id);
 
     const paidRow = db.prepare(`
@@ -210,7 +221,7 @@ router.get('/:id', (req, res) => {
       WHERE customer_id = ? AND reference_type = 'payment'
     `).get(customer.id);
 
-    const totalVcFee = statsRow.total_vc_fee;
+    const totalVcFee = feeRow.total_vc_fee;
     const paid       = paidRow.paid;
     const remaining  = Math.max(0, totalVcFee - paid);
 
