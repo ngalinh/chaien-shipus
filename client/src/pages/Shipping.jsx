@@ -241,6 +241,8 @@ export default function Shipping() {
           totalWeight: rows.reduce((a, s) => a + (s.weight || 0), 0),
           totalFee: rows.reduce((a, s) => a + (s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0), 0),
           paidStatus,
+          paidAmount: rows[0]?.paid_amount || 0,
+          remainingAmount: rows[0]?.remaining_amount || 0,
         });
       }
       customers.sort((a, b) => a.customerName.localeCompare(b.customerName, 'vi'));
@@ -437,7 +439,7 @@ export default function Shipping() {
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                                     {cust.paidStatus !== 'paid' && getUserRole() !== 'staff' ? (
                                       <button
-                                        onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
+                                        onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.remainingAmount || cust.totalFee, paidAmount: cust.paidAmount, totalFee: cust.totalFee })}
                                         style={{ appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '6px 13px', borderRadius: 20, fontSize: 11, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', boxShadow: '0 10px 20px -10px rgba(58,175,211,.9)', whiteSpace: 'nowrap' }}
                                       >
                                         Thanh toán
@@ -648,7 +650,7 @@ export default function Shipping() {
                               </button>
                               {getUserRole() !== 'staff' && cust.paidStatus !== 'paid' && (
                                 <button
-                                  onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.totalFee })}
+                                  onClick={() => setPaymentModal({ customerId: cust.custId, batchDate: dateKey, amount: cust.remainingAmount || cust.totalFee, paidAmount: cust.paidAmount, totalFee: cust.totalFee })}
                                   className="inline-flex items-center justify-center p-2 rounded-full" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}
                                   title="Thanh toán"
                                 >
@@ -717,6 +719,8 @@ export default function Shipping() {
           customerId={paymentModal.customerId}
           batchDate={paymentModal.batchDate}
           amount={paymentModal.amount}
+          paidAmount={paymentModal.paidAmount}
+          totalFee={paymentModal.totalFee}
           onClose={() => setPaymentModal(null)}
           onSaved={() => { setPaymentModal(null); fetchShipments(); }}
         />

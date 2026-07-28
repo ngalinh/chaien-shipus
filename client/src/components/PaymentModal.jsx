@@ -5,7 +5,7 @@ import { toast } from './Toast.jsx';
 import { formatCurrency, todayInputValue } from '../utils.jsx';
 import MoneyInput from './MoneyInput.jsx';
 
-export default function PaymentModal({ customerId, batchDate, amount, onClose, onSaved }) {
+export default function PaymentModal({ customerId, batchDate, amount, paidAmount, totalFee, onClose, onSaved }) {
   const needsCustomerPick = !customerId;
   const [form, setForm] = useState({
     payment_date: todayInputValue(),
@@ -145,6 +145,22 @@ export default function PaymentModal({ customerId, batchDate, amount, onClose, o
               />
               {form.amount > 0 && (
                 <p className="text-xs text-green-600 mt-1">{formatCurrency(form.amount)}</p>
+              )}
+              {paidAmount > 0 && totalFee > 0 && (
+                <div className="mt-2 rounded-lg px-3 py-2 text-xs" style={{ background: 'var(--sf2)', color: 'var(--tx2)', lineHeight: 1.8 }}>
+                  <div className="flex justify-between">
+                    <span>Tổng tiền:</span>
+                    <span className="font-semibold" style={{ color: 'var(--tx)' }}>{formatCurrency(totalFee)} đ</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Đã thanh toán:</span>
+                    <span className="font-semibold text-green-600">{formatCurrency(paidAmount)} đ</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-1 mt-1" style={{ borderColor: 'var(--ln)' }}>
+                    <span className="font-medium" style={{ color: 'var(--tx)' }}>Còn lại:</span>
+                    <span className="font-bold" style={{ color: 'var(--ac)' }}>{formatCurrency(Math.max(0, totalFee - paidAmount))} đ</span>
+                  </div>
+                </div>
               )}
             </div>
 

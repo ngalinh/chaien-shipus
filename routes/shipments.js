@@ -86,7 +86,9 @@ router.get('/', (req, res) => {
     const paidMap = computePaidStatus(rows.map((r) => r.customer_id));
     for (const r of rows) {
       const info = paidMap.get(`${r.import_date}|${r.customer_id}`);
-      r.paid_status = info ? info.status : 'unpaid';
+      r.paid_status        = info ? info.status           : 'unpaid';
+      r.paid_amount        = info ? info.paid_amount       : 0;
+      r.remaining_amount   = info ? info.remaining_amount  : 0;
     }
 
     res.json(rows);
