@@ -528,7 +528,7 @@ export default function Shipping() {
                                                     formatCurrency(s.surcharge)
                                                   )}
                                                 </td>
-                                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12, fontWeight: 600, color: 'var(--tx)' }}>
+                                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 14, fontWeight: 600, color: 'var(--tx)' }}>
                                                   {isEditing ? '–' : formatCurrency((s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0))}
                                                 </td>
                                                 <td>
