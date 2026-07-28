@@ -15,12 +15,6 @@ import imgRevenue from '../assets/guide/05-revenue.jpg';
 const SECTIONS = [
   {
     num: '01', title: 'Hàng về', icon: Truck, route: '/shipping',
-    mainImg: imgShipping,
-    subImgs: [
-      { img: imgNhapKho, caption: 'Nhập kho — dán dữ liệu Excel từ đối tác' },
-      { img: imgBaoHangVe, caption: 'Phiếu báo hàng về — xem và gửi Zalo' },
-      { img: imgBaoShip, caption: 'Báo ship — copy mã vận đơn hoặc gửi Zalo' },
-    ],
     features: [
       'Nhập kho: dán dữ liệu Excel từ đối tác (Tab-separated, 5 cột)',
       'Trạng thái lô: Chưa báo → Đã báo hàng → Đã báo ship',
@@ -28,57 +22,64 @@ const SECTIONS = [
       '3 icon thao tác: Báo hàng về · Báo ship · Mã vận đơn',
       'Click phí VC/kg để sửa cước riêng từng lô',
     ],
+    steps: [
+      { img: imgShipping, label: 'Tổng quan', caption: 'Danh sách lô hàng theo ngày nhập kho, lọc theo trạng thái và khách hàng' },
+      { img: imgNhapKho, label: 'Nhập kho', caption: 'Dán dữ liệu Excel từ đối tác (Tab-separated, 5 cột: mã KH, bill, kg, VC, ghi chú)' },
+      { img: imgBaoHangVe, label: 'Phiếu báo hàng về', caption: 'Xem phiếu chi tiết lô hàng và gửi thông báo Zalo cho khách' },
+      { img: imgBaoShip, label: 'Báo ship', caption: 'Copy mã vận đơn hoặc gửi thông báo Zalo báo hàng đã ship' },
+    ],
   },
   {
     num: '02', title: 'Khách hàng', icon: Users, route: '/customers',
-    mainImg: imgCustomers,
-    subImgs: [
-      { img: imgTaoKH, caption: 'Tạo mã KH mới — điền thông tin và gán nhóm cước' },
-      { img: imgKhDetail, caption: 'Trang khách hàng — lịch sử hàng & sổ giao dịch' },
-    ],
     features: [
       'Badge trạng thái: Active 1m / 2m / 3m / Inactive',
       'Click tên khách → xem tài khoản: lịch sử hàng + sổ giao dịch',
       'Tạo / sửa / xóa khách, gán nhóm cước',
       'Upload ảnh CCCD mặt trước & sau',
     ],
+    steps: [
+      { img: imgCustomers, label: 'Tổng quan', caption: 'Danh sách khách hàng với trạng thái hoạt động, nhóm cước và lịch sử' },
+      { img: imgTaoKH, label: 'Tạo mã KH mới', caption: 'Điền mã KH, tên, số điện thoại, nhóm cước và upload ảnh CCCD' },
+      { img: imgKhDetail, label: 'Chi tiết khách hàng', caption: 'Xem lịch sử hàng về và sổ giao dịch của từng khách' },
+    ],
   },
   {
     num: '03', title: 'Giao dịch', icon: Receipt, route: '/transactions',
-    mainImg: imgTransactions,
-    subImgs: [
-      { img: imgTaoThanhToan, caption: 'Tạo thanh toán — chọn loại thu/chi và khách hàng' },
-    ],
     features: [
       'Tổng Thu · Chi · Chênh lệch trong kỳ hiển thị đầu trang',
       'Lọc theo danh mục Thu / Chi, mã KH, từ khóa nội dung',
       'Giao dịch tự tạo khi import lô hoặc ghi nhận thanh toán',
       'Tạo thanh toán thủ công bằng "+ Tạo thanh toán"',
     ],
+    steps: [
+      { img: imgTransactions, label: 'Tổng quan', caption: 'Sổ giao dịch thu/chi, lọc theo kỳ và danh mục' },
+      { img: imgTaoThanhToan, label: 'Tạo thanh toán', caption: 'Chọn loại Thu/Chi, nhập số tiền, gán mã khách hàng và ghi chú' },
+    ],
   },
   {
     num: '04', title: 'Doanh thu VC', icon: TrendingUp, route: '/revenue',
-    mainImg: imgRevenue,
-    subImgs: [],
     features: [
       'Bảng doanh thu từng tháng: tổng phí · đã thu · còn phải thu',
       'Gán NV SALE phụ trách cho từng mã khách',
       'Lọc theo tháng, xem chi tiết từng khách trong kỳ',
     ],
+    steps: [
+      { img: imgRevenue, label: 'Tổng quan', caption: 'Bảng doanh thu theo tháng, gán NV SALE và theo dõi công nợ' },
+    ],
   },
 ];
 
-const imgStyle = {
+const stepImgStyle = {
   width: '100%',
-  borderRadius: 10,
+  borderRadius: 8,
   border: '1px solid var(--ln)',
   display: 'block',
-  boxShadow: '0 6px 28px -10px rgba(0,0,0,0.55)',
+  boxShadow: '0 4px 20px -6px rgba(0,0,0,0.5)',
 };
 
 export default function Guide() {
   return (
-    <div style={{ padding: '24px 28px 56px', maxWidth: 940, margin: '0 auto' }}>
+    <div style={{ padding: '24px 28px 56px', maxWidth: 1200, margin: '0 auto' }}>
       <div style={{ marginBottom: 28 }}>
         <h1 style={{ fontSize: 25, fontWeight: 800, color: 'var(--tx)', margin: 0 }}>Hướng dẫn sử dụng</h1>
         <p style={{ fontSize: 13.5, color: 'var(--mu)', marginTop: 6, lineHeight: 1.5 }}>
@@ -91,60 +92,70 @@ export default function Guide() {
           const Icon = s.icon;
           return (
             <div key={s.num} className="glass-card" style={{ overflow: 'hidden' }}>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 22px', borderBottom: '1px solid var(--ln2)' }}>
-                <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10.5, fontWeight: 700, color: 'var(--ac)', opacity: 0.65, letterSpacing: '0.1em', flexShrink: 0 }}>
-                  {s.num}
-                </span>
-                <span style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--acBg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon size={15} style={{ color: 'var(--ac)' }} strokeWidth={1.9} />
-                </span>
-                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx)' }}>{s.title}</span>
-                <Link
-                  to={s.route}
-                  style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, opacity: 0.8, flexShrink: 0 }}
-                >
-                  Mở trang →
-                </Link>
-              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', minHeight: 0 }}>
 
-              {/* Main screenshot */}
-              <div style={{ padding: '18px 22px 0' }}>
-                <img src={s.mainImg} alt={s.title} style={imgStyle} />
-              </div>
-
-              {/* Sub-screenshots */}
-              {s.subImgs.length > 0 && (
+                {/* LEFT — guide info */}
                 <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${Math.min(s.subImgs.length, 3)}, 1fr)`,
-                  gap: 12,
-                  padding: '12px 22px 0',
+                  padding: '22px 20px',
+                  borderRight: '1px solid var(--ln2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 16,
                 }}>
-                  {s.subImgs.map((sub, i) => (
+                  {/* Title */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10, fontWeight: 700, color: 'var(--ac)', opacity: 0.65, letterSpacing: '0.1em' }}>
+                      {s.num}
+                    </span>
+                    <span style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--acBg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon size={14} style={{ color: 'var(--ac)' }} strokeWidth={1.9} />
+                    </span>
+                    <span style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--tx)' }}>{s.title}</span>
+                  </div>
+
+                  {/* Features */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
+                    {s.features.map((f, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12, color: 'var(--tx2)', lineHeight: 1.55 }}>
+                        <span style={{ color: 'var(--ac)', flexShrink: 0, marginTop: 3, fontSize: 8 }}>◆</span>
+                        {f}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Link */}
+                  <Link
+                    to={s.route}
+                    style={{ fontSize: 11.5, color: 'var(--ac)', textDecoration: 'none', fontWeight: 600, opacity: 0.85 }}
+                  >
+                    Mở trang →
+                  </Link>
+                </div>
+
+                {/* RIGHT — screenshots */}
+                <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 28 }}>
+                  {s.steps.map((step, i) => (
                     <div key={i}>
-                      <img src={sub.img} alt={sub.caption} style={imgStyle} />
-                      <p style={{ fontSize: 11, color: 'var(--mu)', marginTop: 6, lineHeight: 1.4, textAlign: 'center' }}>
-                        {sub.caption}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <span style={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: 'var(--ac)',
+                          background: 'var(--acBg)',
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          letterSpacing: '0.04em',
+                        }}>
+                          {step.label}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.4 }}>{step.caption}</span>
+                      </div>
+                      <img src={step.img} alt={step.label} style={stepImgStyle} />
                     </div>
                   ))}
                 </div>
-              )}
 
-              {/* Feature list */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: '7px 20px',
-                padding: '14px 22px 18px',
-              }}>
-                {s.features.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--tx2)', lineHeight: 1.55 }}>
-                    <span style={{ color: 'var(--ac)', flexShrink: 0, marginTop: 3, fontSize: 9 }}>◆</span>
-                    {f}
-                  </div>
-                ))}
               </div>
             </div>
           );
