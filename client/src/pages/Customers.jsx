@@ -246,7 +246,7 @@ export default function Customers() {
                           {c.name}
                         </div>
                         <div style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--ac)', marginTop: 3 }}>
-                          {c.code}
+                          {c.code_us && c.code_uk ? `${c.code_us}/${c.code_uk}` : c.code}
                         </div>
                       </Link>
                     ) : (
@@ -255,7 +255,7 @@ export default function Customers() {
                           {c.name}
                         </div>
                         <div style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--mu)', marginTop: 3 }}>
-                          {c.code}
+                          {c.code_us && c.code_uk ? `${c.code_us}/${c.code_uk}` : c.code}
                         </div>
                       </div>
                     )}
