@@ -144,6 +144,17 @@ const IcoCopy = () => (
   </svg>
 );
 
+const IcoEdit = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+const IcoTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+  </svg>
+);
+
 const NAV_ITEMS = [
   { key: 'dash',  label: 'Tổng quan',   Icon: IcoHome    },
   { key: 'hang',  label: 'Hàng về',     Icon: IcoBox,    badge: 'shipments' },
@@ -189,6 +200,9 @@ export default function MobilePWA() {
   const [vanDonData, setVanDonData] = useState(null); // { cust, code }
   const [shipMsgData, setShipMsgData] = useState(null); // { customerName, text }
   const [notifModalData, setNotifModalData] = useState(null); // { notifData, company, bank }
+  const [custFrom, setCustFrom]           = useState('khach');
+  const [settingsModal, setSettingsModal] = useState(null); // { type, data, isNew }
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
@@ -384,6 +398,7 @@ export default function MobilePWA() {
   }
 
   function openCust(id) {
+    setCustFrom(route);
     setCustId(id);
     setCustTab('tx');
     loadCustDetail(id);
@@ -1042,6 +1057,47 @@ export default function MobilePWA() {
     );
   }
 
+  async function handleSetSave() {
+    if (!settingsModal || settingsSaving) return;
+    setSettingsSaving(true);
+    try {
+      const { type, data, isNew } = settingsModal;
+      if (type === 'rate') {
+        if (isNew) await axios.post('/api/settings/rates', { name: data.name, rate_per_kg: Number(data.rate_per_kg) });
+        else await axios.put(`/api/settings/rates/${data.id}`, { name: data.name, rate_per_kg: Number(data.rate_per_kg) });
+      } else if (type === 'warehouse') {
+        if (isNew) await axios.post('/api/settings/warehouses', { code: data.code, name: data.name });
+        else await axios.put(`/api/settings/warehouses/${data.id}`, { code: data.code, name: data.name });
+      } else if (type === 'bank') {
+        if (isNew) await axios.post('/api/settings/bank-accounts', { bank_name: data.bank_name, account_number: data.account_number, account_name: data.account_name });
+        else await axios.put(`/api/settings/bank-accounts/${data.id}`, { bank_name: data.bank_name, account_number: data.account_number, account_name: data.account_name });
+      } else if (type === 'company') {
+        await axios.post('/api/settings/company', { company_name: data.company_name, hotline: data.hotline, delivery_carrier: data.delivery_carrier });
+      }
+      const r = await axios.get('/api/settings');
+      setSettingsData(r.data);
+      setSettingsModal(null);
+      showToast('Đã lưu');
+    } catch { showToast('Lỗi lưu'); }
+    finally { setSettingsSaving(false); }
+  }
+
+  async function handleSetDelete() {
+    if (!settingsModal || settingsSaving) return;
+    const { type, data } = settingsModal;
+    setSettingsSaving(true);
+    try {
+      if (type === 'rate') await axios.delete(`/api/settings/rates/${data.id}`);
+      else if (type === 'warehouse') await axios.delete(`/api/settings/warehouses/${data.id}`);
+      else if (type === 'bank') await axios.delete(`/api/settings/bank-accounts/${data.id}`);
+      const r = await axios.get('/api/settings');
+      setSettingsData(r.data);
+      setSettingsModal(null);
+      showToast('Đã xóa');
+    } catch { showToast('Lỗi xóa'); }
+    finally { setSettingsSaving(false); }
+  }
+
   function renderSet() {
     const sd = settingsData;
     if (!sd) return <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--mu)' }}>Đang tải...</div>;
@@ -1049,66 +1105,72 @@ export default function MobilePWA() {
     const warehouses = sd.warehouses || [];
     const bankAccounts = sd.bank_accounts || [];
     const company = sd.company || {};
-    const Section = ({ title, children }) => (
+    const Section = ({ title, onAdd, children }) => (
       <div style={{ ...cardStyle, padding: '14px 14px' }}>
-        <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ac)', marginBottom: 12, fontWeight: 700 }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ac)', fontWeight: 700 }}>{title}</div>
+          {onAdd && <Btn onClick={onAdd} style={{ width: 28, height: 28, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)' }}><IcoPlus /></Btn>}
+        </div>
         {children}
       </div>
     );
-    const Row = ({ label, value }) => (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
-        <span style={{ fontSize: 12, color: 'var(--mu)' }}>{label}</span>
-        <span style={{ font: '600 12px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{value}</span>
-      </div>
+    const editBtn = (item, type) => (
+      <Btn onClick={() => setSettingsModal({ type, data: { ...item }, isNew: false })} style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--mu)' }}><IcoEdit /></Btn>
     );
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
         {/* Công ty */}
         <Section title="Công ty">
-          <Row label="Tên" value={company.company_name || '—'} />
-          <Row label="Hotline" value={company.hotline || '—'} />
-          <Row label="Đơn vị giao hàng" value={company.delivery_carrier || '—'} />
+          {[['Tên', company.company_name], ['Hotline', company.hotline], ['Đơn vị giao hàng', company.delivery_carrier]].map(([label, val]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderTop: '1px solid var(--ln2)' }}>
+              <span style={{ fontSize: 12, color: 'var(--mu)' }}>{label}</span>
+              <span style={{ font: '600 12px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{val || '—'}</span>
+            </div>
+          ))}
+          <Btn onClick={() => setSettingsModal({ type: 'company', data: { company_name: company.company_name || '', hotline: company.hotline || '', delivery_carrier: company.delivery_carrier || '' }, isNew: false })} style={{ width: '100%', marginTop: 10, padding: '8px', borderRadius: 10, border: '1px solid var(--ln)', background: 'var(--sf2)', fontSize: 12, color: 'var(--tx)', fontWeight: 600, textAlign: 'center' }}>Sửa thông tin</Btn>
         </Section>
         {/* Biểu phí */}
-        <Section title="Biểu phí">
+        <Section title="Biểu phí" onAdd={() => setSettingsModal({ type: 'rate', data: { name: '', rate_per_kg: '' }, isNew: true })}>
           {rates.length === 0
             ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có biểu phí</div>
             : rates.map((r) => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{r.name}</span>
+              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)', flex: 1 }}>{r.name}</span>
                 <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--ac)' }}>{fmt(r.rate_per_kg)} đ/kg</span>
+                {editBtn(r, 'rate')}
               </div>
             ))
           }
         </Section>
         {/* Kho */}
-        <Section title="Kho">
+        <Section title="Kho" onAdd={() => setSettingsModal({ type: 'warehouse', data: { code: '', name: '' }, isNew: true })}>
           {warehouses.length === 0
             ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có kho</div>
             : warehouses.map((w) => (
-              <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
+              <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
                 <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{w.code}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--mu)' }}>{w.name}</span>
+                <span style={{ fontSize: 11.5, color: 'var(--mu)', flex: 1 }}>{w.name}</span>
+                {editBtn(w, 'warehouse')}
               </div>
             ))
           }
         </Section>
         {/* Tài khoản ngân hàng */}
-        <Section title="Tài khoản ngân hàng">
+        <Section title="Tài khoản ngân hàng" onAdd={() => setSettingsModal({ type: 'bank', data: { bank_name: '', account_number: '', account_name: '' }, isNew: true })}>
           {bankAccounts.length === 0
             ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có tài khoản</div>
             : bankAccounts.map((b) => (
-              <div key={b.id} style={{ padding: '9px 0', borderTop: '1px solid var(--ln2)' }}>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{b.bank_name}</div>
-                <div style={{ font: '600 11.5px "JetBrains Mono",monospace', color: 'var(--ac)', marginTop: 3 }}>{b.account_number}</div>
-                <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 2 }}>{b.account_name}</div>
+              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8, padding: '9px 0', borderTop: '1px solid var(--ln2)' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{b.bank_name}</div>
+                  <div style={{ font: '600 11.5px "JetBrains Mono",monospace', color: 'var(--ac)', marginTop: 3 }}>{b.account_number}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 2 }}>{b.account_name}</div>
+                </div>
+                {editBtn(b, 'bank')}
               </div>
             ))
           }
         </Section>
-        <div style={{ fontSize: 11, color: 'var(--mu)', textAlign: 'center', padding: '8px 0' }}>
-          Chỉnh sửa cài đặt trên giao diện máy tính
-        </div>
       </div>
     );
   }
@@ -1143,7 +1205,7 @@ export default function MobilePWA() {
       }}>
         <div style={{ padding: '6px 18px 12px', display: 'flex', alignItems: 'center', gap: 12 }}>
           {isCust ? (
-            <Btn onClick={() => { setRoute('khach'); setCustDetail(null); }} style={{
+            <Btn onClick={() => { setRoute(custFrom); setCustDetail(null); }} style={{
               flexShrink: 0, width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center',
               background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--tx)',
             }}><IcoBack /></Btn>
@@ -1397,6 +1459,48 @@ export default function MobilePWA() {
           onClose={() => setNotifModalData(null)}
         />
       )}
+
+      {/* ── Settings modal ── */}
+      {settingsModal && (() => {
+        const { type, data, isNew } = settingsModal;
+        const setData = (field, val) => setSettingsModal(m => ({ ...m, data: { ...m.data, [field]: val } }));
+        const inputStyle = { width: '100%', background: 'var(--sunk)', border: '1px solid var(--ln)', borderRadius: 10, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '10px 12px', boxSizing: 'border-box' };
+        const titles = { rate: 'Biểu phí', warehouse: 'Kho', bank: 'Tài khoản ngân hàng', company: 'Thông tin công ty' };
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 30, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'flex-end' }} onClick={(e) => e.target === e.currentTarget && setSettingsModal(null)}>
+            <div style={{ width: '100%', background: 'var(--sf)', borderRadius: '20px 20px 0 0', padding: '20px 18px', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dcSheet 240ms ease both' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>{isNew ? 'Thêm' : 'Sửa'} {titles[type]}</div>
+                <Btn onClick={() => setSettingsModal(null)} style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--mu)' }}><IcoX /></Btn>
+              </div>
+              {type === 'rate' && (<>
+                <input style={inputStyle} placeholder="Tên biểu phí" value={data.name} onChange={e => setData('name', e.target.value)} />
+                <input style={inputStyle} placeholder="Cước/kg (VNĐ)" type="number" value={data.rate_per_kg} onChange={e => setData('rate_per_kg', e.target.value)} />
+              </>)}
+              {type === 'warehouse' && (<>
+                <input style={inputStyle} placeholder="Mã kho (VD: HAN)" value={data.code} onChange={e => setData('code', e.target.value)} />
+                <input style={inputStyle} placeholder="Tên kho" value={data.name} onChange={e => setData('name', e.target.value)} />
+              </>)}
+              {type === 'bank' && (<>
+                <input style={inputStyle} placeholder="Tên ngân hàng" value={data.bank_name} onChange={e => setData('bank_name', e.target.value)} />
+                <input style={inputStyle} placeholder="Số tài khoản" value={data.account_number} onChange={e => setData('account_number', e.target.value)} />
+                <input style={inputStyle} placeholder="Tên chủ tài khoản" value={data.account_name} onChange={e => setData('account_name', e.target.value)} />
+              </>)}
+              {type === 'company' && (<>
+                <input style={inputStyle} placeholder="Tên công ty" value={data.company_name} onChange={e => setData('company_name', e.target.value)} />
+                <input style={inputStyle} placeholder="Hotline" value={data.hotline} onChange={e => setData('hotline', e.target.value)} />
+                <input style={inputStyle} placeholder="Đơn vị giao hàng" value={data.delivery_carrier} onChange={e => setData('delivery_carrier', e.target.value)} />
+              </>)}
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                {!isNew && type !== 'company' && (
+                  <Btn onClick={handleSetDelete} disabled={settingsSaving} style={{ width: 44, height: 44, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'rgba(239,68,68,.12)', border: '1px solid rgba(239,68,68,.3)', color: '#ef4444', flexShrink: 0 }}><IcoTrash /></Btn>
+                )}
+                <Btn onClick={handleSetSave} disabled={settingsSaving} style={{ flex: 1, height: 44, borderRadius: 13, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: settingsSaving ? 'var(--mu)' : 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{settingsSaving ? 'Đang lưu...' : 'Lưu'}</Btn>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Toast ── */}
       {toastMsg && (
