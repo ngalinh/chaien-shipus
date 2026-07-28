@@ -118,13 +118,17 @@ router.get('/warehouses', (_req, res) => {
 
 router.post('/warehouses', (req, res) => {
   try {
-    const { code, name, rate_per_kg, aliases } = req.body;
-    if (!code || !name || rate_per_kg == null) {
-      return res.status(400).json({ error: 'code, name and rate_per_kg are required' });
+    const { code, name, rate_per_kg, rate_le, rate_buon, aliases } = req.body;
+    if (!code || !name) {
+      return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(
-      'INSERT INTO partner_warehouses (code, name, rate_per_kg, aliases) VALUES (?, ?, ?, ?)'
-    ).run(code.trim().toUpperCase(), name.trim(), parseFloat(rate_per_kg), (aliases || '').trim().toUpperCase());
+      'INSERT INTO partner_warehouses (code, name, rate_per_kg, rate_le, rate_buon, aliases) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(
+      code.trim().toUpperCase(), name.trim(),
+      parseFloat(rate_per_kg) || 0, parseFloat(rate_le) || 0, parseFloat(rate_buon) || 0,
+      (aliases || '').trim().toUpperCase()
+    );
     const row = db.prepare('SELECT * FROM partner_warehouses WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json(row);
   } catch (err) {
@@ -137,13 +141,17 @@ router.post('/warehouses', (req, res) => {
 
 router.put('/warehouses/:id', (req, res) => {
   try {
-    const { code, name, rate_per_kg, aliases } = req.body;
-    if (!code || !name || rate_per_kg == null) {
-      return res.status(400).json({ error: 'code, name and rate_per_kg are required' });
+    const { code, name, rate_per_kg, rate_le, rate_buon, aliases } = req.body;
+    if (!code || !name) {
+      return res.status(400).json({ error: 'code and name are required' });
     }
     const info = db.prepare(
-      'UPDATE partner_warehouses SET code = ?, name = ?, rate_per_kg = ?, aliases = ? WHERE id = ?'
-    ).run(code.trim().toUpperCase(), name.trim(), parseFloat(rate_per_kg), (aliases || '').trim().toUpperCase(), parseInt(req.params.id));
+      'UPDATE partner_warehouses SET code = ?, name = ?, rate_per_kg = ?, rate_le = ?, rate_buon = ?, aliases = ? WHERE id = ?'
+    ).run(
+      code.trim().toUpperCase(), name.trim(),
+      parseFloat(rate_per_kg) || 0, parseFloat(rate_le) || 0, parseFloat(rate_buon) || 0,
+      (aliases || '').trim().toUpperCase(), parseInt(req.params.id)
+    );
     if (info.changes === 0) return res.status(404).json({ error: 'Warehouse not found' });
     const row = db.prepare('SELECT * FROM partner_warehouses WHERE id = ?').get(req.params.id);
     res.json(row);
@@ -257,7 +265,7 @@ router.get('/company', (_req, res) => {
 
 router.post('/company', (req, res) => {
   try {
-    const { company_name, logo_path, delivery_carrier } = req.body;
+    const { company_name, hotline, logo_path, delivery_carrier } = req.body;
     const upsert = db.prepare(
       `INSERT INTO company_info (key, value) VALUES (?, ?)
        ON CONFLICT(key) DO UPDATE SET value = excluded.value`
@@ -269,6 +277,7 @@ router.post('/company', (req, res) => {
     });
     upsertMany([
       ['company_name',     company_name],
+      ['hotline',          hotline],
       ['logo_path',        logo_path],
       ['delivery_carrier', delivery_carrier],
     ]);

@@ -99,10 +99,8 @@ export default function Customers() {
 
   const allCustomers = Array.isArray(customers) ? customers : [];
 
-  // Staff chỉ thấy KH được gán cho mình
-  const visibleCustomers = role === 'staff'
-    ? allCustomers.filter(c => c.sale_username === currentUser?.username)
-    : allCustomers;
+  // Tất cả role đều thấy đủ danh sách; staff chỉ bị khóa khi click vào tài khoản KH không của mình
+  const visibleCustomers = allCustomers;
 
   const filtered = visibleCustomers.filter(c => {
     const q = search.toLowerCase();
@@ -184,17 +182,15 @@ export default function Customers() {
             <option value="">Nhóm KH (tất cả)</option>
             {rateOptions.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
-          {/* Filter NV Sale — ẩn với staff (họ chỉ thấy KH của mình) */}
-          {role !== 'staff' && (
-            <select
-              value={filterSale}
-              onChange={e => setFilterSale(e.target.value)}
-              style={{ height: 42, padding: '0 12px', borderRadius: 10, border: '1px solid var(--ln)', background: 'var(--sf)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}
-            >
-              <option value="">NV Sale (tất cả)</option>
-              {saleOptions.map(s => <option key={s.sale_username} value={s.sale_username}>{s.sale_name}</option>)}
-            </select>
-          )}
+          {/* Filter NV Sale */}
+          <select
+            value={filterSale}
+            onChange={e => setFilterSale(e.target.value)}
+            style={{ height: 42, padding: '0 12px', borderRadius: 10, border: '1px solid var(--ln)', background: 'var(--sf)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', cursor: 'pointer', outline: 'none' }}
+          >
+            <option value="">NV Sale (tất cả)</option>
+            {saleOptions.map(s => <option key={s.sale_username} value={s.sale_username}>{s.sale_name}</option>)}
+          </select>
           <button onClick={() => setImportOpen(true)} className="btn-secondary">
             <FileSpreadsheet className="w-4 h-4" />
             Import Excel
@@ -240,17 +236,29 @@ export default function Customers() {
               </tr>
             ) : filtered.map(c => {
               const status = calcCustomerStatus(c.latest_shipment_date);
+              const canViewAccount = role !== 'staff' || c.sale_username === currentUser?.username;
               return (
                 <tr key={c.id}>
                   <td>
-                    <Link to={`/customers/${c.id}`} style={{ textDecoration: 'none' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {c.name}
+                    {canViewAccount ? (
+                      <Link to={`/customers/${c.id}`} style={{ textDecoration: 'none' }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {c.name}
+                        </div>
+                        <div style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--ac)', marginTop: 3 }}>
+                          {c.code}
+                        </div>
+                      </Link>
+                    ) : (
+                      <div title="Chỉ NV Sale phụ trách mới xem được tài khoản">
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: 0.7 }}>
+                          {c.name}
+                        </div>
+                        <div style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--mu)', marginTop: 3 }}>
+                          {c.code}
+                        </div>
                       </div>
-                      <div style={{ font: '400 10.5px "JetBrains Mono", monospace', color: 'var(--ac)', marginTop: 3 }}>
-                        {c.code}
-                      </div>
-                    </Link>
+                    )}
                   </td>
                   <td><StatusChip status={status} /></td>
                   <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>{c.phone || '–'}</td>

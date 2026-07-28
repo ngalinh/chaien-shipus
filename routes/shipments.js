@@ -115,9 +115,11 @@ router.post('/import', (req, res) => {
     const warnings = [];
     const inserted = [];
 
-    const rateMap      = new Map(db.prepare('SELECT id, rate_per_kg FROM customer_rates').all().map((r) => [r.id, r.rate_per_kg]));
-    const customerStmt = db.prepare('SELECT id, rate_id FROM customers WHERE id = ?');
-    const warehouseStmt = db.prepare('SELECT id, rate_per_kg FROM partner_warehouses WHERE id = ?');
+    // rate_per_kg = global fallback; rate_le/rate_buon = per-warehouse customer rates
+    const rateInfoMap  = new Map(db.prepare('SELECT id, rate_per_kg, name FROM customer_rates').all()
+      .map((r) => [r.id, { rate: r.rate_per_kg, isBuon: /buôn|buon/i.test(r.name) }]));
+    const customerStmt  = db.prepare('SELECT id, rate_id FROM customers WHERE id = ?');
+    const warehouseStmt = db.prepare('SELECT id, rate_per_kg, rate_le, rate_buon FROM partner_warehouses WHERE id = ?');
 
     const insertStmt = db.prepare(`
       INSERT INTO shipments
@@ -141,10 +143,17 @@ router.post('/import', (req, res) => {
           continue;
         }
 
-        const warehouse = warehouse_id ? warehouseStmt.get(parseInt(warehouse_id)) : null;
-        const partnerRate  = warehouse ? warehouse.rate_per_kg : 0;
-        const customerRate = customer.rate_id ? (rateMap.get(customer.rate_id) || 0) : 0;
-        const warehouseId  = warehouse ? warehouse.id : null;
+        const warehouse   = warehouse_id ? warehouseStmt.get(parseInt(warehouse_id)) : null;
+        const partnerRate = warehouse ? warehouse.rate_per_kg : 0;
+        const warehouseId = warehouse ? warehouse.id : null;
+
+        // Ưu tiên cước theo kho (rate_le/rate_buon). Fallback về global nếu kho chưa có cước.
+        const rateInfo    = customer.rate_id ? rateInfoMap.get(customer.rate_id) : null;
+        const isBuon      = rateInfo?.isBuon || false;
+        const warehouseCustomerRate = warehouse
+          ? (isBuon ? (warehouse.rate_buon || 0) : (warehouse.rate_le || 0))
+          : 0;
+        const customerRate = warehouseCustomerRate > 0 ? warehouseCustomerRate : (rateInfo?.rate || 0);
 
         const info = insertStmt.run(
           date,

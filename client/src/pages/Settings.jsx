@@ -1,29 +1,41 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
-  Plus, Edit2, Trash2, Save, X,
-  Star, Upload, Building2, Truck, Warehouse, CreditCard,
+  Plus, Edit2, Trash2, X,
+  Star, Upload, Building2, Warehouse, CreditCard,
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 
+// ─── Generic modal wrapper ────────────────────────────────────────────────────
+function Modal({ title, onClose, children }) {
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-box">
+        <div className="modal-header">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>{title}</h2>
+          <button onClick={onClose} className="btn-icon"><X className="w-5 h-5" /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function Settings() {
-  const [rates, setRates] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [bankAccounts, setBankAccounts] = useState([]);
-  const [company, setCompany] = useState({ company_name: '', logo_path: '', hotline: '', delivery_carrier: '' });
+  const [company, setCompany] = useState({});
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  useEffect(() => { fetchAll(); }, []);
 
   async function fetchAll() {
     setLoading(true);
     try {
       const res = await axios.get('/api/settings');
-      setRates(res.data.rates || []);
       setWarehouses(res.data.warehouses || []);
       setBankAccounts(res.data.bank_accounts || []);
       setCompany(res.data.company || {});
@@ -37,694 +49,30 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: 'var(--ac)', borderTopColor: 'transparent' }} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl space-y-8">
-      {/* Header */}
+    <div className="p-6 max-w-3xl space-y-8">
       <div>
         <h1 className="text-page font-bold leading-tight" style={{ color: 'var(--tx)' }}>Cài đặt</h1>
         <p className="text-body-md mt-1.5" style={{ color: 'var(--mu)' }}>Quản lý cấu hình hệ thống</p>
       </div>
 
-      {/* Nhóm: Vận chuyển */}
-      <div className="space-y-2">
-        <p className="text-2xs font-bold uppercase tracking-widest px-1" style={{ color: 'var(--mu)' }}>Vận chuyển</p>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <RatesSection rates={rates} setRates={setRates} />
-          <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
-        </div>
-      </div>
-
-      {/* Nhóm: Thanh toán & Công ty */}
-      <div className="space-y-2">
-        <p className="text-2xs font-bold uppercase tracking-widest px-1" style={{ color: 'var(--mu)' }}>Thanh toán & Công ty</p>
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
-          <CompanySection company={company} setCompany={setCompany} />
-        </div>
-      </div>
+      <CompanySection company={company} setCompany={setCompany} />
+      <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
+      <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
     </div>
   );
 }
 
-// ── Customer Rates ─────────────────────────────────────────────────────────────
-function RatesSection({ rates, setRates }) {
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ name: '', rate_per_kg: '' });
-  const [editForm, setEditForm] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(null);
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!form.name || !form.rate_per_kg) return;
-    setSaving(true);
-    try {
-      const res = await axios.post('/api/settings/rates', {
-        name: form.name,
-        rate_per_kg: parseFloat(form.rate_per_kg),
-      });
-      setRates((p) => [...p, res.data]);
-      setForm({ name: '', rate_per_kg: '' });
-      setAdding(false);
-      toast('Đã thêm gói cước', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveEdit(id) {
-    setSaving(true);
-    try {
-      const res = await axios.put(`/api/settings/rates/${id}`, {
-        name: editForm.name,
-        rate_per_kg: parseFloat(editForm.rate_per_kg),
-      });
-      setRates((p) => p.map((r) => (r.id === id ? res.data : r)));
-      setEditId(null);
-      toast('Đã cập nhật', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Xóa gói cước này?')) return;
-    setDeleting(id);
-    try {
-      await axios.delete(`/api/settings/rates/${id}`);
-      setRates((p) => p.filter((r) => r.id !== id));
-      toast('Đã xóa', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  return (
-    <section className="card p-5">
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
-        <div className="flex items-center gap-2">
-          <Truck className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Cước vận chuyển – Khách hàng</h2>
-        </div>
-        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
-          <Plus className="w-4 h-4" />
-          Thêm gói
-        </button>
-      </div>
-
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Tên gói</th>
-              <th>Cước (VND/kg)</th>
-              <th className="!text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {adding && (
-              <tr style={{ background: 'var(--acBg)' }}>
-                <td>
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="VD: Gói tiêu chuẩn"
-                    autoFocus
-                  />
-                </td>
-                <td>
-                  <MoneyInput
-                    value={form.rate_per_kg}
-                    onChange={(v) => setForm((p) => ({ ...p, rate_per_kg: v }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="50000"
-                  />
-                </td>
-                <td className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                      {saving ? '...' : 'Lưu'}
-                    </button>
-                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
-                      Hủy
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )}
-            {rates.length === 0 && !adding ? (
-              <tr>
-                <td colSpan={3} className="text-center py-6 text-ink-400">Chưa có gói cước nào</td>
-              </tr>
-            ) : (
-              rates.map((r) => (
-                <tr key={r.id} style={editId === r.id ? { background: 'var(--warnBg)' } : {}}>
-                  <td>
-                    {editId === r.id ? (
-                      <input
-                        value={editForm.name}
-                        onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
-                        className="input-field py-1 text-sm"
-                      />
-                    ) : (
-                      <span className="font-medium">{r.name}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editId === r.id ? (
-                      <MoneyInput
-                        value={editForm.rate_per_kg}
-                        onChange={(v) => setEditForm((p) => ({ ...p, rate_per_kg: v }))}
-                        className="input-field py-1 text-sm"
-                      />
-                    ) : (
-                      formatCurrency(r.rate_per_kg)
-                    )}
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {editId === r.id ? (
-                        <>
-                          <button onClick={() => handleSaveEdit(r.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                            {saving ? '...' : 'Lưu'}
-                          </button>
-                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
-                            Hủy
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => { setEditId(r.id); setEditForm({ name: r.name, rate_per_kg: r.rate_per_kg }); }}
-                            className="btn-icon text-primary-600 hover:bg-primary-100"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(r.id)}
-                            disabled={deleting === r.id}
-                            className="btn-icon btn-icon-danger disabled:opacity-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-// ── Partner Warehouses ─────────────────────────────────────────────────────────
-function WarehousesSection({ warehouses, setWarehouses }) {
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ code: '', name: '', rate_per_kg: '', aliases: '' });
-  const [editForm, setEditForm] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(null);
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!form.code || !form.name || !form.rate_per_kg) return;
-    setSaving(true);
-    try {
-      const res = await axios.post('/api/settings/warehouses', {
-        code: form.code,
-        name: form.name,
-        rate_per_kg: parseFloat(form.rate_per_kg),
-        aliases: form.aliases,
-      });
-      setWarehouses((p) => [...p, res.data]);
-      setForm({ code: '', name: '', rate_per_kg: '', aliases: '' });
-      setAdding(false);
-      toast('Đã thêm kho', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveEdit(id) {
-    setSaving(true);
-    try {
-      const res = await axios.put(`/api/settings/warehouses/${id}`, {
-        code: editForm.code,
-        name: editForm.name,
-        rate_per_kg: parseFloat(editForm.rate_per_kg),
-        aliases: editForm.aliases,
-      });
-      setWarehouses((p) => p.map((w) => (w.id === id ? res.data : w)));
-      setEditId(null);
-      toast('Đã cập nhật', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Xóa kho này?')) return;
-    setDeleting(id);
-    try {
-      await axios.delete(`/api/settings/warehouses/${id}`);
-      setWarehouses((p) => p.filter((w) => w.id !== id));
-      toast('Đã xóa', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  return (
-    <section className="card p-5">
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
-        <div className="flex items-center gap-2">
-          <Warehouse className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Cước vận chuyển – Đối tác (Kho)</h2>
-        </div>
-        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
-          <Plus className="w-4 h-4" />
-          Thêm kho
-        </button>
-      </div>
-
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Mã kho</th>
-              <th>Tên kho</th>
-              <th>Cước (VND/kg)</th>
-              <th className="!text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {adding && (
-              <tr style={{ background: 'var(--acBg)' }}>
-                <td>
-                  <input
-                    value={form.code}
-                    onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
-                    className="input-field py-1 text-sm uppercase"
-                    placeholder="KHO1"
-                    autoFocus
-                  />
-                </td>
-                <td>
-                  <div className="space-y-1">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                      className="input-field py-1 text-sm"
-                      placeholder="Kho Hà Nội"
-                    />
-                    <input
-                      value={form.aliases}
-                      onChange={(e) => setForm((p) => ({ ...p, aliases: e.target.value }))}
-                      className="input-field py-1 text-xs uppercase"
-                      placeholder="Alias: OR,NH"
-                    />
-                  </div>
-                </td>
-                <td>
-                  <MoneyInput
-                    value={form.rate_per_kg}
-                    onChange={(v) => setForm((p) => ({ ...p, rate_per_kg: v }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="30000"
-                  />
-                </td>
-                <td className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                      {saving ? '...' : 'Lưu'}
-                    </button>
-                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
-                      Hủy
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )}
-            {warehouses.length === 0 && !adding ? (
-              <tr>
-                <td colSpan={4} className="text-center py-6 text-ink-400">Chưa có kho nào</td>
-              </tr>
-            ) : (
-              warehouses.map((w) => (
-                <tr key={w.id} style={editId === w.id ? { background: 'var(--warnBg)' } : {}}>
-                  <td>
-                    {editId === w.id ? (
-                      <input
-                        value={editForm.code}
-                        onChange={(e) => setEditForm((p) => ({ ...p, code: e.target.value }))}
-                        className="input-field py-1 text-sm uppercase"
-                      />
-                    ) : (
-                      <span className="font-mono font-medium text-primary-400">{w.code}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editId === w.id ? (
-                      <div className="space-y-1">
-                        <input
-                          value={editForm.name}
-                          onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
-                          className="input-field py-1 text-sm"
-                        />
-                        <input
-                          value={editForm.aliases}
-                          onChange={(e) => setEditForm((p) => ({ ...p, aliases: e.target.value }))}
-                          className="input-field py-1 text-xs uppercase"
-                          placeholder="Alias: OR,NH"
-                        />
-                      </div>
-                    ) : (
-                      <div>
-                        <span>{w.name}</span>
-                        {w.aliases && <span className="block font-mono text-xs mt-0.5" style={{ color: 'var(--mu)' }}>{w.aliases}</span>}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    {editId === w.id ? (
-                      <MoneyInput
-                        value={editForm.rate_per_kg}
-                        onChange={(v) => setEditForm((p) => ({ ...p, rate_per_kg: v }))}
-                        className="input-field py-1 text-sm"
-                      />
-                    ) : (
-                      formatCurrency(w.rate_per_kg)
-                    )}
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {editId === w.id ? (
-                        <>
-                          <button onClick={() => handleSaveEdit(w.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                            {saving ? '...' : 'Lưu'}
-                          </button>
-                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
-                            Hủy
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => { setEditId(w.id); setEditForm({ code: w.code, name: w.name, rate_per_kg: w.rate_per_kg, aliases: w.aliases || '' }); }}
-                            className="btn-icon text-primary-600 hover:bg-primary-100"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(w.id)}
-                            disabled={deleting === w.id}
-                            className="btn-icon btn-icon-danger disabled:opacity-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-// ── Bank Accounts ──────────────────────────────────────────────────────────────
-function BankAccountsSection({ bankAccounts, setBankAccounts }) {
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const [form, setForm] = useState({ bank_name: '', account_number: '', account_holder: '', is_default: false });
-  const [editForm, setEditForm] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(null);
-
-  async function handleAdd(e) {
-    e.preventDefault();
-    if (!form.bank_name || !form.account_number || !form.account_holder) return;
-    setSaving(true);
-    try {
-      const res = await axios.post('/api/settings/bank-accounts', {
-        ...form,
-        is_default: form.is_default ? 1 : 0,
-      });
-      if (form.is_default) {
-        setBankAccounts((p) => [res.data, ...p.map((b) => ({ ...b, is_default: 0 }))]);
-      } else {
-        setBankAccounts((p) => [...p, res.data]);
-      }
-      setForm({ bank_name: '', account_number: '', account_holder: '', is_default: false });
-      setAdding(false);
-      toast('Đã thêm tài khoản', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveEdit(id) {
-    setSaving(true);
-    try {
-      const res = await axios.put(`/api/settings/bank-accounts/${id}`, {
-        ...editForm,
-        is_default: editForm.is_default ? 1 : 0,
-      });
-      if (editForm.is_default) {
-        setBankAccounts((p) => p.map((b) => (b.id === id ? res.data : { ...b, is_default: 0 })));
-      } else {
-        setBankAccounts((p) => p.map((b) => (b.id === id ? res.data : b)));
-      }
-      setEditId(null);
-      toast('Đã cập nhật', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id) {
-    if (!window.confirm('Xóa tài khoản này?')) return;
-    setDeleting(id);
-    try {
-      await axios.delete(`/api/settings/bank-accounts/${id}`);
-      setBankAccounts((p) => p.filter((b) => b.id !== id));
-      toast('Đã xóa', 'success');
-    } catch (err) {
-      toast(err.response?.data?.error || 'Lỗi', 'error');
-    } finally {
-      setDeleting(null);
-    }
-  }
-
-  return (
-    <section className="card p-5">
-      <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
-        <div className="flex items-center gap-2">
-          <CreditCard className="w-5 h-5 text-primary-600" />
-          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Tài khoản ngân hàng</h2>
-        </div>
-        <button onClick={() => setAdding(true)} className="btn-primary text-sm py-1.5 shrink-0">
-          <Plus className="w-4 h-4" />
-          Thêm TK
-        </button>
-      </div>
-
-      <div className="table-container">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Ngân hàng</th>
-              <th>Số tài khoản</th>
-              <th>Chủ tài khoản</th>
-              <th className="!text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {adding && (
-              <tr style={{ background: 'var(--acBg)' }}>
-                <td>
-                  <input
-                    value={form.bank_name}
-                    onChange={(e) => setForm((p) => ({ ...p, bank_name: e.target.value }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="Vietcombank"
-                    autoFocus
-                  />
-                  <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={form.is_default}
-                      onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))}
-                      className="w-3.5 h-3.5"
-                    />
-                    <span className="text-xs" style={{ color: 'var(--mu)' }}>Mặc định</span>
-                  </label>
-                </td>
-                <td>
-                  <input
-                    value={form.account_number}
-                    onChange={(e) => setForm((p) => ({ ...p, account_number: e.target.value }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="0123456789"
-                  />
-                </td>
-                <td>
-                  <input
-                    value={form.account_holder}
-                    onChange={(e) => setForm((p) => ({ ...p, account_holder: e.target.value }))}
-                    className="input-field py-1 text-sm"
-                    placeholder="NGUYEN VAN A"
-                  />
-                </td>
-                <td className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <button onClick={handleAdd} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                      {saving ? '...' : 'Lưu'}
-                    </button>
-                    <button onClick={() => setAdding(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
-                      Hủy
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            )}
-            {bankAccounts.length === 0 && !adding ? (
-              <tr>
-                <td colSpan={4} className="text-center py-6 text-ink-400">Chưa có tài khoản nào</td>
-              </tr>
-            ) : (
-              bankAccounts.map((b) => (
-                <tr key={b.id} style={editId === b.id ? { background: 'var(--warnBg)' } : {}}>
-                  <td>
-                    {editId === b.id ? (
-                      <div className="space-y-1.5">
-                        <input
-                          value={editForm.bank_name}
-                          onChange={(e) => setEditForm((p) => ({ ...p, bank_name: e.target.value }))}
-                          className="input-field py-1 text-sm"
-                        />
-                        <label className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={editForm.is_default}
-                            onChange={(e) => setEditForm((p) => ({ ...p, is_default: e.target.checked }))}
-                            className="w-3.5 h-3.5"
-                          />
-                          <span className="text-xs" style={{ color: 'var(--mu)' }}>Mặc định</span>
-                        </label>
-                      </div>
-                    ) : (
-                      <div>
-                        <span className="font-medium">{b.bank_name}</span>
-                        {b.is_default && (
-                          <span className="flex items-center gap-1 text-yellow-500 text-xs font-medium mt-0.5">
-                            <Star className="w-3 h-3 fill-current" />
-                            Mặc định
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td>
-                    {editId === b.id ? (
-                      <input
-                        value={editForm.account_number}
-                        onChange={(e) => setEditForm((p) => ({ ...p, account_number: e.target.value }))}
-                        className="input-field py-1 text-sm font-mono"
-                      />
-                    ) : (
-                      <span className="font-mono">{b.account_number}</span>
-                    )}
-                  </td>
-                  <td>
-                    {editId === b.id ? (
-                      <input
-                        value={editForm.account_holder}
-                        onChange={(e) => setEditForm((p) => ({ ...p, account_holder: e.target.value }))}
-                        className="input-field py-1 text-sm"
-                      />
-                    ) : b.account_holder}
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {editId === b.id ? (
-                        <>
-                          <button onClick={() => handleSaveEdit(b.id)} disabled={saving} className="text-xs px-2 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50">
-                            {saving ? '...' : 'Lưu'}
-                          </button>
-                          <button onClick={() => setEditId(null)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}>
-                            Hủy
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => { setEditId(b.id); setEditForm({ bank_name: b.bank_name, account_number: b.account_number, account_holder: b.account_holder, is_default: !!b.is_default }); }}
-                            className="btn-icon text-primary-600 hover:bg-primary-100"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(b.id)}
-                            disabled={deleting === b.id}
-                            className="btn-icon btn-icon-danger disabled:opacity-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-// ── Company Info ───────────────────────────────────────────────────────────────
+// ── Company ───────────────────────────────────────────────────────────────────
 function CompanySection({ company, setCompany }) {
-  const [form, setForm] = useState({
-    company_name: company.company_name || '',
-    hotline: company.hotline || '',
-    logo_path: company.logo_path || '',
-    delivery_carrier: company.delivery_carrier || '',
-  });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState({ company_name: '', hotline: '', logo_path: '', delivery_carrier: '' });
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileRef = useRef(null);
@@ -738,12 +86,23 @@ function CompanySection({ company, setCompany }) {
     });
   }, [company]);
 
+  function openModal() {
+    setForm({
+      company_name: company.company_name || '',
+      hotline: company.hotline || '',
+      logo_path: company.logo_path || '',
+      delivery_carrier: company.delivery_carrier || '',
+    });
+    setModalOpen(true);
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
     try {
       const res = await axios.post('/api/settings/company', form);
       setCompany(res.data);
+      setModalOpen(false);
       toast('Đã lưu thông tin công ty', 'success');
     } catch (err) {
       toast(err.response?.data?.error || 'Lỗi lưu thông tin', 'error');
@@ -772,91 +131,441 @@ function CompanySection({ company, setCompany }) {
     }
   }
 
+  const rows = [
+    ['Tên', company.company_name],
+    ['Hotline', company.hotline],
+    ['Đơn vị giao hàng', company.delivery_carrier],
+  ];
+
   return (
     <section className="card p-5">
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-2 mb-4">
         <Building2 className="w-5 h-5 text-primary-600" />
-        <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Thông tin công ty</h2>
+        <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Công ty</h2>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-4 max-w-md">
-        {/* Company name */}
-        <div>
-          <label className="label">Tên công ty</label>
-          <input
-            value={form.company_name}
-            onChange={(e) => setForm((p) => ({ ...p, company_name: e.target.value }))}
-            className="input-field"
-            placeholder="Chaien Shipus"
-          />
-        </div>
+      <div className="space-y-2 mb-4">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between gap-4">
+            <span className="text-sm" style={{ color: 'var(--mu)' }}>{label}</span>
+            <span className="text-sm font-medium" style={{ color: value ? 'var(--tx)' : 'var(--mu)' }}>
+              {value || '–'}
+            </span>
+          </div>
+        ))}
+      </div>
 
-        {/* Hotline */}
-        <div>
-          <label className="label">Hotline</label>
-          <input
-            value={form.hotline}
-            onChange={(e) => setForm((p) => ({ ...p, hotline: e.target.value }))}
-            className="input-field"
-            placeholder="0912 345 678"
-          />
-        </div>
+      <button onClick={openModal} className="btn-secondary w-full">
+        <Edit2 className="w-4 h-4" />
+        Sửa thông tin
+      </button>
 
-        {/* Delivery carrier */}
-        <div>
-          <label className="label">Đơn vị vận chuyển</label>
-          <input
-            value={form.delivery_carrier}
-            onChange={(e) => setForm((p) => ({ ...p, delivery_carrier: e.target.value }))}
-            className="input-field"
-            placeholder="UPS, FedEx, DHL..."
-          />
-        </div>
-
-        {/* Logo */}
-        <div>
-          <label className="label">Logo công ty</label>
-          <div className="flex items-center gap-4">
-            {form.logo_path ? (
-              <img
-                src={form.logo_path}
-                alt="Logo"
-                className="w-16 h-16 object-contain rounded-lg p-1" style={{ border: '1px solid var(--ln)' }}
-              />
-            ) : (
-              <div className="w-16 h-16 border-2 border-dashed rounded-lg flex items-center justify-center" style={{ borderColor: 'var(--ln)', color: 'var(--mu)' }}>
-                <Building2 className="w-6 h-6" />
+      {modalOpen && (
+        <Modal title="Sửa thông tin công ty" onClose={() => setModalOpen(false)}>
+          <form onSubmit={handleSave}>
+            <div className="modal-body">
+              {/* Logo */}
+              <div>
+                <label className="label">Logo công ty</label>
+                <div className="flex items-center gap-4">
+                  {form.logo_path ? (
+                    <img src={form.logo_path} alt="Logo"
+                      className="w-16 h-16 object-contain rounded-xl p-1"
+                      style={{ border: '1px solid var(--ln)' }} />
+                  ) : (
+                    <div className="w-16 h-16 border-2 border-dashed rounded-xl flex items-center justify-center"
+                      style={{ borderColor: 'var(--ln)', color: 'var(--mu)' }}>
+                      <Building2 className="w-6 h-6" />
+                    </div>
+                  )}
+                  <div>
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      disabled={uploadingLogo} className="btn-secondary text-sm">
+                      {uploadingLogo
+                        ? <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin"
+                            style={{ borderColor: 'var(--mu)', borderTopColor: 'transparent' }} />
+                        : <Upload className="w-4 h-4" />}
+                      {uploadingLogo ? 'Đang tải...' : 'Chọn ảnh'}
+                    </button>
+                    <p className="text-xs mt-1" style={{ color: 'var(--mu)' }}>PNG, JPG tối đa 5MB</p>
+                  </div>
+                </div>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
               </div>
-            )}
-            <div>
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={uploadingLogo}
-                className="btn-secondary text-sm"
-              >
-                {uploadingLogo ? (
-                  <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--mu)', borderTopColor: 'transparent' }} />
-                ) : (
-                  <Upload className="w-4 h-4" />
-                )}
-                {uploadingLogo ? 'Đang tải...' : 'Chọn ảnh'}
+
+              <div>
+                <label className="label">Tên công ty</label>
+                <input value={form.company_name}
+                  onChange={(e) => setForm((p) => ({ ...p, company_name: e.target.value }))}
+                  className="input-field" placeholder="Chaien Shipus" />
+              </div>
+              <div>
+                <label className="label">Hotline</label>
+                <input value={form.hotline}
+                  onChange={(e) => setForm((p) => ({ ...p, hotline: e.target.value }))}
+                  className="input-field" placeholder="0912 345 678" />
+              </div>
+              <div>
+                <label className="label">Đơn vị vận chuyển</label>
+                <input value={form.delivery_carrier}
+                  onChange={(e) => setForm((p) => ({ ...p, delivery_carrier: e.target.value }))}
+                  className="input-field" placeholder="GHTK, GHN..." />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary">Hủy</button>
+              <button type="submit" disabled={saving} className="btn-primary">
+                {saving ? '...' : 'Lưu'}
               </button>
-              <p className="text-xs mt-1" style={{ color: 'var(--mu)' }}>PNG, JPG tối đa 5MB</p>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </section>
+  );
+}
+
+// ── Warehouses (KHO + cước KH lẻ/buôn) ───────────────────────────────────────
+const EMPTY_WH = { code: '', name: '', aliases: '', rate_le: '', rate_buon: '', rate_per_kg: '' };
+
+function WarehousesSection({ warehouses, setWarehouses }) {
+  const [modal, setModal] = useState(null); // null | { mode: 'add'|'edit', data?: row }
+  const [form, setForm] = useState(EMPTY_WH);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  function openAdd() { setForm(EMPTY_WH); setModal({ mode: 'add' }); }
+  function openEdit(w) {
+    setForm({
+      code: w.code, name: w.name, aliases: w.aliases || '',
+      rate_le: w.rate_le || '', rate_buon: w.rate_buon || '', rate_per_kg: w.rate_per_kg || '',
+    });
+    setModal({ mode: 'edit', data: w });
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    if (!form.code || !form.name) return;
+    setSaving(true);
+    try {
+      const payload = {
+        code: form.code.trim().toUpperCase(),
+        name: form.name.trim(),
+        rate_le: parseFloat(form.rate_le) || 0,
+        rate_buon: parseFloat(form.rate_buon) || 0,
+        rate_per_kg: parseFloat(form.rate_per_kg) || 0,
+        aliases: (form.aliases || '').trim().toUpperCase(),
+      };
+      if (modal.mode === 'add') {
+        const res = await axios.post('/api/settings/warehouses', payload);
+        setWarehouses((p) => [...p, res.data].sort((a, b) => a.code.localeCompare(b.code)));
+        toast('Đã thêm kho', 'success');
+      } else {
+        const res = await axios.put(`/api/settings/warehouses/${modal.data.id}`, payload);
+        setWarehouses((p) => p.map((w) => (w.id === modal.data.id ? res.data : w)));
+        toast('Đã cập nhật', 'success');
+      }
+      setModal(null);
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Xóa kho này?')) return;
+    setDeleting(id);
+    try {
+      await axios.delete(`/api/settings/warehouses/${id}`);
+      setWarehouses((p) => p.filter((w) => w.id !== id));
+      toast('Đã xóa', 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi', 'error');
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Warehouse className="w-5 h-5 text-primary-600" />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Kho</h2>
+        </div>
+        <button onClick={openAdd} className="btn-primary text-sm py-1.5 shrink-0">
+          <Plus className="w-4 h-4" />
+          Thêm kho
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {warehouses.length === 0 ? (
+          <p className="text-center py-6 text-sm" style={{ color: 'var(--mu)' }}>Chưa có kho nào</p>
+        ) : warehouses.map((w) => (
+          <div key={w.id} className="flex items-start justify-between gap-4 p-3 rounded-xl"
+            style={{ background: 'var(--sf2)', border: '1px solid var(--ln)' }}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-bold" style={{ color: 'var(--ac)' }}>{w.code}</span>
+                <span className="font-medium" style={{ color: 'var(--tx)' }}>{w.name}</span>
+                {w.aliases && (
+                  <span className="text-xs font-mono" style={{ color: 'var(--mu)' }}>({w.aliases})</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs">
+                <span style={{ color: 'var(--mu)' }}>
+                  KH lẻ: <span style={{ color: 'var(--tx2)' }}>
+                    {w.rate_le ? formatCurrency(w.rate_le) + '/kg' : '–'}
+                  </span>
+                </span>
+                <span style={{ color: 'var(--mu)' }}>
+                  KH buôn: <span style={{ color: 'var(--tx2)' }}>
+                    {w.rate_buon ? formatCurrency(w.rate_buon) + '/kg' : '–'}
+                  </span>
+                </span>
+                {w.rate_per_kg > 0 && (
+                  <span style={{ color: 'var(--mu)' }}>
+                    Đối tác: <span style={{ color: 'var(--mu)' }}>{formatCurrency(w.rate_per_kg)}/kg</span>
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => openEdit(w)} className="btn-icon" title="Sửa">
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button onClick={() => handleDelete(w.id)} disabled={deleting === w.id}
+                className="btn-icon btn-icon-danger disabled:opacity-50" title="Xóa">
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-        </div>
+        ))}
+      </div>
 
-        <button type="submit" disabled={saving} className="btn-primary">
-          {saving ? (
-            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saving ? 'Đang lưu...' : 'Lưu thông tin'}
+      {modal && (
+        <Modal
+          title={modal.mode === 'add' ? 'Thêm kho' : 'Sửa kho'}
+          onClose={() => setModal(null)}
+        >
+          <form onSubmit={handleSave}>
+            <div className="modal-body">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Mã kho *</label>
+                  <input value={form.code}
+                    onChange={(e) => setForm((p) => ({ ...p, code: e.target.value.toUpperCase() }))}
+                    className="input-field uppercase" placeholder="HA" required
+                    autoFocus={modal.mode === 'add'} />
+                </div>
+                <div>
+                  <label className="label">Tên kho *</label>
+                  <input value={form.name}
+                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                    className="input-field" placeholder="Hải An" required />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Aliases (phân cách bằng dấu phẩy)</label>
+                <input value={form.aliases}
+                  onChange={(e) => setForm((p) => ({ ...p, aliases: e.target.value.toUpperCase() }))}
+                  className="input-field uppercase" placeholder="OR,NH" />
+              </div>
+
+              <div>
+                <label className="label">Cước vận chuyển – Khách hàng</label>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'var(--mu)' }}>Khách lẻ (đ/kg)</p>
+                    <MoneyInput value={form.rate_le}
+                      onChange={(v) => setForm((p) => ({ ...p, rate_le: v }))}
+                      className="input-field" placeholder="240000" />
+                  </div>
+                  <div>
+                    <p className="text-xs mb-1" style={{ color: 'var(--mu)' }}>Khách buôn (đ/kg)</p>
+                    <MoneyInput value={form.rate_buon}
+                      onChange={(v) => setForm((p) => ({ ...p, rate_buon: v }))}
+                      className="input-field" placeholder="230000" />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="label">Cước đối tác (đ/kg)</label>
+                <MoneyInput value={form.rate_per_kg}
+                  onChange={(v) => setForm((p) => ({ ...p, rate_per_kg: v }))}
+                  className="input-field" placeholder="0" />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={() => setModal(null)} className="btn-secondary">Hủy</button>
+              <button type="submit" disabled={saving} className="btn-primary">
+                {saving ? '...' : 'Lưu'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </section>
+  );
+}
+
+// ── Bank Accounts ─────────────────────────────────────────────────────────────
+const EMPTY_BANK = { bank_name: '', account_number: '', account_holder: '', is_default: false };
+
+function BankAccountsSection({ bankAccounts, setBankAccounts }) {
+  const [modal, setModal] = useState(null); // null | { mode: 'add'|'edit', data?: row }
+  const [form, setForm] = useState(EMPTY_BANK);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  function openAdd() { setForm(EMPTY_BANK); setModal({ mode: 'add' }); }
+  function openEdit(b) {
+    setForm({
+      bank_name: b.bank_name, account_number: b.account_number,
+      account_holder: b.account_holder, is_default: !!b.is_default,
+    });
+    setModal({ mode: 'edit', data: b });
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    if (!form.bank_name || !form.account_number || !form.account_holder) return;
+    setSaving(true);
+    try {
+      const payload = { ...form, is_default: form.is_default ? 1 : 0 };
+      if (modal.mode === 'add') {
+        const res = await axios.post('/api/settings/bank-accounts', payload);
+        if (form.is_default) {
+          setBankAccounts((p) => [res.data, ...p.map((b) => ({ ...b, is_default: 0 }))]);
+        } else {
+          setBankAccounts((p) => [...p, res.data]);
+        }
+        toast('Đã thêm tài khoản', 'success');
+      } else {
+        const res = await axios.put(`/api/settings/bank-accounts/${modal.data.id}`, payload);
+        if (form.is_default) {
+          setBankAccounts((p) => p.map((b) => (b.id === modal.data.id ? res.data : { ...b, is_default: 0 })));
+        } else {
+          setBankAccounts((p) => p.map((b) => (b.id === modal.data.id ? res.data : b)));
+        }
+        toast('Đã cập nhật', 'success');
+      }
+      setModal(null);
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Xóa tài khoản này?')) return;
+    setDeleting(id);
+    try {
+      await axios.delete(`/api/settings/bank-accounts/${id}`);
+      setBankAccounts((p) => p.filter((b) => b.id !== id));
+      toast('Đã xóa', 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi', 'error');
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-primary-600" />
+          <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Tài khoản ngân hàng</h2>
+        </div>
+        <button onClick={openAdd} className="btn-primary text-sm py-1.5 shrink-0">
+          <Plus className="w-4 h-4" />
+          Thêm TK
         </button>
-      </form>
+      </div>
+
+      <div className="space-y-3">
+        {bankAccounts.length === 0 ? (
+          <p className="text-center py-6 text-sm" style={{ color: 'var(--mu)' }}>Chưa có tài khoản nào</p>
+        ) : bankAccounts.map((b) => (
+          <div key={b.id} className="flex items-start justify-between gap-4 p-3 rounded-xl"
+            style={{ background: 'var(--sf2)', border: '1px solid var(--ln)' }}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-medium" style={{ color: 'var(--tx)' }}>{b.bank_name}</span>
+                {b.is_default && (
+                  <span className="flex items-center gap-1 text-xs font-medium" style={{ color: '#f59e0b' }}>
+                    <Star className="w-3 h-3 fill-current" />
+                    Mặc định
+                  </span>
+                )}
+              </div>
+              <p className="font-mono text-sm mt-0.5" style={{ color: 'var(--tx2)' }}>{b.account_number}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>{b.account_holder}</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => openEdit(b)} className="btn-icon" title="Sửa">
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button onClick={() => handleDelete(b.id)} disabled={deleting === b.id}
+                className="btn-icon btn-icon-danger disabled:opacity-50" title="Xóa">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {modal && (
+        <Modal
+          title={modal.mode === 'add' ? 'Thêm tài khoản ngân hàng' : 'Sửa tài khoản ngân hàng'}
+          onClose={() => setModal(null)}
+        >
+          <form onSubmit={handleSave}>
+            <div className="modal-body">
+              <div>
+                <label className="label">Ngân hàng *</label>
+                <input value={form.bank_name}
+                  onChange={(e) => setForm((p) => ({ ...p, bank_name: e.target.value }))}
+                  className="input-field" placeholder="Vietcombank" required
+                  autoFocus={modal.mode === 'add'} />
+              </div>
+              <div>
+                <label className="label">Số tài khoản *</label>
+                <input value={form.account_number}
+                  onChange={(e) => setForm((p) => ({ ...p, account_number: e.target.value }))}
+                  className="input-field" placeholder="0123456789" required />
+              </div>
+              <div>
+                <label className="label">Chủ tài khoản *</label>
+                <input value={form.account_holder}
+                  onChange={(e) => setForm((p) => ({ ...p, account_holder: e.target.value }))}
+                  className="input-field" placeholder="NGUYEN VAN A" required />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.is_default}
+                  onChange={(e) => setForm((p) => ({ ...p, is_default: e.target.checked }))}
+                  className="w-4 h-4" />
+                <span className="text-sm" style={{ color: 'var(--tx2)' }}>Đặt làm tài khoản mặc định</span>
+              </label>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={() => setModal(null)} className="btn-secondary">Hủy</button>
+              <button type="submit" disabled={saving} className="btn-primary">
+                {saving ? '...' : 'Lưu'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </section>
   );
 }
