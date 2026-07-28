@@ -491,14 +491,14 @@ export default function Shipping() {
                                             const isEditing = editingId === s.id;
                                             return (
                                               <tr key={s.id} style={isEditing ? { background: 'var(--acBg)' } : {}}>
-                                                <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 10.5, fontWeight: 700, color: 'var(--ac)' }}>{s.warehouse_code || '–'}</td>
+                                                <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11.5, fontWeight: 700, color: 'var(--ac)' }}>{s.warehouse_code || '–'}</td>
                                                 <td>
                                                   {isEditing ? (
                                                     <input value={editValues.tracking_no}
                                                       onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
                                                       className="input-field py-1 text-xs w-28" />
                                                   ) : (
-                                                    <span className="font-mono text-xs truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
+                                                    <span className="font-mono text-sm truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
                                                   )}
                                                 </td>
                                                 <td>
