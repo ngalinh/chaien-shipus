@@ -343,7 +343,7 @@ export default function Shipping() {
                 {!isDateCollapsed && (
                   <>
                   <div className="hidden sm:block" style={{ overflowX: 'auto', borderTop: '1px solid var(--ln2)' }}>
-                    <table className="data-table table-fixed w-full" style={{ minWidth: 1100 }}>
+                    <table className="data-table table-fixed w-full" style={{ minWidth: 1120 }}>
                       <colgroup>
                         <col style={{width:'32px'}} />
                         <col style={{width:'200px'}} />
@@ -351,8 +351,8 @@ export default function Shipping() {
                         <col style={{width:'128px'}} />
                         <col style={{width:'148px'}} />
                         <col style={{width:'148px'}} />
-                        <col style={{width:'172px'}} />
-                        <col style={{width:'116px'}} />
+                        <col style={{width:'152px'}} />
+                        <col style={{width:'136px'}} />
                       </colgroup>
                       <thead>
                         <tr>
@@ -453,7 +453,7 @@ export default function Shipping() {
                                   </div>
                                 </td>
                                 <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' }}>
                                     <button onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
                                       className="btn-icon" title="Báo hàng về">
                                       <Bell className="w-[15px] h-[15px]" />
