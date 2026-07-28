@@ -167,17 +167,17 @@ export default function Customers() {
 
       {/* Table */}
       <div className="table-container" style={{ overflowX: 'auto' }}>
-        <table className="data-table" style={{ tableLayout: 'auto', minWidth: 860 }}>
+        <table className="data-table table-fixed w-full" style={{ minWidth: 760 }}>
           <thead>
             <tr>
-              <th style={{ width: 160 }}>Tên khách</th>
-              <th style={{ width: 100 }}>Tình trạng</th>
-              <th style={{ width: 110 }}>SĐT</th>
-              <th style={{ width: 130 }}>Địa chỉ</th>
-              <th style={{ width: 100 }}>Cước VC</th>
-              <th style={{ width: 100 }}>NV Sale</th>
-              <th style={{ width: 110 }}>Ghi chú</th>
-              <th style={{ width: 100 }}>Ngày tạo</th>
+              <th style={{ width: 150 }}>Tên khách</th>
+              <th style={{ width: 90 }}>Tình trạng</th>
+              <th style={{ width: 100 }}>SĐT</th>
+              <th style={{ width: 110 }}>Địa chỉ</th>
+              <th style={{ width: 85 }}>Cước VC</th>
+              <th style={{ width: 85 }}>NV Sale</th>
+              <th style={{ width: 95 }}>Ghi chú</th>
+              <th style={{ width: 88 }}>Ngày tạo</th>
               <th style={{ width: 72, textAlign: 'right' }}>Thao tác</th>
             </tr>
           </thead>
