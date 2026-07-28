@@ -1154,7 +1154,7 @@ export default function MobilePWA() {
             }}><IcoMenu /></Btn>
           )}
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--tx)', lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--tx)', lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {isCust && custDetail ? custDetail.name : title}
             </div>
             {isCust && custDetail && (
