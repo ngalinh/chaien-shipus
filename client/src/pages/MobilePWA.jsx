@@ -1066,8 +1066,9 @@ export default function MobilePWA() {
         if (isNew) await axios.post('/api/settings/rates', { name: data.name, rate_per_kg: Number(data.rate_per_kg) });
         else await axios.put(`/api/settings/rates/${data.id}`, { name: data.name, rate_per_kg: Number(data.rate_per_kg) });
       } else if (type === 'warehouse') {
-        if (isNew) await axios.post('/api/settings/warehouses', { code: data.code, name: data.name });
-        else await axios.put(`/api/settings/warehouses/${data.id}`, { code: data.code, name: data.name });
+        const wPayload = { code: data.code, name: data.name, aliases: data.aliases || '', rate_le: parseFloat(data.rate_le) || 0, rate_buon: parseFloat(data.rate_buon) || 0, rate_per_kg: parseFloat(data.rate_per_kg) || 0 };
+        if (isNew) await axios.post('/api/settings/warehouses', wPayload);
+        else await axios.put(`/api/settings/warehouses/${data.id}`, wPayload);
       } else if (type === 'bank') {
         if (isNew) await axios.post('/api/settings/bank-accounts', { bank_name: data.bank_name, account_number: data.account_number, account_name: data.account_name });
         else await axios.put(`/api/settings/bank-accounts/${data.id}`, { bank_name: data.bank_name, account_number: data.account_number, account_name: data.account_name });
@@ -1129,27 +1130,22 @@ export default function MobilePWA() {
           ))}
           <Btn onClick={() => setSettingsModal({ type: 'company', data: { company_name: company.company_name || '', hotline: company.hotline || '', delivery_carrier: company.delivery_carrier || '' }, isNew: false })} style={{ width: '100%', marginTop: 10, padding: '8px', borderRadius: 10, border: '1px solid var(--ln)', background: 'var(--sf2)', fontSize: 12, color: 'var(--tx)', fontWeight: 600, textAlign: 'center' }}>Sửa thông tin</Btn>
         </Section>
-        {/* Biểu phí */}
-        <Section title="Biểu phí" onAdd={() => setSettingsModal({ type: 'rate', data: { name: '', rate_per_kg: '' }, isNew: true })}>
-          {rates.length === 0
-            ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có biểu phí</div>
-            : rates.map((r) => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)', flex: 1 }}>{r.name}</span>
-                <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--ac)' }}>{fmt(r.rate_per_kg)} đ/kg</span>
-                {editBtn(r, 'rate')}
-              </div>
-            ))
-          }
-        </Section>
-        {/* Kho */}
-        <Section title="Kho" onAdd={() => setSettingsModal({ type: 'warehouse', data: { code: '', name: '' }, isNew: true })}>
+        {/* Kho (biểu phí KH lẻ/buôn nằm trong kho) */}
+        <Section title="Kho" onAdd={() => setSettingsModal({ type: 'warehouse', data: { code: '', name: '', aliases: '', rate_le: '', rate_buon: '', rate_per_kg: '' }, isNew: true })}>
           {warehouses.length === 0
             ? <div style={{ fontSize: 12, color: 'var(--mu)', paddingTop: 4 }}>Chưa có kho</div>
             : warehouses.map((w) => (
               <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '8px 0', borderTop: '1px solid var(--ln2)' }}>
-                <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{w.code}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--mu)', flex: 1 }}>{w.name}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ font: '700 12px "JetBrains Mono",monospace', color: 'var(--ac)' }}>{w.code}</span>
+                    <span style={{ fontSize: 11.5, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
+                    {w.rate_le > 0 && <span style={{ fontSize: 10.5, color: 'var(--mu)' }}>Lẻ: <span style={{ color: 'var(--tx2)' }}>{fmt(w.rate_le)}</span></span>}
+                    {w.rate_buon > 0 && <span style={{ fontSize: 10.5, color: 'var(--mu)' }}>Buôn: <span style={{ color: 'var(--tx2)' }}>{fmt(w.rate_buon)}</span></span>}
+                  </div>
+                </div>
                 {editBtn(w, 'warehouse')}
               </div>
             ))
@@ -1467,8 +1463,9 @@ export default function MobilePWA() {
         const inputStyle = { width: '100%', background: 'var(--sunk)', border: '1px solid var(--ln)', borderRadius: 10, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '10px 12px', boxSizing: 'border-box' };
         const titles = { rate: 'Biểu phí', warehouse: 'Kho', bank: 'Tài khoản ngân hàng', company: 'Thông tin công ty' };
         return (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 30, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'flex-end' }} onClick={(e) => e.target === e.currentTarget && setSettingsModal(null)}>
-            <div style={{ width: '100%', background: 'var(--sf)', borderRadius: '20px 20px 0 0', padding: '20px 18px', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dcSheet 240ms ease both' }}>
+          <>
+            <div onClick={() => setSettingsModal(null)} style={{ position: 'fixed', zIndex: 30, inset: 0, background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+            <div style={{ position: 'fixed', zIndex: 31, left: 0, right: 0, bottom: 0, background: 'var(--sf)', borderRadius: '20px 20px 0 0', padding: '20px 18px', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dcSheet 240ms ease both', maxHeight: '85vh', overflowY: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>{isNew ? 'Thêm' : 'Sửa'} {titles[type]}</div>
                 <Btn onClick={() => setSettingsModal(null)} style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--mu)' }}><IcoX /></Btn>
@@ -1478,8 +1475,16 @@ export default function MobilePWA() {
                 <input style={inputStyle} placeholder="Cước/kg (VNĐ)" type="number" value={data.rate_per_kg} onChange={e => setData('rate_per_kg', e.target.value)} />
               </>)}
               {type === 'warehouse' && (<>
-                <input style={inputStyle} placeholder="Mã kho (VD: HAN)" value={data.code} onChange={e => setData('code', e.target.value)} />
-                <input style={inputStyle} placeholder="Tên kho" value={data.name} onChange={e => setData('name', e.target.value)} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Mã kho (HA)" value={data.code} onChange={e => setData('code', e.target.value.toUpperCase())} />
+                  <input style={inputStyle} placeholder="Tên kho" value={data.name} onChange={e => setData('name', e.target.value)} />
+                </div>
+                <input style={inputStyle} placeholder="Aliases (OR,NH)" value={data.aliases || ''} onChange={e => setData('aliases', e.target.value.toUpperCase())} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Cước lẻ (đ/kg)" type="number" value={data.rate_le || ''} onChange={e => setData('rate_le', e.target.value)} />
+                  <input style={inputStyle} placeholder="Cước buôn (đ/kg)" type="number" value={data.rate_buon || ''} onChange={e => setData('rate_buon', e.target.value)} />
+                </div>
+                <input style={inputStyle} placeholder="Cước đối tác (đ/kg)" type="number" value={data.rate_per_kg || ''} onChange={e => setData('rate_per_kg', e.target.value)} />
               </>)}
               {type === 'bank' && (<>
                 <input style={inputStyle} placeholder="Tên ngân hàng" value={data.bank_name} onChange={e => setData('bank_name', e.target.value)} />
@@ -1498,7 +1503,7 @@ export default function MobilePWA() {
                 <Btn onClick={handleSetSave} disabled={settingsSaving} style={{ flex: 1, height: 44, borderRadius: 13, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: settingsSaving ? 'var(--mu)' : 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{settingsSaving ? 'Đang lưu...' : 'Lưu'}</Btn>
               </div>
             </div>
-          </div>
+          </>
         );
       })()}
 
