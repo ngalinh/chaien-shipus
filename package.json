@@ -9,7 +9,7 @@
     "postinstall": "npm --prefix client install --include=dev && npm --prefix client run build && cp client/dist/index.html client/dist/manifest.json client/dist/sw.js . && rm -rf assets && cp -r client/dist/assets .",
     "runner": "node start.js",
     "runner:local": "node local-runner/index.js",
-    "runner:login": "cross-env CHAIEN_ZALO_HEADLESS=false node local-runner/login.js",
+    "runner:login": "node local-runner/login.js",
     "runner:accounts": "node local-runner/accounts.js",
     "runner:install-browser": "playwright install chromium"
   },
@@ -21,8 +21,7 @@
     "playwright": "^1.50.1"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "cross-env": "^7.0.3"
+    "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=22.5.0"
