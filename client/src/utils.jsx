@@ -112,6 +112,9 @@ export function buildCustomerIndex(customers) {
   const list = customers.map((c) => {
     const keys = new Set();
     if (c.name) keys.add(normKey(c.name));
+    // Warehouse-specific codes — exactly what the partner file prints on packages
+    if (c.code_us) keys.add(normKey(c.code_us));
+    if (c.code_uk) keys.add(normKey(c.code_uk));
     // code can hold several aliases split by "/" or newline; add whole line + last token
     (c.code || '').split(/[\n/]/).forEach((seg) => {
       const trimmed = seg.trim();
