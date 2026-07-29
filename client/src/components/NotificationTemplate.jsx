@@ -129,26 +129,47 @@ export default function NotificationTemplate({
       }
     }
 
+    async function captureOnce() {
+      return html2canvas(ref.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#fff',
+        logging: false,
+        // html2canvas vẽ chữ thấp hơn tâm ô vài px — đẩy ngược lên CHỈ trong bản chụp
+        // (data-nudge=px). DOM preview thật không bị ảnh hưởng.
+        onclone: (doc) => {
+          doc.querySelectorAll('[data-nudge]').forEach((el) => {
+            el.style.position = 'relative';
+            el.style.top = `-${el.getAttribute('data-nudge')}px`;
+          });
+        },
+      });
+    }
+
     (async () => {
       try {
         // Đợi Be Vietnam Pro / JetBrains Mono tải xong, tránh chụp ảnh với font fallback
         await document.fonts.ready;
         await waitForLayout(ref.current);
         if (cancelled) return;
-        const canvas = await html2canvas(ref.current, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#fff',
-          logging: false,
-          // html2canvas vẽ chữ thấp hơn tâm ô vài px — đẩy ngược lên CHỈ trong bản chụp
-          // (data-nudge=px). DOM preview thật không bị ảnh hưởng.
-          onclone: (doc) => {
-            doc.querySelectorAll('[data-nudge]').forEach((el) => {
-              el.style.position = 'relative';
-              el.style.top = `-${el.getAttribute('data-nudge')}px`;
-            });
-          },
-        });
+
+        // html2canvas dựng lại DOM trong iframe ẩn riêng để render — layout của bản
+        // sao chép đó đôi khi chưa ổn định ngay lần đầu, khiến gradient header tính
+        // ra NaN ("addColorStop ... non-finite"). Thử lại vài lần trước khi báo lỗi.
+        let canvas;
+        let lastErr;
+        for (let attempt = 0; attempt < 3 && !cancelled; attempt++) {
+          try {
+            canvas = await captureOnce();
+            break;
+          } catch (err) {
+            lastErr = err;
+            await new Promise((res) => requestAnimationFrame(res));
+          }
+        }
+        if (cancelled) return;
+        if (!canvas) throw lastErr;
+
         const dataUrl = canvas.toDataURL('image/png');
         if (autoDownload) {
           const link = document.createElement('a');
