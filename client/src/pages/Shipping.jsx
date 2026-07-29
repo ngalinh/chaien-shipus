@@ -414,7 +414,7 @@ export default function Shipping() {
                                 </td>
                                 <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 600, color: 'var(--tx)' }}>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
                                 <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, color: 'var(--mu)' }} onClick={e => e.stopPropagation()}>
-                                  {getUserRole() === 'admin' && editingRate?.custKey === custKey ? (
+                                  {getUserRole() !== 'staff' && editingRate?.custKey === custKey ? (
                                     <input
                                       type="number"
                                       className="input-field py-1 text-xs w-28 text-right"
@@ -429,8 +429,8 @@ export default function Shipping() {
                                     />
                                   ) : (
                                     <span
-                                      className={getUserRole() === 'admin' ? 'cursor-pointer hover:text-primary-600 hover:underline' : ''}
-                                      onClick={() => getUserRole() === 'admin' && setEditingRate({ custKey, custId: cust.custId, dateKey, value: cust.customerRate })}
+                                      className={getUserRole() !== 'staff' ? 'cursor-pointer hover:text-primary-600 hover:underline' : ''}
+                                      onClick={() => getUserRole() !== 'staff' && setEditingRate({ custKey, custId: cust.custId, dateKey, value: cust.customerRate })}
                                     >
                                       {formatCurrency(cust.customerRate)}
                                     </span>
