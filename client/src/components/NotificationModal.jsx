@@ -15,7 +15,20 @@ import { toast } from './Toast.jsx';
  */
 export default function NotificationModal({ notifData, company = {}, bank = null, onClose }) {
   const [dataUrl, setDataUrl] = useState(null);
+  const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [renderKey, setRenderKey] = useState(0);
+
+  function handleRendered(url) {
+    if (url) setDataUrl(url);
+    else setFailed(true);
+  }
+
+  function handleRetry() {
+    setFailed(false);
+    setDataUrl(null);
+    setRenderKey((k) => k + 1);
+  }
 
   async function handleCopy() {
     if (!dataUrl) return;
@@ -55,6 +68,11 @@ export default function NotificationModal({ notifData, company = {}, bank = null
           <div className="max-h-[60vh] overflow-y-auto rounded-lg bg-greige-50 p-3 flex justify-center">
             {dataUrl ? (
               <img src={dataUrl} alt="Phiếu báo" className="w-full max-w-[600px] self-start rounded-lg shadow-card" />
+            ) : failed ? (
+              <div className="py-16 text-center text-ink-400">
+                <p className="mb-3">Không tạo được ảnh phiếu báo. Vui lòng thử lại.</p>
+                <button onClick={handleRetry} className="btn-secondary">Thử lại</button>
+              </div>
             ) : (
               <div className="py-16 text-center text-ink-400">
                 <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
@@ -83,13 +101,14 @@ export default function NotificationModal({ notifData, company = {}, bank = null
       {/* Bộ tạo ảnh ẩn ngoài màn hình */}
       <div className="fixed -left-[9999px] top-0 z-[-1]">
         <NotificationTemplate
+          key={renderKey}
           customerName={notifData.customerName}
           date={notifData.date}
           items={notifData.items}
           companyName={company.company_name || 'ShipUS'}
           bank={bank}
           autoDownload={false}
-          onRendered={(url) => setDataUrl(url)}
+          onRendered={handleRendered}
         />
       </div>
     </div>

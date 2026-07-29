@@ -94,12 +94,15 @@ export default function NotificationTemplate({
     : null;
 
   // Tải QR về dataURL trước khi chụp (tránh ảnh ngoài bị taint/CORS trong html2canvas).
-  // qr.done=false ⇒ hoãn chụp cho tới khi QR sẵn sàng (hoặc lỗi).
+  // qr.done=false ⇒ hoãn chụp cho tới khi QR sẵn sàng (hoặc lỗi/timeout).
+  // Có timeout để tránh treo vô hạn nếu mạng/firewall chặn img.vietqr.io.
   const [qr, setQr] = useState({ done: !qrSrc, url: null });
   useEffect(() => {
     if (!qrSrc) { setQr({ done: true, url: null }); return; }
     let alive = true;
-    fetch(qrSrc)
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    fetch(qrSrc, { signal: controller.signal })
       .then((r) => r.blob())
       .then((b) => new Promise((res) => {
         const fr = new FileReader();
@@ -107,8 +110,9 @@ export default function NotificationTemplate({
         fr.readAsDataURL(b);
       }))
       .then((url) => alive && setQr({ done: true, url }))
-      .catch(() => alive && setQr({ done: true, url: null }));
-    return () => { alive = false; };
+      .catch(() => alive && setQr({ done: true, url: null }))
+      .finally(() => clearTimeout(timeout));
+    return () => { alive = false; clearTimeout(timeout); controller.abort(); };
   }, [qrSrc]);
 
   useEffect(() => {
