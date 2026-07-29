@@ -247,9 +247,12 @@ export default function Shipping() {
         });
       }
       const statusOrder = { '': 0, 'Đã báo hàng': 1, 'Đã báo ship': 2 };
+      const paidOrder = { unpaid: 0, partial: 1, paid: 2 };
       customers.sort((a, b) => {
         const so = (statusOrder[a.batchStatus] ?? 0) - (statusOrder[b.batchStatus] ?? 0);
-        return so !== 0 ? so : a.customerName.localeCompare(b.customerName, 'vi');
+        if (so !== 0) return so;
+        const po = (paidOrder[a.paidStatus] ?? 0) - (paidOrder[b.paidStatus] ?? 0);
+        return po !== 0 ? po : a.customerName.localeCompare(b.customerName, 'vi');
       });
       if (customers.length > 0) dateGroups.push({ dateKey, customers });
     }
