@@ -4,7 +4,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import {
   Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CreditCard,
-  Truck, Send, X, Copy,
+  Truck, Send, X, Copy, Search,
 } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -63,7 +63,8 @@ export default function Shipping() {
   const [endDate, setEndDate] = useState(todayInputValue);
 
   const [searchParams] = useSearchParams();
-  const q = (searchParams.get('q') || '').trim().toLowerCase();
+  const [localSearch, setLocalSearch] = useState('');
+  const q = (localSearch || searchParams.get('q') || '').trim().toLowerCase();
 
   const [ttFilter, setTtFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -280,6 +281,21 @@ export default function Shipping() {
             <option value="Đã báo hàng">Đã báo hàng</option>
             <option value="Đã báo ship">Đã báo ship</option>
           </select>
+        </div>
+        {/* Search tracking / mã KH */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 15px', height: 40, borderRadius: 999, background: 'var(--sf)', border: '1px solid var(--ln)', backdropFilter: 'blur(14px)' }}>
+          <Search className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--mu)' }} />
+          <input
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
+            placeholder="Tìm tracking, mã KH…"
+            style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: 'var(--tx)', width: 190, fontFamily: 'inherit' }}
+          />
+          {localSearch && (
+            <button onClick={() => setLocalSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mu)', display: 'flex', padding: 0 }}>
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Khoảng thời gian:</span>

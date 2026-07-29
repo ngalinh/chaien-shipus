@@ -482,6 +482,16 @@ body[data-theme="light"] {
   }
 }
 
+/* Dropdown option background theo theme */
+select option {
+  background-color: #0d1c24;
+  color: #e8f4f8;
+}
+body[data-theme="light"] select option {
+  background-color: #f3f5f6;
+  color: #16242c;
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

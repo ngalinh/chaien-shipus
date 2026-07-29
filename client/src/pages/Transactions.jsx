@@ -217,16 +217,16 @@ export default function Transactions() {
       )}
 
       {/* Table */}
-      <div className="table-container" style={{ overflowX: 'auto' }}>
-        <table className="data-table" style={{ minWidth: 900 }}>
+      <div className="table-container">
+        <table className="data-table w-full">
           <colgroup>
-            <col style={{ width: 112 }} />
-            <col style={{ width: 148 }} />
-            <col style={{ minWidth: 160 }} />
-            <col style={{ minWidth: 240 }} />
-            <col style={{ width: 130 }} />
-            <col style={{ width: 120 }} />
-            {role !== 'staff' && <col style={{ width: 78 }} />}
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '16%' }} />
+            <col />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '12%' }} />
+            {role !== 'staff' && <col style={{ width: '8%' }} />}
           </colgroup>
           <thead>
             <tr>

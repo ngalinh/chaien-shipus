@@ -8,7 +8,7 @@ import { getBassoUser, getUserRole } from '../utils.jsx';
 export default function CustomerModal({ customer, onClose, onSaved, saleOptions = [] }) {
   const isEdit = !!customer;
   const bassoUser = useMemo(() => getBassoUser(), []);
-  const isAdmin = getUserRole() === 'admin';
+  const isAdmin = getUserRole() !== 'staff';
   const [form, setForm] = useState({
     code_us: '',
     code_uk: '',
