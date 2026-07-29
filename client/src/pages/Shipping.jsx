@@ -444,7 +444,7 @@ export default function Shipping() {
                                     value={cust.batchStatus}
                                     onChange={e => updateBatchStatus(cust.custId, dateKey, e.target.value)}
                                     className="select-dark"
-                                    style={{ width: '100%', fontSize: 11.5, fontWeight: 600, padding: '7px 10px', borderRadius: 10, ...getStatusStyle(cust.batchStatus) }}
+                                    style={{ width: '100%', fontSize: 11.5, fontWeight: 600, padding: '7px 10px', borderRadius: 10, textAlign: 'center', ...getStatusStyle(cust.batchStatus) }}
                                   >
                                     <option value="">Chưa báo</option>
                                     <option value="Đã báo hàng">Đã báo hàng</option>
