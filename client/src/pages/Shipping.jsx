@@ -246,7 +246,11 @@ export default function Shipping() {
           remainingAmount: rows[0]?.remaining_amount || 0,
         });
       }
-      customers.sort((a, b) => a.customerName.localeCompare(b.customerName, 'vi'));
+      const statusOrder = { '': 0, 'Đã báo hàng': 1, 'Đã báo ship': 2 };
+      customers.sort((a, b) => {
+        const so = (statusOrder[a.batchStatus] ?? 0) - (statusOrder[b.batchStatus] ?? 0);
+        return so !== 0 ? so : a.customerName.localeCompare(b.customerName, 'vi');
+      });
       if (customers.length > 0) dateGroups.push({ dateKey, customers });
     }
   }
