@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Search, X, FileSpreadsheet } from 'lucide-react';
-import { formatDate, calcCustomerStatus, getUserRole, getBassoUser } from '../utils.jsx';
+import { formatDate, formatCurrency, calcCustomerStatus, getUserRole, getBassoUser } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
 import ImportCustomersModal from '../components/ImportCustomersModal.jsx';
@@ -52,6 +52,7 @@ export default function Customers() {
   const [importOpen, setImportOpen] = useState(false);
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [sortVc, setSortVc] = useState('desc'); // 'desc' | 'asc' | null
 
   const role = getUserRole();
   const currentUser = getBassoUser();
@@ -114,6 +115,15 @@ export default function Customers() {
     const matchSale = !filterSale || c.sale_username === filterSale;
     return matchSearch && matchRate && matchSale;
   });
+
+  const sorted = useMemo(() => {
+    if (!sortVc) return filtered;
+    return [...filtered].sort((a, b) =>
+      sortVc === 'desc'
+        ? (b.total_vc_fee || 0) - (a.total_vc_fee || 0)
+        : (a.total_vc_fee || 0) - (b.total_vc_fee || 0)
+    );
+  }, [filtered, sortVc]);
 
   const rateOptions = useMemo(() => {
     const set = new Set();
@@ -210,7 +220,9 @@ export default function Customers() {
               <th style={{ width: 150 }}>Tên khách</th>
               <th style={{ width: 90 }}>Tình trạng</th>
               <th style={{ width: 100 }}>SĐT</th>
-              <th style={{ width: 110 }}>Địa chỉ</th>
+              <th style={{ width: 110, cursor: 'pointer', userSelect: 'none' }} onClick={() => setSortVc(s => s === 'desc' ? 'asc' : 'desc')}>
+                Doanh thu VC {sortVc === 'desc' ? '↓' : sortVc === 'asc' ? '↑' : ''}
+              </th>
               <th style={{ width: 85 }}>Nhóm KH</th>
               <th style={{ width: 85 }}>NV Sale</th>
               <th style={{ width: 95 }}>Ghi chú</th>
@@ -234,7 +246,7 @@ export default function Customers() {
                   {search ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'}
                 </td>
               </tr>
-            ) : filtered.map(c => {
+            ) : sorted.map(c => {
               const status = calcCustomerStatus(c.latest_shipment_date);
               const canViewAccount = role !== 'staff' || c.sale_username === currentUser?.username;
               return (
@@ -262,7 +274,7 @@ export default function Customers() {
                   </td>
                   <td><StatusChip status={status} /></td>
                   <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>{c.phone || '–'}</td>
-                  <td><div style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--tx2)' }} title={c.address}>{c.address || '–'}</div></td>
+                  <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 12, fontWeight: 600, color: c.total_vc_fee ? 'var(--tx)' : 'var(--mu)' }}>{c.total_vc_fee ? formatCurrency(c.total_vc_fee) : '–'}</td>
                   <td><RateChip name={c.rate_name} /></td>
                   <td style={{ color: 'var(--tx2)' }}>{c.sale_name || c.sale_username || '–'}</td>
                   <td><div style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--mu)' }} title={c.notes}>{c.notes || '–'}</div></td>

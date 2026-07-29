@@ -126,7 +126,17 @@ router.get('/', (_req, res) => {
   try {
     const customers = db.prepare(`
       SELECT c.*, cr.name AS rate_name, cr.rate_per_kg,
-             MAX(s.import_date) AS latest_shipment_date
+             MAX(s.import_date) AS latest_shipment_date,
+             COALESCE((
+               SELECT SUM(batch_fee)
+               FROM (
+                 SELECT ROUND(MAX(0.5, COALESCE(SUM(weight), 0)) * COALESCE(MAX(customer_rate), 0)
+                              + COALESCE(SUM(surcharge), 0), 0) AS batch_fee
+                 FROM shipments
+                 WHERE customer_id = c.id
+                 GROUP BY import_date
+               )
+             ), 0) AS total_vc_fee
       FROM customers c
       LEFT JOIN customer_rates cr ON cr.id = c.rate_id
       LEFT JOIN shipments s       ON s.customer_id = c.id
