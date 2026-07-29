@@ -117,10 +117,24 @@ export default function NotificationTemplate({
 
   useEffect(() => {
     if (!ref.current || !qr.done) return;
-    const timer = setTimeout(async () => {
+    let cancelled = false;
+
+    // Chờ tới khi node offscreen có layout thật (width/height > 0). Nếu chụp lúc
+    // chưa reflow xong (width/height = 0), html2canvas tính gradient bị chia cho 0
+    // → "Failed to execute 'addColorStop': The provided double value is non-finite".
+    async function waitForLayout(el, maxFrames = 30) {
+      for (let i = 0; i < maxFrames; i++) {
+        if (el.offsetWidth > 0 && el.offsetHeight > 0) return;
+        await new Promise((res) => requestAnimationFrame(res));
+      }
+    }
+
+    (async () => {
       try {
         // Đợi Be Vietnam Pro / JetBrains Mono tải xong, tránh chụp ảnh với font fallback
         await document.fonts.ready;
+        await waitForLayout(ref.current);
+        if (cancelled) return;
         const canvas = await html2canvas(ref.current, {
           scale: 2,
           useCORS: true,
@@ -149,8 +163,9 @@ export default function NotificationTemplate({
         console.error('html2canvas error', err);
         if (onRendered) onRendered(null);
       }
-    }, 200);
-    return () => clearTimeout(timer);
+    })();
+
+    return () => { cancelled = true; };
   }, [qr.done]);
 
   const displayDate = formatDate(date) || formatDate(todayInputValue());
