@@ -3,6 +3,7 @@
 const express = require('express');
 const db      = require('../db');
 const { computePaidStatus } = require('../lib/paidStatus');
+const { sendZaloMessage }   = require('../lib/zaloNotify');
 
 const router = express.Router();
 
@@ -437,6 +438,44 @@ router.post('/batch/notify', (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// POST /api/shipments/batch/send-zalo
+// Gửi tin báo ship qua Zalo (local-runner) cho khách, rồi ghi log giống /batch/notify.
+// Body: { batch_date, customer_id, message }
+// ═════════════════════════════════════════════════════════════════════════════
+router.post('/batch/send-zalo', async (req, res) => {
+  try {
+    const { batch_date, customer_id, message } = req.body;
+    if (!batch_date || !customer_id || !message) {
+      return res.status(400).json({ error: 'batch_date, customer_id and message are required' });
+    }
+    const cid = parseInt(customer_id);
+    const customer = db.prepare('SELECT id, name, phone FROM customers WHERE id = ?').get(cid);
+    if (!customer) return res.status(404).json({ error: 'Customer not found' });
+    if (!customer.phone) return res.status(400).json({ error: 'Khách chưa có số điện thoại' });
+
+    const result = await sendZaloMessage({ phone: customer.phone, name: customer.name, message });
+    if (!result.ok) return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
+
+    const markNotified = db.transaction(() => {
+      db.prepare(`
+        INSERT INTO batch_info (batch_date, customer_id, notified_at)
+        VALUES (?, ?, datetime('now'))
+        ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
+      `).run(batch_date, cid);
+      db.prepare(
+        'INSERT INTO notification_log (batch_date, customer_id) VALUES (?, ?)'
+      ).run(batch_date, cid);
+    });
+    markNotified();
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(502).json({ error: err.message });
   }
 });
 

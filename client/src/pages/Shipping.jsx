@@ -55,7 +55,8 @@ export default function Shipping() {
   const [paymentModal, setPaymentModal] = useState(null);
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
   const [vanDonModal, setVanDonModal] = useState(null); // { custId, dateKey, customerName, totalFee, van_don_code }
-  const [shipNotifModal, setShipNotifModal] = useState(null); // { customerName, carrier, van_don_code, totalFee }
+  const [shipNotifModal, setShipNotifModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee }
+  const [sendingZalo, setSendingZalo] = useState(false);
   const [shipNotifText, setShipNotifText] = useState('');
 
   const [period, setPeriod] = useState('month');
@@ -179,6 +180,29 @@ export default function Shipping() {
   function openShipNotif(data) {
     setShipNotifModal(data);
     setShipNotifText(buildShipText(data));
+  }
+
+  async function sendShipViaZalo() {
+    const { custId, dateKey } = shipNotifModal || {};
+    if (!custId || !dateKey) {
+      toast('Thiếu thông tin lô hàng để gửi', 'error');
+      return;
+    }
+    setSendingZalo(true);
+    try {
+      await axios.post('/api/shipments/batch/send-zalo', {
+        batch_date: dateKey,
+        customer_id: custId,
+        message: shipNotifText,
+      });
+      toast('Đã gửi Zalo cho khách!', 'success');
+      setShipNotifModal(null);
+      fetchShipments();
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
+    } finally {
+      setSendingZalo(false);
+    }
   }
 
   async function updateBatchStatus(custId, dateKey, status) {
@@ -483,7 +507,7 @@ export default function Shipping() {
                                       className="btn-icon" title="Báo hàng về">
                                       <Bell className="w-[15px] h-[15px]" />
                                     </button>
-                                    <button onClick={() => openShipNotif({ customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee })}
+                                    <button onClick={() => openShipNotif({ custId: cust.custId, dateKey, customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee })}
                                       className="btn-icon" title="Báo ship hàng">
                                       <Send className="w-[15px] h-[15px]" />
                                     </button>
@@ -662,6 +686,8 @@ export default function Shipping() {
                               </button>
                               <button
                                 onClick={() => openShipNotif({
+                                  custId: cust.custId,
+                                  dateKey,
                                   customerName: cust.customerName,
                                   carrier: settings.company?.delivery_carrier || '',
                                   van_don_code: cust.vanDonCode,
@@ -793,6 +819,8 @@ export default function Shipping() {
                     const saved = { ...vanDonModal };
                     setVanDonModal(null);
                     openShipNotif({
+                      custId: saved.custId,
+                      dateKey: saved.dateKey,
                       customerName: saved.customerName,
                       carrier: settings.company?.delivery_carrier || '',
                       van_don_code: saved.van_don_code,
@@ -839,9 +867,14 @@ export default function Shipping() {
                   <Copy className="w-4 h-4" />
                   Copy nội dung
                 </button>
-                <button disabled className="btn-primary" style={{ flex: 1, justifyContent: 'center', opacity: 0.5, cursor: 'not-allowed' }} title="Tính năng sắp ra mắt">
+                <button
+                  onClick={sendShipViaZalo}
+                  disabled={sendingZalo}
+                  className="btn-primary disabled:opacity-50"
+                  style={{ flex: 1, justifyContent: 'center' }}
+                >
                   <Send className="w-4 h-4" />
-                  Gửi qua Zalo
+                  {sendingZalo ? 'Đang gửi…' : 'Gửi qua Zalo'}
                 </button>
               </div>
             </div>
