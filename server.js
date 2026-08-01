@@ -68,8 +68,8 @@ function safeEqual(a, b) {
 
 if (AUTH_USER && AUTH_PASS) {
   app.use((req, res, next) => {
-    // The deploy webhook authenticates with its own token — let it through.
-    if (req.path === '/deploy') return next();
+    // The deploy webhook and local-runner registration authenticate with their own token — let them through.
+    if (req.path === '/deploy' || req.path === '/api/register-local') return next();
 
     const [scheme, encoded] = (req.headers.authorization || '').split(' ');
     if (scheme === 'Basic' && encoded) {
@@ -100,6 +100,23 @@ app.use('/api/customers',    require('./routes/customers'));
 app.use('/api/shipments',    require('./routes/shipments'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/dashboard',    require('./routes/dashboard'));
+
+// ─── Zalo local-runner self-registration ──────────────────────────────────────
+// local-runner (Playwright/Chrome, chạy trên máy riêng, có thể sau NAT) tự POST URL của nó
+// vào đây định kỳ (xem start.js) để lib/zaloNotify.js biết gọi đi đâu — không cần hardcode
+// PLAYWRIGHT_LOCAL_URL tĩnh khi IP runner có thể đổi. apiKey trong body phải khớp
+// ZALO_RUNNER_API_KEY (không dùng Basic auth vì local-runner không phải trình duyệt).
+const localRegistry = require('./lib/localRegistry');
+app.post('/api/register-local', (req, res) => {
+  const { url, apiKey } = req.body || {};
+  const expected = process.env.ZALO_RUNNER_API_KEY;
+  if (!expected || !apiKey || !safeEqual(apiKey, expected)) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+  if (!url) return res.status(400).json({ ok: false, error: 'url is required' });
+  localRegistry.register(url);
+  res.json({ ok: true });
+});
 
 // ─── Deploy webhook ──────────────────────────────────────────────────────────
 const { exec } = require('child_process');
