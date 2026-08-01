@@ -178,6 +178,7 @@ try { db.exec('ALTER TABLE partner_warehouses ADD COLUMN rate_le REAL DEFAULT 0'
 try { db.exec('ALTER TABLE partner_warehouses ADD COLUMN rate_buon REAL DEFAULT 0'); } catch { /* already exists */ }
 // Tình trạng lô hàng trong tab Báo khách: '' | 'Đã báo khách' | 'Đã ship hàng'
 try { db.exec("ALTER TABLE batch_info ADD COLUMN status TEXT NOT NULL DEFAULT ''"); } catch { /* already exists */ }
+try { db.exec('ALTER TABLE shipments ADD COLUMN van_don_code TEXT'); } catch { /* already exists */ }
 
 // ─── Seed default data ────────────────────────────────────────────────────────
 

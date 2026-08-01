@@ -54,8 +54,9 @@ export default function Shipping() {
   const [settings, setSettings] = useState({ company: {} });
   const [paymentModal, setPaymentModal] = useState(null);
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
-  const [vanDonModal, setVanDonModal] = useState(null); // { custId, dateKey, customerName, totalFee, van_don_code }
-  const [shipNotifModal, setShipNotifModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee }
+  const [vanDonModal, setVanDonModal] = useState(null); // { custId, dateKey, customerName, totalFee, van_don_code, rows }
+  const [vanDonRowModal, setVanDonRowModal] = useState(null); // { shipmentId, tracking_no, van_don_code }
+  const [shipNotifModal, setShipNotifModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee, rows }
   const [sendingZalo, setSendingZalo] = useState(false);
   const [shipNotifText, setShipNotifText] = useState('');
 
@@ -171,10 +172,25 @@ export default function Shipping() {
     setExpandedCustomers((p) => ({ ...p, [key]: !p[key] }));
   }
 
-  function buildShipText({ customerName, carrier, van_don_code }) {
+  function buildShipText({ customerName, carrier, van_don_code, rows }) {
     const c = carrier || 'Giao hàng tiết kiệm';
-    const code = van_don_code || '';
-    return `Anh/Chị ${customerName} ơi, đơn hàng của mình đã được bàn giao cho ${c} rồi ạ 🚚\n📦 Mã vận đơn: ${code}\n🔎 Theo dõi đơn hàng: https://i.ghtk.vn/${code}\nPhí ship anh/chị vui lòng thanh toán cho shipper khi nhận hàng.\nDự kiến 2–5 ngày (tùy khu vực) mình sẽ nhận được hàng. Nếu cần hỗ trợ về đơn hàng, anh/chị cứ nhắn bên em nhé 💕`;
+    const footer = `Phí ship anh/chị vui lòng thanh toán cho shipper khi nhận hàng.\nDự kiến 2–5 ngày (tùy khu vực) mình sẽ nhận được hàng. Nếu cần hỗ trợ về đơn hàng, anh/chị cứ nhắn bên em nhé 💕`;
+
+    // Collect per-row codes (each tracking # has its own van_don_code)
+    const perRowCodes = (rows || []).filter(r => r.shipment_van_don_code);
+    const uniqueCodes = [...new Set(perRowCodes.map(r => r.shipment_van_don_code))];
+
+    if (perRowCodes.length > 0 && uniqueCodes.length > 1) {
+      // Each tracking # has a different code → list them all with links
+      const lines = perRowCodes
+        .map(r => `• ${r.tracking_no || '?'}: ${r.shipment_van_don_code}\n  🔎 https://i.ghtk.vn/${r.shipment_van_don_code}`)
+        .join('\n');
+      return `Anh/Chị ${customerName} ơi, đơn hàng của mình đã được bàn giao cho ${c} rồi ạ 🚚\n\n📦 Các mã vận đơn:\n${lines}\n\n${footer}`;
+    }
+
+    // Single code: from per-row (all same) or batch-level
+    const code = perRowCodes[0]?.shipment_van_don_code || van_don_code || '';
+    return `Anh/Chị ${customerName} ơi, đơn hàng của mình đã được bàn giao cho ${c} rồi ạ 🚚\n📦 Mã vận đơn: ${code}\n🔎 Theo dõi đơn hàng: https://i.ghtk.vn/${code}\n${footer}`;
   }
 
   function openShipNotif(data) {
@@ -202,6 +218,23 @@ export default function Shipping() {
       toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
     } finally {
       setSendingZalo(false);
+    }
+  }
+
+  async function saveVanDonRow() {
+    try {
+      await axios.patch(`/api/shipments/${vanDonRowModal.shipmentId}/van-don`, {
+        van_don_code: vanDonRowModal.van_don_code,
+      });
+      setShipments(prev => prev.map(s =>
+        s.id === vanDonRowModal.shipmentId
+          ? { ...s, shipment_van_don_code: vanDonRowModal.van_don_code || null }
+          : s
+      ));
+      toast('Đã lưu mã vận đơn', 'success');
+      setVanDonRowModal(null);
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không thể lưu mã vận đơn', 'error');
     }
   }
 
@@ -507,11 +540,11 @@ export default function Shipping() {
                                       className="btn-icon" title="Báo hàng về">
                                       <Bell className="w-[15px] h-[15px]" />
                                     </button>
-                                    <button onClick={() => openShipNotif({ custId: cust.custId, dateKey, customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee })}
+                                    <button onClick={() => openShipNotif({ custId: cust.custId, dateKey, customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee, rows: cust.rows })}
                                       className="btn-icon" title="Báo ship hàng">
                                       <Send className="w-[15px] h-[15px]" />
                                     </button>
-                                    <button onClick={() => setVanDonModal({ custId: cust.custId, dateKey, customerName: cust.customerName, totalFee: cust.totalFee, van_don_code: cust.vanDonCode })}
+                                    <button onClick={() => setVanDonModal({ custId: cust.custId, dateKey, customerName: cust.customerName, totalFee: cust.totalFee, van_don_code: cust.vanDonCode, rows: cust.rows })}
                                       className="btn-icon" title="Mã vận đơn">
                                       <Truck className="w-[15px] h-[15px]" />
                                     </button>
@@ -547,7 +580,12 @@ export default function Shipping() {
                                                       onChange={(e) => setEditValues((p) => ({ ...p, tracking_no: e.target.value }))}
                                                       className="input-field py-1 text-xs w-28" />
                                                   ) : (
-                                                    <span className="font-mono text-sm truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
+                                                    <>
+                                                      <span className="font-mono text-sm truncate block" title={s.tracking_no}>{s.tracking_no || '–'}</span>
+                                                      {s.shipment_van_don_code && (
+                                                        <span className="font-mono text-xs block truncate" style={{ color: 'var(--ac)', opacity: 0.85 }} title={s.shipment_van_don_code}>↪ {s.shipment_van_don_code}</span>
+                                                      )}
+                                                    </>
                                                   )}
                                                 </td>
                                                 <td>
@@ -604,6 +642,12 @@ export default function Shipping() {
                                                       </>
                                                     ) : (
                                                       <>
+                                                        <button
+                                                          onClick={() => setVanDonRowModal({ shipmentId: s.id, tracking_no: s.tracking_no, van_don_code: s.shipment_van_don_code || '' })}
+                                                          className="btn-icon" title="Mã vận đơn"
+                                                          style={s.shipment_van_don_code ? { color: 'var(--ac)' } : {}}>
+                                                          <Truck className="w-[14px] h-[14px]" />
+                                                        </button>
                                                         <button onClick={() => startEdit(s)} className="btn-icon" title="Chỉnh sửa">
                                                           <Edit2 className="w-[14px] h-[14px]" />
                                                         </button>
@@ -692,6 +736,7 @@ export default function Shipping() {
                                   carrier: settings.company?.delivery_carrier || '',
                                   van_don_code: cust.vanDonCode,
                                   totalFee: cust.totalFee,
+                                  rows: cust.rows,
                                 })}
                                 className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}
                               >
@@ -713,6 +758,7 @@ export default function Shipping() {
                                   customerName: cust.customerName,
                                   totalFee: cust.totalFee,
                                   van_don_code: cust.vanDonCode,
+                                  rows: cust.rows,
                                 })}
                                 className="inline-flex items-center justify-center p-2 rounded-full bg-greige-100 text-ink-700"
                                 title="Mã vận đơn"
@@ -737,6 +783,12 @@ export default function Shipping() {
                                     </div>
                                   </div>
                                   <div className="flex justify-end gap-1 mt-2">
+                                    <button
+                                      onClick={() => setVanDonRowModal({ shipmentId: s.id, tracking_no: s.tracking_no, van_don_code: s.shipment_van_don_code || '' })}
+                                      className="btn-icon" title="Mã vận đơn"
+                                      style={s.shipment_van_don_code ? { color: 'var(--ac)' } : {}}>
+                                      <Truck className="w-3.5 h-3.5" />
+                                    </button>
                                     <button onClick={() => startEdit(s)} className="btn-icon text-primary-400 hover:bg-primary-900/30" title="Chỉnh sửa">
                                       <Edit2 className="w-3.5 h-3.5" />
                                     </button>
@@ -825,6 +877,7 @@ export default function Shipping() {
                       carrier: settings.company?.delivery_carrier || '',
                       van_don_code: saved.van_don_code,
                       totalFee: saved.totalFee,
+                      rows: saved.rows,
                     });
                   } catch (err) {
                     toast(err.response?.data?.error || 'Không thể lưu mã vận đơn', 'error');
@@ -833,6 +886,38 @@ export default function Shipping() {
               >
                 Lưu & Báo ship
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Van đơn per-row modal */}
+      {vanDonRowModal && (
+        <div className="modal-overlay">
+          <div className="modal-box modal-pop" style={{ maxWidth: 420 }}>
+            <div className="modal-header">
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>Mã vận đơn – Tracking #</h2>
+              <button onClick={() => setVanDonRowModal(null)} className="btn-icon">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>
+                Tracking: <span style={{ fontFamily: '"JetBrains Mono", monospace', color: 'var(--tx)' }}>{vanDonRowModal.tracking_no || '–'}</span>
+              </p>
+              <input
+                type="text"
+                value={vanDonRowModal.van_don_code}
+                onChange={e => setVanDonRowModal(p => ({ ...p, van_don_code: e.target.value }))}
+                placeholder="Nhập mã vận đơn..."
+                className="input-field"
+                autoFocus
+                onKeyDown={e => { if (e.key === 'Enter') saveVanDonRow(); if (e.key === 'Escape') setVanDonRowModal(null); }}
+              />
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setVanDonRowModal(null)} className="btn-secondary">Đóng</button>
+              <button className="btn-primary" onClick={saveVanDonRow}>Lưu</button>
             </div>
           </div>
         </div>

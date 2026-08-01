@@ -74,6 +74,7 @@ router.get('/', (req, res) => {
              ROUND(s.weight * s.partner_rate  + s.surcharge, 2) AS phi_tra_doi_tac,
              ROUND(s.weight * s.customer_rate + s.surcharge, 2) AS phi_vc,
              bi.van_don_code,
+             s.van_don_code AS shipment_van_don_code,
              COALESCE(bi.status, '') AS batch_status
       FROM shipments s
       LEFT JOIN customers c           ON c.id  = s.customer_id
@@ -530,6 +531,23 @@ router.patch('/batch-rate', (req, res) => {
     ).run(rate, batch_date, cid);
     triggerAutoDebit(batch_date, cid);
     res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/shipments/:id/van-don
+// Cập nhật mã vận đơn cho từng tracking # riêng lẻ
+// Body: { van_don_code }
+router.patch('/:id/van-don', (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { van_don_code } = req.body;
+    const result = db.prepare('UPDATE shipments SET van_don_code = ? WHERE id = ?')
+      .run(van_don_code || null, id);
+    if (result.changes === 0) return res.status(404).json({ error: 'Shipment not found' });
+    res.json({ id, van_don_code: van_don_code || null });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
