@@ -173,6 +173,7 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`[startup] Chaien Shipus running on port ${PORT}`);
+  require('./lib/autoNotifyArrival').start();
 });
 
 module.exports = app;

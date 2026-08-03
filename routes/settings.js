@@ -302,4 +302,40 @@ router.post('/company/logo', logoUpload.single('logo'), (req, res) => {
   }
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Auto-notify "báo hàng về" qua Zalo (bật/tắt) — lưu chung trong company_info
+// ═════════════════════════════════════════════════════════════════════════════
+
+router.get('/auto-notify-arrival', (_req, res) => {
+  try {
+    const row = db.prepare("SELECT value FROM company_info WHERE key = 'auto_notify_arrival'").get();
+    res.json({ enabled: row?.value === 'true' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/auto-notify-arrival', (req, res) => {
+  try {
+    const { enabled } = req.body;
+    const was = db.prepare("SELECT value FROM company_info WHERE key = 'auto_notify_arrival'").get();
+    db.prepare(
+      `INSERT INTO company_info (key, value) VALUES ('auto_notify_arrival', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    ).run(enabled ? 'true' : 'false');
+    // Bật lần đầu (hoặc bật lại sau khi tắt) -> đóng dấu mốc NGAY (dùng datetime('now') của
+    // chính SQLite để khớp định dạng với shipments.created_at) -> chỉ tự báo lô MỚI từ đây,
+    // bỏ qua tồn đọng cũ (tránh nhắn dồn dập khách cũ ngay khi vừa bật).
+    if (enabled && was?.value !== 'true') {
+      db.prepare(
+        `INSERT INTO company_info (key, value) VALUES ('auto_notify_arrival_enabled_at', datetime('now'))
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      ).run();
+    }
+    res.json({ enabled: !!enabled });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
