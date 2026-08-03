@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import axios from 'axios';
 import {
   Plus, Edit2, Trash2, X,
-  Star, Upload, Building2, Warehouse, CreditCard,
+  Star, Upload, Building2, Warehouse, CreditCard, Send,
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -65,6 +65,7 @@ export default function Settings() {
       </div>
 
       <CompanySection company={company} setCompany={setCompany} />
+      <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
     </div>
@@ -224,6 +225,53 @@ function CompanySection({ company, setCompany }) {
           </form>
         </Modal>
       )}
+    </section>
+  );
+}
+
+// ── Tự động báo hàng về qua Zalo ───────────────────────────────────────────────
+function AutoNotifyArrivalSection({ company, setCompany }) {
+  const [saving, setSaving] = useState(false);
+  const enabled = company.auto_notify_arrival === 'true';
+
+  async function toggle() {
+    setSaving(true);
+    try {
+      await axios.post('/api/settings/auto-notify-arrival', { enabled: !enabled });
+      setCompany((p) => ({ ...p, auto_notify_arrival: (!enabled).toString() }));
+      toast(!enabled ? 'Đã bật tự động báo hàng về' : 'Đã tắt tự động báo hàng về', 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi lưu cấu hình', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Send className="w-5 h-5 text-primary-600" />
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Tự động báo hàng về qua Zalo</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>
+              Tự động quét lô hàng chưa báo (mỗi 5 phút) và gửi tin nhắn Zalo cho khách — chỉ áp
+              dụng cho lô mới phát sinh sau khi bật, không gửi lại tồn đọng cũ.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={saving}
+          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50"
+          style={{ background: enabled ? 'var(--ac)' : 'var(--ln)' }}
+        >
+          <span
+            className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+            style={{ transform: enabled ? 'translateX(22px)' : 'translateX(4px)' }}
+          />
+        </button>
+      </div>
     </section>
   );
 }
