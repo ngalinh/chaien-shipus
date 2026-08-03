@@ -64,8 +64,10 @@ export default function Settings() {
         <p className="text-body-md mt-1.5" style={{ color: 'var(--mu)' }}>Quản lý cấu hình hệ thống</p>
       </div>
 
-      <CompanySection company={company} setCompany={setCompany} />
-      <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <CompanySection company={company} setCompany={setCompany} />
+        <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
+      </div>
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
     </div>
