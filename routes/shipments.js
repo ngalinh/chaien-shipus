@@ -444,21 +444,22 @@ router.post('/batch/notify', (req, res) => {
 
 // ═════════════════════════════════════════════════════════════════════════════
 // POST /api/shipments/batch/send-zalo
-// Gửi tin báo ship qua Zalo (local-runner) cho khách, rồi ghi log giống /batch/notify.
-// Body: { batch_date, customer_id, message }
+// Gửi tin (và/hoặc ảnh phiếu báo hàng) qua Zalo (local-runner) cho khách, rồi ghi log
+// giống /batch/notify.
+// Body: { batch_date, customer_id, message?, image?: { name?, dataBase64 } }
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/batch/send-zalo', async (req, res) => {
   try {
-    const { batch_date, customer_id, message } = req.body;
-    if (!batch_date || !customer_id || !message) {
-      return res.status(400).json({ error: 'batch_date, customer_id and message are required' });
+    const { batch_date, customer_id, message, image } = req.body;
+    if (!batch_date || !customer_id || (!message && !image)) {
+      return res.status(400).json({ error: 'batch_date, customer_id and (message or image) are required' });
     }
     const cid = parseInt(customer_id);
     const customer = db.prepare('SELECT id, name, phone FROM customers WHERE id = ?').get(cid);
     if (!customer) return res.status(404).json({ error: 'Customer not found' });
     if (!customer.phone) return res.status(400).json({ error: 'Khách chưa có số điện thoại' });
 
-    const result = await sendZaloMessage({ phone: customer.phone, name: customer.name, message });
+    const result = await sendZaloMessage({ phone: customer.phone, name: customer.name, message, image });
     if (!result.ok) return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
 
     const markNotified = db.transaction(() => {

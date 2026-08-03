@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { X, Copy, Download, Check } from 'lucide-react';
+import axios from 'axios';
+import { X, Copy, Download, Check, Send } from 'lucide-react';
 import NotificationTemplate from './NotificationTemplate.jsx';
 import { toast } from './Toast.jsx';
 
 /**
- * Popup xem trước phiếu báo hàng về + nút Copy ảnh (dán thẳng gửi khách) và Tải về.
- * Ảnh PNG được tạo bằng NotificationTemplate render ẩn ngoài màn hình.
+ * Popup xem trước phiếu báo hàng về + nút Copy ảnh (dán thẳng gửi khách), Tải về và
+ * Gửi qua Zalo (tự động, qua local-runner). Ảnh PNG được tạo bằng NotificationTemplate
+ * render ẩn ngoài màn hình.
  *
  * Props:
- *   - notifData: { customerName, date, items, fileName }
+ *   - notifData: { batch: { batch_date, customer_id }, customerName, date, items, fileName }
  *   - company:   { company_name, logo_path, hotline }
  *   - bank:      { bank_name, account_number, account_holder } | null
  *   - onClose:   () => void
@@ -18,6 +20,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
+  const [sendingZalo, setSendingZalo] = useState(false);
 
   function handleRendered(url) {
     if (url) setDataUrl(url);
@@ -52,6 +55,29 @@ export default function NotificationModal({ notifData, company = {}, bank = null
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  }
+
+  async function handleSendZalo() {
+    if (!dataUrl) return;
+    const { batch_date, customer_id } = notifData.batch || {};
+    if (!batch_date || !customer_id) {
+      toast('Thiếu thông tin lô hàng để gửi', 'error');
+      return;
+    }
+    setSendingZalo(true);
+    try {
+      await axios.post('/api/shipments/batch/send-zalo', {
+        batch_date,
+        customer_id,
+        image: { name: notifData.fileName || 'phieu-bao-hang-ve.png', dataBase64: dataUrl },
+      });
+      toast('Đã gửi Zalo cho khách!', 'success');
+      onClose();
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
+    } finally {
+      setSendingZalo(false);
+    }
   }
 
   return (
@@ -91,9 +117,13 @@ export default function NotificationModal({ notifData, company = {}, bank = null
             <Download className="w-4 h-4" />
             Tải về
           </button>
-          <button onClick={handleCopy} disabled={!dataUrl} className="btn-primary disabled:opacity-50">
+          <button onClick={handleCopy} disabled={!dataUrl} className="btn-secondary disabled:opacity-50">
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Đã copy' : 'Copy ảnh'}
+          </button>
+          <button onClick={handleSendZalo} disabled={!dataUrl || sendingZalo} className="btn-primary disabled:opacity-50">
+            <Send className="w-4 h-4" />
+            {sendingZalo ? 'Đang gửi…' : 'Gửi qua Zalo'}
           </button>
         </div>
       </div>
