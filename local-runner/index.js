@@ -4,6 +4,7 @@
 const logBuffer = require('./logBuffer');
 logBuffer.install();
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 const express = require('express');
 const config = require('./config');
@@ -20,7 +21,7 @@ const loginPrefill = (a) =>
   (a && a.password) ? { email: a.email || '', password: a.password } : null;
 
 const app = express();
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '8mb' }));
 
 // So sánh secret theo thời gian hằng định (chống dò timing). Khác độ dài -> false.
 function safeEqual(a, b) {
@@ -82,17 +83,61 @@ app.get('/api/profile/:name', (req, res) => {
   res.json({ ok: true, profile: req.params.name, exists: profileExists(req.params.name) });
 });
 
+const TMP_IMAGE_DIR = path.join(config.dataDir, '..', 'tmp-images');
+
+/**
+ * Ghi ảnh base64 (gửi qua network — backend không có file cục bộ như imagePaths) ra file
+ * tạm, trả về đường dẫn để dùng như imagePaths. Ném lỗi nếu ghi thất bại.
+ * @param {{name?:string, dataBase64:string}[]} images
+ * @returns {string[]}
+ */
+function writeTempImages(images) {
+  if (!fs.existsSync(TMP_IMAGE_DIR)) fs.mkdirSync(TMP_IMAGE_DIR, { recursive: true });
+  return images.map((img, i) => {
+    const ext = (img.name && path.extname(img.name)) || '.png';
+    const filePath = path.join(TMP_IMAGE_DIR, `${Date.now()}-${i}${ext}`);
+    const base64 = String(img.dataBase64 || '').replace(/^data:image\/\w+;base64,/, '');
+    fs.writeFileSync(filePath, Buffer.from(base64, 'base64'));
+    return filePath;
+  });
+}
+
 /**
  * POST /api/zalo/send
- * body: { profile, account?, keyword, name?, message, strictMatch?, imagePaths?, notifyTarget?, keepContext? }
+ * body: { profile, account?, keyword, name?, message?, strictMatch?, imagePaths?, images?,
+ *         notifyTarget?, keepContext? }
+ * imagePaths = đường dẫn file CÓ SẴN trên máy runner. images = ảnh base64 gửi qua network
+ * (vd từ backend) — runner tự ghi ra file tạm rồi xoá sau khi gửi xong.
  * => trả { ok, jobId } ngay; poll /api/job/:id để lấy kết quả.
  */
 app.post('/api/zalo/send', (req, res) => {
-  const { profile, account, keyword, name, message, strictMatch, imagePaths, notifyTarget, keepContext } = req.body || {};
-  if ((!keyword && !name) || (!message && !(Array.isArray(imagePaths) && imagePaths.length))) {
-    return res.status(400).json({ ok: false, error: 'Thiếu (keyword/name) hoặc (message/imagePaths)' });
+  const { profile, account, keyword, name, message, strictMatch, imagePaths, images, notifyTarget, keepContext } = req.body || {};
+  const hasImages = (Array.isArray(imagePaths) && imagePaths.length) || (Array.isArray(images) && images.length);
+  if ((!keyword && !name) || (!message && !hasImages)) {
+    return res.status(400).json({ ok: false, error: 'Thiếu (keyword/name) hoặc (message/imagePaths/images)' });
   }
-  const jobId = createJob({ profile, account, keyword, name, message, strictMatch, imagePaths, notifyTarget, keepContext }, sendBaoHang);
+
+  let tempPaths = [];
+  let allImagePaths = imagePaths || [];
+  if (Array.isArray(images) && images.length) {
+    try {
+      tempPaths = writeTempImages(images);
+    } catch (e) {
+      return res.status(400).json({ ok: false, error: `Lỗi ghi ảnh tạm: ${e.message}` });
+    }
+    allImagePaths = [...allImagePaths, ...tempPaths];
+  }
+
+  const jobId = createJob(
+    { profile, account, keyword, name, message, strictMatch, imagePaths: allImagePaths, notifyTarget, keepContext },
+    async (payload) => {
+      try {
+        return await sendBaoHang(payload);
+      } finally {
+        for (const p of tempPaths) { try { fs.unlinkSync(p); } catch { /* ignore */ } }
+      }
+    }
+  );
   res.json({ ok: true, jobId });
 });
 

@@ -18,6 +18,7 @@ baokhach.md
 # (đường dẫn ở REPO ROOT, không phải local-runner/ — xem local-runner/config.js)
 /playwright-data/
 /screenshots/
+/tmp-images/
 /config/zalo-accounts.json
 /config/login-history.json
 /config/test-mode.json
