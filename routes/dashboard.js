@@ -149,7 +149,18 @@ router.get('/', (req, res) => {
       gross_margin:         0,
     });
 
-    // ── 8. Top customers by VC fee in period ─────────────────────────────
+    // ── 8. Daily breakdown for chart (single-month view) ─────────────────
+    const dailyRaw = db.prepare(`
+      SELECT
+        CAST(strftime('%d', import_date) AS INTEGER)                           AS day,
+        ROUND(COALESCE(SUM(weight * customer_rate + surcharge - weight * partner_rate), 0), 2) AS gross_margin
+      FROM shipments
+      WHERE import_date >= ? AND import_date <= ?
+      GROUP BY strftime('%d', import_date)
+      ORDER BY day ASC
+    `).all(startDate, endDate);
+
+    // ── 9. Top customers by VC fee in period ─────────────────────────────
     const topCustomers = db.prepare(`
       SELECT
         s.customer_id,
@@ -195,6 +206,7 @@ router.get('/', (req, res) => {
         total_receivable:          receivableRow.total_receivable || 0,
       },
       monthly_breakdown,
+      daily_breakdown:    dailyRaw,
       top_customers:      topCustomers,
       warehouse_breakdown: warehouseBreakdown,
     });

@@ -1,22 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import { formatCurrency, todayInputValue } from '../utils.jsx';
 
 const PERIODS = [
-  { label: 'Trong tháng', value: 'month' },
   { label: '3 tháng', value: '3m' },
   { label: '6 tháng', value: '6m' },
   { label: '1 năm', value: '1y' },
   { label: 'Tùy chỉnh', value: 'custom' },
 ];
 
-// Mini bar chart — decorative, proportional to top-customer fee
-const BAR_HEIGHTS = [22, 38, 30, 56, 44, 72, 100]; // mock last-7-days proportions
+const BAR_HEIGHTS_MOCK = [22, 38, 30, 56, 44, 72, 100];
 
-function BarChart({ value }) {
-  const heights = BAR_HEIGHTS;
+function BarChart({ bars }) {
+  const items = bars && bars.length > 0
+    ? bars
+    : BAR_HEIGHTS_MOCK.map(h => ({ value: h }));
+  const max = Math.max(...items.map(b => b.value), 1);
+  const heights = items.map(b => Math.max(5, Math.round((Math.max(0, b.value) / max) * 100)));
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 7, height: 74, marginTop: 24 }}>
       {heights.map((h, i) => (
@@ -28,7 +30,7 @@ function BarChart({ value }) {
             borderRadius: '5px 5px 2px 2px',
             background: i === heights.length - 1
               ? 'linear-gradient(180deg,#8FDCF0,#3AAFD3)'
-              : `rgba(143,220,240,${0.15 + h * 0.004})`,
+              : `rgba(143,220,240,${0.15 + (h / 100) * 0.4})`,
             boxShadow: i === heights.length - 1 ? '0 0 22px -4px rgba(143,220,240,.8)' : 'none',
           }}
         />
@@ -39,6 +41,7 @@ function BarChart({ value }) {
 
 export default function Dashboard() {
   const [period, setPeriod] = useState('month');
+  const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(todayInputValue);
   const [data, setData] = useState(null);
@@ -46,7 +49,7 @@ export default function Dashboard() {
   const abortRef = useRef(null);
   const location = useLocation();
 
-  useEffect(() => { fetchStats(); }, [period, startDate, endDate, location.key]);
+  useEffect(() => { fetchStats(); }, [period, selectedMonth, startDate, endDate, location.key]);
 
   async function fetchStats() {
     if (abortRef.current) abortRef.current.abort();
@@ -58,7 +61,10 @@ export default function Dashboard() {
       if (period === 'custom') {
         params = { start_date: startDate, end_date: endDate };
       } else if (period === 'month') {
-        params = { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
+        params = {
+          start_date: dayjs(selectedMonth).startOf('month').format('YYYY-MM-DD'),
+          end_date:   dayjs(selectedMonth).endOf('month').format('YYYY-MM-DD'),
+        };
       } else {
         params = { period };
       }
@@ -73,10 +79,7 @@ export default function Dashboard() {
 
   function handlePeriodChange(val) {
     setPeriod(val);
-    if (val === 'month') {
-      setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
-      setEndDate(todayInputValue());
-    } else if (val === '3m') {
+    if (val === '3m') {
       setStartDate(dayjs().subtract(3, 'month').format('YYYY-MM-DD'));
       setEndDate(todayInputValue());
     } else if (val === '6m') {
@@ -88,11 +91,28 @@ export default function Dashboard() {
     }
   }
 
+  function handleMonthChange(val) {
+    setSelectedMonth(val);
+    setPeriod('month');
+  }
+
   const s = data?.summary || {};
   const displayStart = data?.period?.start_date || startDate;
   const displayEnd = data?.period?.end_date || endDate;
 
-  const periodLabel = PERIODS.find(p => p.value === period)?.label || '';
+  const periodLabel = period === 'month'
+    ? dayjs(selectedMonth).format('MM/YYYY')
+    : PERIODS.find(p => p.value === period)?.label || '';
+
+  const chartBars = useMemo(() => {
+    if (!data) return null;
+    const monthly = data.monthly_breakdown || [];
+    const daily   = data.daily_breakdown || [];
+    if (monthly.length <= 1 && daily.length > 0) {
+      return daily.map(d => ({ value: d.gross_margin }));
+    }
+    return monthly.map(m => ({ value: m.gross_margin }));
+  }, [data]);
 
   const smallTiles = [
     {
@@ -163,6 +183,33 @@ export default function Dashboard() {
           backdropFilter: 'blur(14px)',
           flexWrap: 'wrap',
         }}>
+          {/* Month picker pill */}
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+            <span
+              className="tab-btn"
+              style={{
+                background: period === 'month' ? 'var(--tx)' : 'transparent',
+                color: period === 'month' ? 'var(--page-bg)' : 'var(--mu)',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+            >
+              {period === 'month' ? dayjs(selectedMonth).format('MM/YYYY') : 'Tháng'}
+            </span>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={e => handleMonthChange(e.target.value)}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                opacity: 0,
+                width: '100%',
+                height: '100%',
+                cursor: 'pointer',
+              }}
+            />
+          </div>
           {PERIODS.map(p => (
             <button
               key={p.value}
@@ -241,7 +288,7 @@ export default function Dashboard() {
                 {periodLabel}
               </span>
             </div>
-            <BarChart />
+            <BarChart bars={chartBars} />
           </div>
 
           {/* 2x2 small tiles */}
