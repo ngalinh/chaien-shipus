@@ -133,7 +133,7 @@ export default function NotificationTemplate({
       return html2canvas(ref.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#fff',
+        backgroundColor: null,
         logging: false,
         // html2canvas vẽ chữ thấp hơn tâm ô vài px — đẩy ngược lên CHỈ trong bản chụp
         // (data-nudge=px). DOM preview thật không bị ảnh hưởng.

@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const abortRef = useRef(null);
+  const monthInputRef = useRef(null);
   const location = useLocation();
 
   useEffect(() => { fetchStats(); }, [period, selectedMonth, startDate, endDate, location.key]);
@@ -94,6 +95,11 @@ export default function Dashboard() {
   function handleMonthChange(val) {
     setSelectedMonth(val);
     setPeriod('month');
+  }
+
+  function handleMonthPillClick() {
+    setPeriod('month');
+    try { monthInputRef.current?.showPicker(); } catch { /* unsupported browser */ }
   }
 
   const s = data?.summary || {};
@@ -184,30 +190,23 @@ export default function Dashboard() {
           flexWrap: 'wrap',
         }}>
           {/* Month picker pill */}
-          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-            <span
+          <div style={{ position: 'relative' }}>
+            <button
               className="tab-btn"
+              onClick={handleMonthPillClick}
               style={{
                 background: period === 'month' ? 'var(--tx)' : 'transparent',
                 color: period === 'month' ? 'var(--page-bg)' : 'var(--mu)',
-                pointerEvents: 'none',
-                userSelect: 'none',
               }}
             >
               {period === 'month' ? dayjs(selectedMonth).format('MM/YYYY') : 'Tháng'}
-            </span>
+            </button>
             <input
+              ref={monthInputRef}
               type="month"
               value={selectedMonth}
               onChange={e => handleMonthChange(e.target.value)}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                opacity: 0,
-                width: '100%',
-                height: '100%',
-                cursor: 'pointer',
-              }}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: '100%', left: 0 }}
             />
           </div>
           {PERIODS.map(p => (
