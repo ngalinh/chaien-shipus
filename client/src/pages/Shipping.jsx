@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -21,16 +21,9 @@ function getStatusStyle(v) {
 function getStatusClass() { return ''; }
 
 const PERIODS = [
-  { label: 'Trong tháng', value: 'month' },
   { label: 'Tất cả', value: 'all' },
   { label: 'Tùy chỉnh', value: 'custom' },
 ];
-
-function rangeFor(period, startDate, endDate) {
-  if (period === 'all') return {};
-  if (period === 'custom') return { start_date: startDate, end_date: endDate };
-  return { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
-}
 
 const cleanCode = (code) => (code || '').replace(/\s+/g, ' ').trim();
 
@@ -61,8 +54,10 @@ export default function Shipping() {
   const [shipNotifText, setShipNotifText] = useState('');
 
   const [period, setPeriod] = useState('month');
+  const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
   const [startDate, setStartDate] = useState(() => dayjs().startOf('month').format('YYYY-MM-DD'));
   const [endDate, setEndDate] = useState(todayInputValue);
+  const monthInputRef = useRef(null);
 
   const [searchParams] = useSearchParams();
   const [localSearch, setLocalSearch] = useState('');
@@ -72,7 +67,7 @@ export default function Shipping() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => { fetchSettings(); }, []);
-  useEffect(() => { fetchShipments(); }, [period, startDate, endDate]);
+  useEffect(() => { fetchShipments(); }, [period, selectedMonth, startDate, endDate]);
 
   async function fetchSettings() {
     try {
@@ -84,7 +79,16 @@ export default function Shipping() {
   async function fetchShipments() {
     setLoading(true);
     try {
-      const res = await axios.get('/api/shipments', { params: rangeFor(period, startDate, endDate) });
+      let params = {};
+      if (period === 'month') {
+        params = {
+          start_date: dayjs(selectedMonth).startOf('month').format('YYYY-MM-DD'),
+          end_date:   dayjs(selectedMonth).endOf('month').format('YYYY-MM-DD'),
+        };
+      } else if (period === 'custom') {
+        params = { start_date: startDate, end_date: endDate };
+      }
+      const res = await axios.get('/api/shipments', { params });
       setShipments(res.data);
     } catch (err) {
       console.error('fetchShipments:', err);
@@ -95,8 +99,17 @@ export default function Shipping() {
 
   function handlePeriodChange(val) {
     setPeriod(val);
-    if (val === 'month') setStartDate(dayjs().startOf('month').format('YYYY-MM-DD'));
     if (val !== 'custom') setEndDate(todayInputValue());
+  }
+
+  function handleMonthChange(val) {
+    setSelectedMonth(val);
+    setPeriod('month');
+  }
+
+  function handleMonthPillClick() {
+    setPeriod('month');
+    try { monthInputRef.current?.showPicker(); } catch { /* unsupported */ }
   }
 
   async function handleDelete(id) {
@@ -364,6 +377,23 @@ export default function Shipping() {
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Khoảng thời gian:</span>
           <div style={{ display: 'flex', gap: 6 }}>
+            {/* Month picker pill */}
+            <div style={{ position: 'relative' }}>
+              <button
+                className="period-pill"
+                onClick={handleMonthPillClick}
+                style={{ background: period === 'month' ? 'var(--brand)' : 'transparent', color: period === 'month' ? '#fff' : 'var(--mu)' }}
+              >
+                {period === 'month' ? dayjs(selectedMonth).format('MM/YYYY') : 'Tháng'}
+              </button>
+              <input
+                ref={monthInputRef}
+                type="month"
+                value={selectedMonth}
+                onChange={e => handleMonthChange(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: '100%', left: 0 }}
+              />
+            </div>
             {PERIODS.map(p => (
               <button key={p.value} onClick={() => handlePeriodChange(p.value)} className="period-pill"
                 style={{ background: period === p.value ? 'var(--brand)' : 'transparent', color: period === p.value ? '#fff' : 'var(--mu)' }}>

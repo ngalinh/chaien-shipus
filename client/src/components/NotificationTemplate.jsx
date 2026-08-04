@@ -129,8 +129,31 @@ export default function NotificationTemplate({
       }
     }
 
+    function clipToRoundedRect(src, radius) {
+      const w = src.width;
+      const h = src.height;
+      const dst = document.createElement('canvas');
+      dst.width = w;
+      dst.height = h;
+      const ctx = dst.getContext('2d');
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(w - radius, 0);
+      ctx.arcTo(w, 0, w, radius, radius);
+      ctx.lineTo(w, h - radius);
+      ctx.arcTo(w, h, w - radius, h, radius);
+      ctx.lineTo(radius, h);
+      ctx.arcTo(0, h, 0, h - radius, radius);
+      ctx.lineTo(0, radius);
+      ctx.arcTo(0, 0, radius, 0, radius);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(src, 0, 0);
+      return dst;
+    }
+
     async function captureOnce() {
-      return html2canvas(ref.current, {
+      const raw = await html2canvas(ref.current, {
         scale: 2,
         useCORS: true,
         backgroundColor: null,
@@ -144,6 +167,8 @@ export default function NotificationTemplate({
           });
         },
       });
+      // scale=2 nên radius nhân 2 để khớp bo góc của card (borderRadius: 18)
+      return clipToRoundedRect(raw, 18 * 2);
     }
 
     (async () => {
