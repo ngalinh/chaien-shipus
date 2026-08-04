@@ -64,12 +64,10 @@ export default function Settings() {
         <p className="text-body-md mt-1.5" style={{ color: 'var(--mu)' }}>Quản lý cấu hình hệ thống</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <CompanySection company={company} setCompany={setCompany} />
-        <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
-      </div>
+      <CompanySection company={company} setCompany={setCompany} />
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
+      <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
     </div>
   );
 }
@@ -266,7 +264,7 @@ function AutoNotifyArrivalSection({ company, setCompany }) {
           onClick={toggle}
           disabled={saving}
           className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50"
-          style={{ background: enabled ? 'var(--ac)' : 'var(--ln)' }}
+          style={{ background: enabled ? 'var(--ac)' : 'var(--sf2)' }}
         >
           <span
             className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
