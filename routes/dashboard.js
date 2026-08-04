@@ -111,14 +111,14 @@ router.get('/', (req, res) => {
         AND trans_date >= ? AND trans_date <= ?
     `).get(startDate, endDate);
 
-    // ── 6. Receivable: vc fees charged minus payments received in period ─────
+    // ── 6. Receivable: all-time outstanding balance (debit − credit toàn bộ)
     const receivableRow = db.prepare(`
       SELECT
         ROUND(
-          COALESCE((SELECT SUM(debit)  FROM transactions WHERE trans_date >= ? AND trans_date <= ?), 0) -
-          COALESCE((SELECT SUM(credit) FROM transactions WHERE trans_date >= ? AND trans_date <= ?), 0),
+          COALESCE((SELECT SUM(debit)  FROM transactions), 0) -
+          COALESCE((SELECT SUM(credit) FROM transactions), 0),
         2) AS total_receivable
-    `).get(startDate, endDate, startDate, endDate);
+    `).get();
 
     // ── 7. Monthly breakdown for chart ────────────────────────────────────
     const monthlyRaw = db.prepare(`

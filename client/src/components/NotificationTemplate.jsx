@@ -129,34 +129,11 @@ export default function NotificationTemplate({
       }
     }
 
-    function clipToRoundedRect(src, radius) {
-      const w = src.width;
-      const h = src.height;
-      const dst = document.createElement('canvas');
-      dst.width = w;
-      dst.height = h;
-      const ctx = dst.getContext('2d');
-      ctx.beginPath();
-      ctx.moveTo(radius, 0);
-      ctx.lineTo(w - radius, 0);
-      ctx.arcTo(w, 0, w, radius, radius);
-      ctx.lineTo(w, h - radius);
-      ctx.arcTo(w, h, w - radius, h, radius);
-      ctx.lineTo(radius, h);
-      ctx.arcTo(0, h, 0, h - radius, radius);
-      ctx.lineTo(0, radius);
-      ctx.arcTo(0, 0, radius, 0, radius);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(src, 0, 0);
-      return dst;
-    }
-
     async function captureOnce() {
-      const raw = await html2canvas(ref.current, {
+      return html2canvas(ref.current, {
         scale: 2,
         useCORS: true,
-        backgroundColor: null,
+        backgroundColor: '#ffffff',
         logging: false,
         // html2canvas vẽ chữ thấp hơn tâm ô vài px — đẩy ngược lên CHỈ trong bản chụp
         // (data-nudge=px). DOM preview thật không bị ảnh hưởng.
@@ -167,8 +144,6 @@ export default function NotificationTemplate({
           });
         },
       });
-      // scale=2 nên radius nhân 2 để khớp bo góc của card (borderRadius: 18)
-      return clipToRoundedRect(raw, 18 * 2);
     }
 
     (async () => {
@@ -228,7 +203,7 @@ export default function NotificationTemplate({
         background: '#ffffff',
         color: '#0f2e42',
         overflow: 'hidden',
-        borderRadius: 18,
+        borderRadius: 0,
         boxShadow: '0 24px 60px -24px rgba(15,46,66,0.45)',
       }}
     >
