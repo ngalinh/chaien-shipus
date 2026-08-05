@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -13,9 +13,8 @@ const CATEGORY_LABEL = {
 };
 
 const PERIODS = [
-  { label: 'Trong tháng', value: 'month' },
-  { label: 'Tất cả',      value: 'all' },
-  { label: 'Tuỳ chọn',   value: 'custom' },
+  { label: 'Tất cả',    value: 'all' },
+  { label: 'Tuỳ chọn', value: 'custom' },
 ];
 
 const CAT_FILTERS = [
@@ -24,10 +23,11 @@ const CAT_FILTERS = [
   { label: 'Chi',    value: 'partner_payment' },
 ];
 
-function rangeFor(period, customStart, customEnd) {
+function rangeFor(period, customStart, customEnd, selectedMonth) {
   if (period === 'all')    return {};
   if (period === 'custom') return { start_date: customStart, end_date: customEnd };
-  return { start_date: dayjs().startOf('month').format('YYYY-MM-DD'), end_date: todayInputValue() };
+  const m = dayjs(selectedMonth);
+  return { start_date: m.startOf('month').format('YYYY-MM-DD'), end_date: m.endOf('month').format('YYYY-MM-DD') };
 }
 
 const cleanCode = code => (code || '').replace(/\s+/g, ' ').trim();
@@ -35,7 +35,9 @@ const cleanCode = code => (code || '').replace(/\s+/g, ' ').trim();
 export default function Transactions() {
   const [rows, setRows]           = useState([]);
   const [loading, setLoading]     = useState(false);
-  const [period, setPeriod]       = useState('month');
+  const [period, setPeriod]           = useState('month');
+  const [selectedMonth, setSelectedMonth] = useState(dayjs().format('YYYY-MM'));
+  const monthInputRef                 = useRef(null);
   const [customStart, setCustomStart] = useState(dayjs().startOf('month').format('YYYY-MM-DD'));
   const [customEnd, setCustomEnd]     = useState(todayInputValue());
   const [catFilter, setCatFilter] = useState('all');
@@ -47,12 +49,22 @@ export default function Transactions() {
   useEffect(() => {
     if (period === 'custom' && (!customStart || !customEnd)) return;
     fetchTransactions();
-  }, [period, customStart, customEnd]);
+  }, [period, selectedMonth, customStart, customEnd]);
+
+  function handleMonthChange(val) {
+    setSelectedMonth(val);
+    setPeriod('month');
+  }
+
+  function handleMonthPillClick() {
+    setPeriod('month');
+    monthInputRef.current?.showPicker();
+  }
 
   async function fetchTransactions() {
     setLoading(true);
     try {
-      const res = await axios.get('/api/transactions/ledger', { params: rangeFor(period, customStart, customEnd) });
+      const res = await axios.get('/api/transactions/ledger', { params: rangeFor(period, customStart, customEnd, selectedMonth) });
       setRows(res.data);
     } catch (err) {
       console.error('fetchTransactions:', err);
@@ -183,7 +195,42 @@ export default function Transactions() {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 24px', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Thời gian:</span>
-          <PillGroup options={PERIODS} active={period} onSelect={setPeriod} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {/* Month picker pill */}
+            <div style={{ position: 'relative' }}>
+              <button
+                className="period-pill"
+                onClick={handleMonthPillClick}
+                style={{
+                  background: period === 'month' ? 'var(--brand)' : 'transparent',
+                  color:      period === 'month' ? '#fff' : 'var(--mu)',
+                }}
+              >
+                {period === 'month' ? dayjs(selectedMonth).format('MM/YYYY') : 'Tháng'}
+              </button>
+              <input
+                ref={monthInputRef}
+                type="month"
+                value={selectedMonth}
+                onChange={e => handleMonthChange(e.target.value)}
+                style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: '100%', left: 0 }}
+              />
+            </div>
+            {/* Các pill còn lại */}
+            {PERIODS.map(o => (
+              <button
+                key={o.value}
+                onClick={() => setPeriod(o.value)}
+                className="period-pill"
+                style={{
+                  background: period === o.value ? 'var(--brand)' : 'transparent',
+                  color:      period === o.value ? '#fff' : 'var(--mu)',
+                }}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Danh mục:</span>
