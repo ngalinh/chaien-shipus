@@ -130,7 +130,7 @@ export default function NotificationTemplate({
     }
 
     async function captureOnce() {
-      return html2canvas(ref.current, {
+      const canvas = await html2canvas(ref.current, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
@@ -144,6 +144,13 @@ export default function NotificationTemplate({
           });
         },
       });
+      // Race nội bộ của html2canvas (dựng DOM trong iframe ẩn) đôi khi trả về canvas
+      // 0x0 mà KHÔNG throw — toDataURL() trên canvas rỗng ra "data:," khiến <img> vỡ
+      // ảnh im lặng, không còn log lỗi. Coi 0x0 là thất bại để vòng lặp bên dưới thử lại.
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('html2canvas trả về canvas rỗng (0x0)');
+      }
+      return canvas;
     }
 
     (async () => {
@@ -158,13 +165,15 @@ export default function NotificationTemplate({
         // ra NaN ("addColorStop ... non-finite"). Thử lại vài lần trước khi báo lỗi.
         let canvas;
         let lastErr;
-        for (let attempt = 0; attempt < 3 && !cancelled; attempt++) {
+        for (let attempt = 0; attempt < 5 && !cancelled; attempt++) {
           try {
             canvas = await captureOnce();
             break;
           } catch (err) {
             lastErr = err;
-            await new Promise((res) => requestAnimationFrame(res));
+            // Đợi lâu hơn 1 rAF để layout trong iframe ẩn của html2canvas có thời
+            // gian ổn định trước khi thử lại (tăng dần: 100ms, 200ms, 300ms, 400ms).
+            await new Promise((res) => setTimeout(res, 100 * (attempt + 1)));
           }
         }
         if (cancelled) return;
