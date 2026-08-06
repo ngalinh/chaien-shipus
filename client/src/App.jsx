@@ -5,6 +5,7 @@ import Customers from './pages/Customers.jsx';
 import CustomerDetail from './pages/CustomerDetail.jsx';
 import Shipping from './pages/Shipping.jsx';
 import Transactions from './pages/Transactions.jsx';
+import NotificationLog from './pages/NotificationLog.jsx';
 import RevenueVC from './pages/RevenueVC.jsx';
 import Settings from './pages/Settings.jsx';
 import Guide from './pages/Guide.jsx';
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/customers/:id" element={<CustomerDetail />} />
         <Route path="/shipping" element={<Shipping />} />
         <Route path="/transactions" element={<Transactions />} />
+        <Route path="/notification-log" element={<NotificationLog />} />
         <Route path="/revenue" element={<RevenueVC />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/guide" element={<Guide />} />

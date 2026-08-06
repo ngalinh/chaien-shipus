@@ -69,6 +69,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
       await axios.post('/api/shipments/batch/send-zalo', {
         batch_date,
         customer_id,
+        type: 'arrival',
         image: { name: notifData.fileName || 'phieu-bao-hang-ve.png', dataBase64: dataUrl },
       });
       toast('Đã gửi Zalo cho khách!', 'success');
