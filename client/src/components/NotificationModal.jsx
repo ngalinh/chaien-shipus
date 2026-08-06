@@ -3,6 +3,7 @@ import axios from 'axios';
 import { X, Copy, Download, Check, Send } from 'lucide-react';
 import NotificationTemplate from './NotificationTemplate.jsx';
 import { toast } from './Toast.jsx';
+import { getBassoUser } from '../utils.jsx';
 
 /**
  * Popup xem trước phiếu báo hàng về + nút Copy ảnh (dán thẳng gửi khách), Tải về và
@@ -66,11 +67,13 @@ export default function NotificationModal({ notifData, company = {}, bank = null
     }
     setSendingZalo(true);
     try {
+      const bassoUser = getBassoUser();
       await axios.post('/api/shipments/batch/send-zalo', {
         batch_date,
         customer_id,
         type: 'arrival',
         image: { name: notifData.fileName || 'phieu-bao-hang-ve.png', dataBase64: dataUrl },
+        sent_by: bassoUser?.name || bassoUser?.username || null,
       });
       toast('Đã gửi Zalo cho khách!', 'success');
       onClose();

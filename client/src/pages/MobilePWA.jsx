@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import shipusLogo from '../assets/shipus-logo.png';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
+import { getBassoUser } from '../utils.jsx';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (v) => (v == null || isNaN(v) ? '0' : Number(v).toLocaleString('en-US'));
@@ -422,7 +423,12 @@ export default function MobilePWA() {
         status,
       });
       if (status === 'Đã báo hàng') {
-        axios.post('/api/shipments/batch/notify', { batch_date: batchDate, customer_id: cust.id }).catch(() => {});
+        const bassoUser = getBassoUser();
+        axios.post('/api/shipments/batch/notify', {
+          batch_date: batchDate,
+          customer_id: cust.id,
+          sent_by: bassoUser?.name || bassoUser?.username || null,
+        }).catch(() => {});
       }
     } catch {
       setNotifyState((s) => ({ ...s, [cust.id]: prev }));
