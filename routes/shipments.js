@@ -326,6 +326,43 @@ router.delete('/:id', (req, res) => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
+// GET /api/shipments/notification-log
+// Lịch sử gửi tin (báo hàng về + báo mã vận đơn), mới nhất trước
+// Query params: start_date, end_date, customer_id, type, status
+// ═════════════════════════════════════════════════════════════════════════════
+router.get('/notification-log', (req, res) => {
+  try {
+    const { start_date, end_date, customer_id, type, status } = req.query;
+
+    const conditions = [];
+    const params     = [];
+
+    if (start_date)  { conditions.push("date(nl.notified_at) >= ?"); params.push(start_date); }
+    if (end_date)    { conditions.push("date(nl.notified_at) <= ?"); params.push(end_date);   }
+    if (customer_id) { conditions.push('nl.customer_id = ?');        params.push(parseInt(customer_id)); }
+    if (type)        { conditions.push('nl.type = ?');               params.push(type); }
+    if (status)      { conditions.push('nl.status = ?');             params.push(status); }
+
+    const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    const rows = db.prepare(`
+      SELECT nl.id, nl.batch_date, nl.customer_id, c.code AS customer_code, c.name AS customer_name,
+             nl.type, nl.channel, nl.message, nl.status, nl.error, nl.notified_at
+      FROM notification_log nl
+      LEFT JOIN customers c ON c.id = nl.customer_id
+      ${where}
+      ORDER BY nl.notified_at DESC
+      LIMIT 500
+    `).all(...params);
+
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // GET /api/shipments/bao-khach
 // Báo khách: aggregated view grouped by import_date + customer_id
 // Query params: start_date, end_date, customer_id
@@ -404,11 +441,11 @@ router.get('/bao-khach', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 // POST /api/shipments/batch/notify
 // Mark a batch as notified (set notified_at = now)
-// Body: { batch_date, customer_id }
+// Body: { batch_date, customer_id, type? }
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/batch/notify', (req, res) => {
   try {
-    const { batch_date, customer_id } = req.body;
+    const { batch_date, customer_id, type } = req.body;
     if (!batch_date || !customer_id) {
       return res.status(400).json({ error: 'batch_date and customer_id are required' });
     }
@@ -423,8 +460,8 @@ router.post('/batch/notify', (req, res) => {
         ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
       `).run(batch_date, cid);
       db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id) VALUES (?, ?)'
-      ).run(batch_date, cid);
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, status) VALUES (?, ?, ?, ?, ?)'
+      ).run(batch_date, cid, type || 'arrival', 'manual', 'success');
     });
     markNotified();
 
@@ -446,11 +483,12 @@ router.post('/batch/notify', (req, res) => {
 // POST /api/shipments/batch/send-zalo
 // Gửi tin (và/hoặc ảnh phiếu báo hàng) qua Zalo (local-runner) cho khách, rồi ghi log
 // giống /batch/notify.
-// Body: { batch_date, customer_id, message?, image?: { name?, dataBase64 } }
+// Body: { batch_date, customer_id, type?, message?, image?: { name?, dataBase64 } }
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/batch/send-zalo', async (req, res) => {
+  const { batch_date, customer_id, type, message, image } = req.body;
+  const logType = type || 'arrival';
   try {
-    const { batch_date, customer_id, message, image } = req.body;
     if (!batch_date || !customer_id || (!message && !image)) {
       return res.status(400).json({ error: 'batch_date, customer_id and (message or image) are required' });
     }
@@ -460,7 +498,12 @@ router.post('/batch/send-zalo', async (req, res) => {
     if (!customer.phone) return res.status(400).json({ error: 'Khách chưa có số điện thoại' });
 
     const result = await sendZaloMessage({ phone: customer.phone, name: customer.name, message, image });
-    if (!result.ok) return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
+    if (!result.ok) {
+      db.prepare(
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, cid, logType, 'zalo', message || null, 'failed', result.error || 'Gửi Zalo thất bại');
+      return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
+    }
 
     const markNotified = db.transaction(() => {
       db.prepare(`
@@ -469,14 +512,19 @@ router.post('/batch/send-zalo', async (req, res) => {
         ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
       `).run(batch_date, cid);
       db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id) VALUES (?, ?)'
-      ).run(batch_date, cid);
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, cid, logType, 'zalo', message || null, 'success');
     });
     markNotified();
 
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
+    try {
+      db.prepare(
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, parseInt(customer_id) || null, logType, 'zalo', message || null, 'failed', err.message);
+    } catch { /* ignore secondary logging failure */ }
     res.status(502).json({ error: err.message });
   }
 });

@@ -222,6 +222,7 @@ export default function Shipping() {
       await axios.post('/api/shipments/batch/send-zalo', {
         batch_date: dateKey,
         customer_id: custId,
+        type: 'shipped',
         message: shipNotifText,
       });
       toast('Đã gửi Zalo cho khách!', 'success');
