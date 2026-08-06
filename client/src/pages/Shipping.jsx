@@ -6,7 +6,7 @@ import {
   Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CreditCard,
   Truck, Send, X, Copy, Search,
 } from 'lucide-react';
-import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole } from '../utils.jsx';
+import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole, getBassoUser } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
@@ -159,7 +159,12 @@ export default function Shipping() {
       return;
     }
     try {
-      await axios.post('/api/shipments/batch/notify', { batch_date: batchDate, customer_id: customerId });
+      const bassoUser = getBassoUser();
+      await axios.post('/api/shipments/batch/notify', {
+        batch_date: batchDate,
+        customer_id: customerId,
+        sent_by: bassoUser?.name || bassoUser?.username || null,
+      });
     } catch { /* non-critical */ }
 
     setNotifData({
@@ -219,11 +224,13 @@ export default function Shipping() {
     }
     setSendingZalo(true);
     try {
+      const bassoUser = getBassoUser();
       await axios.post('/api/shipments/batch/send-zalo', {
         batch_date: dateKey,
         customer_id: custId,
         type: 'shipped',
         message: shipNotifText,
+        sent_by: bassoUser?.name || bassoUser?.username || null,
       });
       toast('Đã gửi Zalo cho khách!', 'success');
       setShipNotifModal(null);

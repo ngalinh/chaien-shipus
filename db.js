@@ -185,6 +185,8 @@ try { db.exec("ALTER TABLE notification_log ADD COLUMN channel TEXT NOT NULL DEF
 try { db.exec('ALTER TABLE notification_log ADD COLUMN message TEXT'); } catch { /* already exists */ }
 try { db.exec("ALTER TABLE notification_log ADD COLUMN status TEXT NOT NULL DEFAULT 'success'"); } catch { /* already exists */ }
 try { db.exec('ALTER TABLE notification_log ADD COLUMN error TEXT'); } catch { /* already exists */ }
+// Ai bấm gửi (tên NV BASSO) — null/'Bot tự động' cho các lần auto-notify-arrival
+try { db.exec('ALTER TABLE notification_log ADD COLUMN sent_by TEXT'); } catch { /* already exists */ }
 
 // ─── Seed default data ────────────────────────────────────────────────────────
 

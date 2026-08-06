@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { Bell, Search, X } from 'lucide-react';
+import { Bell, Bot, Search, X } from 'lucide-react';
 import { todayInputValue } from '../utils.jsx';
 
 const TYPE_LABEL    = { arrival: 'Báo hàng về', shipped: 'Báo mã vận đơn' };
@@ -82,7 +82,8 @@ export default function NotificationLog() {
     return rows.filter(r =>
       (r.customer_code || '').toLowerCase().includes(q) ||
       (r.customer_name || '').toLowerCase().includes(q) ||
-      (r.message || '').toLowerCase().includes(q)
+      (r.message || '').toLowerCase().includes(q) ||
+      (r.sent_by || '').toLowerCase().includes(q)
     );
   }, [rows, search]);
 
@@ -144,10 +145,11 @@ export default function NotificationLog() {
       <div className="table-container">
         <table className="data-table w-full">
           <colgroup>
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '16%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '9%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '12%' }} />
             <col />
             <col style={{ width: '11%' }} />
           </colgroup>
@@ -157,6 +159,7 @@ export default function NotificationLog() {
               <th>Khách hàng</th>
               <th>Loại tin</th>
               <th>Kênh</th>
+              <th>Nhân viên</th>
               <th>Nội dung</th>
               <th style={{ textAlign: 'center' }}>Trạng thái</th>
             </tr>
@@ -164,7 +167,7 @@ export default function NotificationLog() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--mu)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--mu)' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 16, height: 16, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     Đang tải...
@@ -173,7 +176,7 @@ export default function NotificationLog() {
               </tr>
             ) : display.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--mu)' }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--mu)' }}>
                   <Bell className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--sf2)', opacity: 0.5 }} strokeWidth={1.4} />
                   {search ? 'Không tìm thấy tin phù hợp' : 'Chưa có tin nào được gửi trong khoảng này'}
                 </td>
@@ -207,6 +210,17 @@ export default function NotificationLog() {
                 </td>
                 <td style={{ fontSize: 12.5, color: 'var(--tx2)' }}>
                   {CHANNEL_LABEL[r.channel] || r.channel}
+                </td>
+                <td style={{ fontSize: 12.5 }}>
+                  {r.sent_by === 'Bot tự động' ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--mu)' }}>
+                      <Bot className="w-3.5 h-3.5" /> Bot tự động
+                    </span>
+                  ) : r.sent_by ? (
+                    <span style={{ color: 'var(--tx2)', fontWeight: 500 }}>{r.sent_by}</span>
+                  ) : (
+                    <span style={{ color: 'var(--mu)' }}>–</span>
+                  )}
                 </td>
                 <td style={{ maxWidth: 0 }}>
                   {r.message ? (

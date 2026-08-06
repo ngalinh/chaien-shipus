@@ -347,7 +347,7 @@ router.get('/notification-log', (req, res) => {
 
     const rows = db.prepare(`
       SELECT nl.id, nl.batch_date, nl.customer_id, c.code AS customer_code, c.name AS customer_name,
-             nl.type, nl.channel, nl.message, nl.status, nl.error, nl.notified_at
+             nl.type, nl.channel, nl.message, nl.status, nl.error, nl.sent_by, nl.notified_at
       FROM notification_log nl
       LEFT JOIN customers c ON c.id = nl.customer_id
       ${where}
@@ -445,7 +445,7 @@ router.get('/bao-khach', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/batch/notify', (req, res) => {
   try {
-    const { batch_date, customer_id, type } = req.body;
+    const { batch_date, customer_id, type, sent_by } = req.body;
     if (!batch_date || !customer_id) {
       return res.status(400).json({ error: 'batch_date and customer_id are required' });
     }
@@ -460,8 +460,8 @@ router.post('/batch/notify', (req, res) => {
         ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
       `).run(batch_date, cid);
       db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, status) VALUES (?, ?, ?, ?, ?)'
-      ).run(batch_date, cid, type || 'arrival', 'manual', 'success');
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, status, sent_by) VALUES (?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, cid, type || 'arrival', 'manual', 'success', sent_by || null);
     });
     markNotified();
 
@@ -486,7 +486,7 @@ router.post('/batch/notify', (req, res) => {
 // Body: { batch_date, customer_id, type?, message?, image?: { name?, dataBase64 } }
 // ═════════════════════════════════════════════════════════════════════════════
 router.post('/batch/send-zalo', async (req, res) => {
-  const { batch_date, customer_id, type, message, image } = req.body;
+  const { batch_date, customer_id, type, message, image, sent_by } = req.body;
   const logType = type || 'arrival';
   try {
     if (!batch_date || !customer_id || (!message && !image)) {
@@ -500,8 +500,8 @@ router.post('/batch/send-zalo', async (req, res) => {
     const result = await sendZaloMessage({ phone: customer.phone, name: customer.name, message, image });
     if (!result.ok) {
       db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).run(batch_date, cid, logType, 'zalo', message || null, 'failed', result.error || 'Gửi Zalo thất bại');
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, cid, logType, 'zalo', message || null, 'failed', result.error || 'Gửi Zalo thất bại', sent_by || null);
       return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
     }
 
@@ -512,8 +512,8 @@ router.post('/batch/send-zalo', async (req, res) => {
         ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
       `).run(batch_date, cid);
       db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status) VALUES (?, ?, ?, ?, ?, ?)'
-      ).run(batch_date, cid, logType, 'zalo', message || null, 'success');
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, cid, logType, 'zalo', message || null, 'success', sent_by || null);
     });
     markNotified();
 
@@ -522,8 +522,8 @@ router.post('/batch/send-zalo', async (req, res) => {
     console.error(err);
     try {
       db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).run(batch_date, parseInt(customer_id) || null, logType, 'zalo', message || null, 'failed', err.message);
+        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).run(batch_date, parseInt(customer_id) || null, logType, 'zalo', message || null, 'failed', err.message, sent_by || null);
     } catch { /* ignore secondary logging failure */ }
     res.status(502).json({ error: err.message });
   }
