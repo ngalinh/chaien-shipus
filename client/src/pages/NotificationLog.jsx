@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import { Bell, Bot, Search, X } from 'lucide-react';
+import { Bell, Bot, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { todayInputValue } from '../utils.jsx';
 
 const TYPE_LABEL    = { arrival: 'Báo hàng về', shipped: 'Báo mã vận đơn' };
 const CHANNEL_LABEL = { zalo: 'Zalo', manual: 'Thủ công' };
+const PAGE_SIZE = 20;
 
 const PERIODS = [
   { label: 'Tất cả',   value: 'all' },
@@ -54,11 +55,16 @@ export default function NotificationLog() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null); // id của dòng đang xem full nội dung
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (period === 'custom' && (!customStart || !customEnd)) return;
     fetchLog();
   }, [period, customStart, customEnd, typeFilter, statusFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [period, customStart, customEnd, typeFilter, statusFilter, search]);
 
   async function fetchLog() {
     setLoading(true);
@@ -86,6 +92,12 @@ export default function NotificationLog() {
       (r.sent_by || '').toLowerCase().includes(q)
     );
   }, [rows, search]);
+
+  const pageCount = Math.max(1, Math.ceil(display.length / PAGE_SIZE));
+  const paged = useMemo(
+    () => display.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [display, page]
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
@@ -181,7 +193,7 @@ export default function NotificationLog() {
                   {search ? 'Không tìm thấy tin phù hợp' : 'Chưa có tin nào được gửi trong khoảng này'}
                 </td>
               </tr>
-            ) : display.map(r => (
+            ) : paged.map(r => (
               <tr key={r.id}>
                 <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>
                   {dayjs(r.notified_at).format('DD/MM/YYYY HH:mm')}
@@ -262,6 +274,36 @@ export default function NotificationLog() {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {!loading && display.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--mu)' }}>
+            {display.length} tin · Trang {page}/{pageCount}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="period-pill"
+              style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 8px', opacity: page <= 1 ? 0.4 : 1, cursor: page <= 1 ? 'default' : 'pointer' }}
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            <span style={{ fontSize: 12.5, color: 'var(--tx2)', minWidth: 60, textAlign: 'center' }}>
+              {page} / {pageCount}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+              disabled={page >= pageCount}
+              className="period-pill"
+              style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 8px', opacity: page >= pageCount ? 0.4 : 1, cursor: page >= pageCount ? 'default' : 'pointer' }}
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
     </div>
