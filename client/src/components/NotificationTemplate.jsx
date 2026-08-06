@@ -208,12 +208,16 @@ export default function NotificationTemplate({
       }}
     >
       {/* ── Header ───────────────────────────────────────────────────── */}
-      <div style={{ background: 'linear-gradient(120deg, #0a2030 0%, #123a52 55%, #1c5876 100%)' }}>
+      {/* Nền solid (không dùng linear-gradient): html2canvas tính vị trí color-stop bằng
+          cách chia cho width/height đo được tại thời điểm chụp — nếu đo trúng lúc phần tử
+          rộng/cao = 0 (do race nội bộ khi html2canvas dựng lại DOM trong iframe ẩn), phép
+          chia ra NaN → "addColorStop ... non-finite". Bỏ gradient để loại hẳn lỗi này. */}
+      <div style={{ background: '#123a52' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 26, padding: '32px 44px' }}>
           <div
             style={{
               width: 66, height: 66, flex: 'none', borderRadius: 16,
-              background: 'linear-gradient(150deg, #4bb4d6, #2f93b8)',
+              background: '#2f93b8',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 8px 20px -6px rgba(47,147,184,0.7)',
             }}
@@ -245,7 +249,7 @@ export default function NotificationTemplate({
             </div>
           </div>
         </div>
-        <div style={{ height: 4, background: 'linear-gradient(90deg, #4bb4d6, #2f93b8)' }} />
+        <div style={{ height: 4, background: '#2f93b8' }} />
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────── */}
