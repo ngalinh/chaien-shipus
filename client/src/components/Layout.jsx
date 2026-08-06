@@ -11,10 +11,10 @@ import shipusLogo from '../assets/shipus-logo.png';
 const NAV_ITEMS = [
   { to: '/',             label: 'Tổng quan',  short: 'TQ', icon: LayoutDashboard, end: true,  badgeKey: null },
   { to: '/shipping',     label: 'Hàng về',    short: 'HV', icon: Truck,                         badgeKey: 'shipments' },
-  { to: '/notification-log', label: 'Lịch sử gửi tin', short: 'LS', icon: Bell,                 badgeKey: null },
   { to: '/customers',    label: 'Khách hàng', short: 'KH', icon: Users,                         badgeKey: 'customers' },
   { to: '/transactions', label: 'Giao dịch',  short: 'GD', icon: Receipt,                       badgeKey: null },
   { to: '/revenue',      label: 'Doanh thu VC', short: 'DV', icon: TrendingUp,                  badgeKey: null },
+  { to: '/notification-log', label: 'Lịch sử gửi tin', short: 'LS', icon: Bell,                 badgeKey: null },
   { to: '/guide',        label: 'HDSD',       short: 'HD', icon: BookOpen,                       badgeKey: null },
   { to: '/settings',     label: 'Cài đặt',   short: 'CĐ', icon: Settings,                      badgeKey: null },
 ];
