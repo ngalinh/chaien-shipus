@@ -4,6 +4,7 @@ const express = require('express');
 const db      = require('../db');
 const { computePaidStatus } = require('../lib/paidStatus');
 const { sendZaloMessage }   = require('../lib/zaloNotify');
+const { maybeNotify: maybeAutoNotifyShipped } = require('../lib/autoNotifyShipped');
 
 const router = express.Router();
 
@@ -229,6 +230,7 @@ router.put('/batch', (req, res) => {
       'SELECT * FROM batch_info WHERE batch_date = ? AND customer_id = ?'
     ).get(batch_date, parseInt(customer_id));
 
+    if (van_don_code) maybeAutoNotifyShipped(batch_date, parseInt(customer_id)).catch(() => {});
     res.json(updated);
   } catch (err) {
     console.error(err);
@@ -596,6 +598,11 @@ router.patch('/:id/van-don', (req, res) => {
     const result = db.prepare('UPDATE shipments SET van_don_code = ? WHERE id = ?')
       .run(van_don_code || null, id);
     if (result.changes === 0) return res.status(404).json({ error: 'Shipment not found' });
+
+    if (van_don_code) {
+      const shipment = db.prepare('SELECT import_date, customer_id FROM shipments WHERE id = ?').get(id);
+      if (shipment) maybeAutoNotifyShipped(shipment.import_date, shipment.customer_id).catch(() => {});
+    }
     res.json({ id, van_don_code: van_don_code || null });
   } catch (err) {
     console.error(err);

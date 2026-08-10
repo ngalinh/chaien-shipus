@@ -338,4 +338,38 @@ router.post('/auto-notify-arrival', (req, res) => {
   }
 });
 
+// ═════════════════════════════════════════════════════════════════════════════
+// Auto-notify "báo mã vận đơn" qua Zalo (bật/tắt) — gửi ngay khi NV lưu mã vận đơn
+// ═════════════════════════════════════════════════════════════════════════════
+
+router.get('/auto-notify-shipped', (_req, res) => {
+  try {
+    const row = db.prepare("SELECT value FROM company_info WHERE key = 'auto_notify_shipped'").get();
+    res.json({ enabled: row?.value === 'true' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/auto-notify-shipped', (req, res) => {
+  try {
+    const { enabled } = req.body;
+    const was = db.prepare("SELECT value FROM company_info WHERE key = 'auto_notify_shipped'").get();
+    db.prepare(
+      `INSERT INTO company_info (key, value) VALUES ('auto_notify_shipped', ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+    ).run(enabled ? 'true' : 'false');
+    // Bật lần đầu (hoặc bật lại sau khi tắt) -> đóng dấu mốc NGAY, chỉ tự báo lô MỚI từ đây.
+    if (enabled && was?.value !== 'true') {
+      db.prepare(
+        `INSERT INTO company_info (key, value) VALUES ('auto_notify_shipped_enabled_at', datetime('now'))
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+      ).run();
+    }
+    res.json({ enabled: !!enabled });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
