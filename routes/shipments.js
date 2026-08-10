@@ -230,7 +230,7 @@ router.put('/batch', (req, res) => {
       'SELECT * FROM batch_info WHERE batch_date = ? AND customer_id = ?'
     ).get(batch_date, parseInt(customer_id));
 
-    if (van_don_code) maybeAutoNotifyShipped(batch_date, parseInt(customer_id)).catch(() => {});
+    if (van_don_code) maybeAutoNotifyShipped(batch_date, parseInt(customer_id));
     res.json(updated);
   } catch (err) {
     console.error(err);
@@ -601,7 +601,7 @@ router.patch('/:id/van-don', (req, res) => {
 
     if (van_don_code) {
       const shipment = db.prepare('SELECT import_date, customer_id FROM shipments WHERE id = ?').get(id);
-      if (shipment) maybeAutoNotifyShipped(shipment.import_date, shipment.customer_id).catch(() => {});
+      if (shipment) maybeAutoNotifyShipped(shipment.import_date, shipment.customer_id);
     }
     res.json({ id, van_don_code: van_don_code || null });
   } catch (err) {

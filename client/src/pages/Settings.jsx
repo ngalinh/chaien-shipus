@@ -303,8 +303,9 @@ function AutoNotifyShippedSection({ company, setCompany }) {
           <div>
             <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Tự động báo mã vận đơn qua Zalo</h2>
             <p className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>
-              Tự động gửi tin nhắn Zalo cho khách ngay khi NV lưu mã vận đơn — chỉ áp dụng cho
-              lô mới phát sinh sau khi bật, không gửi lại tồn đọng cũ.
+              Tự động gửi tin nhắn Zalo cho khách sau khi NV lưu mã vận đơn (đợi ~2-3 phút, sửa
+              mã trong lúc chờ sẽ tính giờ lại) — chỉ áp dụng cho lô mới phát sinh sau khi bật,
+              không gửi lại tồn đọng cũ.
             </p>
           </div>
         </div>
