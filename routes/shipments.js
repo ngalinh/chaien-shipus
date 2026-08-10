@@ -6,6 +6,7 @@ const db      = require('../db');
 const { computePaidStatus } = require('../lib/paidStatus');
 const { sendZaloMessage }   = require('../lib/zaloNotify');
 const { maybeNotify: maybeAutoNotifyShipped } = require('../lib/autoNotifyShipped');
+const { maybeNotify: maybeAutoNotifyArrival } = require('../lib/autoNotifyArrival');
 
 const router = express.Router();
 
@@ -196,6 +197,10 @@ router.post('/import', (req, res) => {
         }
       });
       autoDebitAll();
+
+      for (const { customer_id } of batchCustomers) {
+        maybeAutoNotifyArrival(date, customer_id);
+      }
     }
 
     res.status(201).json({
