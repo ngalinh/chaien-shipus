@@ -68,6 +68,7 @@ router.get('/', (req, res) => {
       SELECT s.*,
              c.name  AS customer_name,
              c.code  AS customer_code,
+             c.phone AS customer_phone,
              pw.code AS warehouse_code,
              pw.name AS warehouse_name,
              ROUND(s.weight * s.partner_rate,  2) AS partner_ship_fee,

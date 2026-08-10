@@ -312,6 +312,7 @@ export default function Shipping() {
           custId,
           customerCode: cleanCode(rows[0].customer_code),
           customerName: rows[0].customer_name || '',
+          customerPhone: rows[0].customer_phone || '',
           customerRate: rows[0]?.customer_rate || 0,
           batchStatus,
           vanDonCode: rows[0]?.van_don_code || '',
@@ -463,10 +464,11 @@ export default function Shipping() {
                 {!isDateCollapsed && (
                   <>
                   <div className="hidden sm:block" style={{ overflowX: 'auto', borderTop: '1px solid var(--ln2)' }}>
-                    <table className="data-table table-fixed w-full" style={{ minWidth: 1120 }}>
+                    <table className="data-table table-fixed w-full" style={{ minWidth: 1248 }}>
                       <colgroup>
                         <col style={{width:'32px'}} />
                         <col style={{width:'200px'}} />
+                        <col style={{width:'128px'}} />
                         <col style={{width:'176px'}} />
                         <col style={{width:'128px'}} />
                         <col style={{width:'148px'}} />
@@ -478,6 +480,7 @@ export default function Shipping() {
                         <tr>
                           <th className="!px-0"></th>
                           <th>Tên KH</th>
+                          <th>SĐT</th>
                           <th className="!text-right">Tổng cân nặng</th>
                           <th className="!text-right">Phí VC/kg</th>
                           <th className="!text-right">Tổng Phí VC</th>
@@ -514,6 +517,7 @@ export default function Shipping() {
                                     {cust.customerCode}
                                   </Link>
                                 </td>
+                                <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12.5, color: 'var(--mu)' }}>{cust.customerPhone || '–'}</td>
                                 <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 600, color: 'var(--tx)' }}>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
                                 <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, color: 'var(--mu)' }} onClick={e => e.stopPropagation()}>
                                   {getUserRole() !== 'staff' && editingRate?.custKey === custKey ? (
