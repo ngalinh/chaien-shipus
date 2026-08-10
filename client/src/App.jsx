@@ -10,12 +10,15 @@ import RevenueVC from './pages/RevenueVC.jsx';
 import Settings from './pages/Settings.jsx';
 import Guide from './pages/Guide.jsx';
 import MobilePWA from './pages/MobilePWA.jsx';
+import PrintArrival from './pages/PrintArrival.jsx';
 
 export default function App() {
   return (
     <Routes>
       {/* Mobile PWA standalone — no Layout wrapper */}
       <Route path="/mobile" element={<MobilePWA />} />
+      {/* Trang in phiếu cho local-runner chụp ảnh — standalone, no Layout wrapper */}
+      <Route path="/print/arrival/:batchDate/:customerId" element={<PrintArrival />} />
 
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />

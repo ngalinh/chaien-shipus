@@ -184,6 +184,56 @@ async function closeAll() {
     try { await entry.context.close(); } catch { /* ignore */ }
     contexts.delete(name);
   }
+  if (rendererBrowser) {
+    try { await rendererBrowser.close(); } catch { /* ignore */ }
+    rendererBrowser = null;
+  }
 }
 
-module.exports = { getContext, getPage, profileExists, profilePath, closeContext, closeAll, openForLogin, withProfileLock };
+// ─── Render phiếu báo (trang /print/... trên web chaien) ─────────────────────
+// Browser HEADLESS riêng, KHÔNG dùng userDataDir/profile nào của Zalo — chỉ để mở trang web
+// chaien, chờ nó tự render xong rồi lấy ảnh base64. Dùng lại giữa các lần gọi (mở/đóng
+// Chromium tốn ~1-2s), tự khởi động lại nếu đã disconnect.
+let rendererBrowser = null;
+async function getRendererBrowser() {
+  if (rendererBrowser) {
+    try { rendererBrowser.contexts(); return rendererBrowser; } catch { rendererBrowser = null; }
+  }
+  rendererBrowser = await chromium.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+  });
+  rendererBrowser.on('disconnected', () => { rendererBrowser = null; });
+  return rendererBrowser;
+}
+
+/**
+ * Mở 1 trang in phiếu (vd https://ai.basso.vn/print/arrival/...) và đợi trang tự set
+ * window.__printResult = { done: true, dataUrl } sau khi render xong (xem PrintArrival.jsx
+ * bên chaien-shipus) rồi trả về dataUrl (base64 PNG). Ném lỗi nếu trang báo render thất bại
+ * hoặc quá thời gian chờ.
+ */
+async function renderPrintPage(url, timeoutMs = 20000) {
+  const browser = await getRendererBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const result = await page.evaluate(() => window.__printResult || null).catch(() => null);
+      if (result && result.done) {
+        if (!result.dataUrl) throw new Error('Trang in phiếu báo lỗi (không tạo được ảnh)');
+        return result.dataUrl;
+      }
+      await page.waitForTimeout(300);
+    }
+    throw new Error('Hết thời gian chờ render phiếu báo');
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+module.exports = {
+  getContext, getPage, profileExists, profilePath, closeContext, closeAll, openForLogin,
+  withProfileLock, renderPrintPage,
+};
