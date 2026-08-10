@@ -68,6 +68,7 @@ export default function Settings() {
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
       <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
+      <AutoNotifyShippedSection company={company} setCompany={setCompany} />
     </div>
   );
 }
@@ -257,6 +258,53 @@ function AutoNotifyArrivalSection({ company, setCompany }) {
             <p className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>
               Tự động quét lô hàng chưa báo (mỗi 5 phút) và gửi tin nhắn Zalo cho khách — chỉ áp
               dụng cho lô mới phát sinh sau khi bật, không gửi lại tồn đọng cũ.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={saving}
+          className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50"
+          style={{ background: enabled ? 'var(--ac)' : 'var(--sf2)' }}
+        >
+          <span
+            className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+            style={{ transform: enabled ? 'translateX(22px)' : 'translateX(4px)' }}
+          />
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ── Tự động báo mã vận đơn qua Zalo ─────────────────────────────────────────────
+function AutoNotifyShippedSection({ company, setCompany }) {
+  const [saving, setSaving] = useState(false);
+  const enabled = company.auto_notify_shipped === 'true';
+
+  async function toggle() {
+    setSaving(true);
+    try {
+      await axios.post('/api/settings/auto-notify-shipped', { enabled: !enabled });
+      setCompany((p) => ({ ...p, auto_notify_shipped: (!enabled).toString() }));
+      toast(!enabled ? 'Đã bật tự động báo mã vận đơn' : 'Đã tắt tự động báo mã vận đơn', 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi lưu cấu hình', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Send className="w-5 h-5 text-primary-600" />
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Tự động báo mã vận đơn qua Zalo</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>
+              Tự động gửi tin nhắn Zalo cho khách ngay khi NV lưu mã vận đơn — chỉ áp dụng cho
+              lô mới phát sinh sau khi bật, không gửi lại tồn đọng cũ.
             </p>
           </div>
         </div>
