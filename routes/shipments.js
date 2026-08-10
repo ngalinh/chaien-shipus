@@ -568,12 +568,16 @@ router.post('/batch/send-zalo', async (req, res) => {
       return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
     }
 
+    // Gửi thành công -> tự chuyển badge "Trạng thái" theo đúng loại tin vừa gửi, khỏi phải
+    // NV tự tay đổi dropdown sau khi bấm gửi.
+    const batchStatus = logType === 'shipped' ? 'Đã báo ship' : 'Đã báo hàng';
+
     const markNotified = db.transaction(() => {
       db.prepare(`
-        INSERT INTO batch_info (batch_date, customer_id, notified_at)
-        VALUES (?, ?, datetime('now'))
-        ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now')
-      `).run(batch_date, cid);
+        INSERT INTO batch_info (batch_date, customer_id, notified_at, status)
+        VALUES (?, ?, datetime('now'), ?)
+        ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now'), status = excluded.status
+      `).run(batch_date, cid, batchStatus);
       db.prepare(
         'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?)'
       ).run(batch_date, cid, logType, 'zalo', message || null, 'success', sent_by || null);
