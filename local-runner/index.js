@@ -10,7 +10,7 @@ const express = require('express');
 const config = require('./config');
 const { createJob, getJob } = require('./jobQueue');
 const { sendBaoHang, checkLoggedIn } = require('./salework');
-const { profileExists, profilePath, openForLogin, closeAll } = require('./browser');
+const { profileExists, profilePath, openForLogin, closeAll, renderPrintPage } = require('./browser');
 const accountsStore = require('./accountsStore');
 const testModeStore = require('./testModeStore');
 const loginHistory = require('./loginHistory');
@@ -105,34 +105,32 @@ function writeTempImages(images) {
 /**
  * POST /api/zalo/send
  * body: { profile, account?, keyword, name?, message?, strictMatch?, imagePaths?, images?,
- *         notifyTarget?, keepContext? }
+ *         renderUrl?, notifyTarget?, keepContext? }
  * imagePaths = đường dẫn file CÓ SẴN trên máy runner. images = ảnh base64 gửi qua network
- * (vd từ backend) — runner tự ghi ra file tạm rồi xoá sau khi gửi xong.
- * => trả { ok, jobId } ngay; poll /api/job/:id để lấy kết quả.
+ * (vd từ backend) — runner tự ghi ra file tạm rồi xoá sau khi gửi xong. renderUrl = URL trang
+ * "in phiếu" bên chaien-shipus (vd /print/arrival/...) — runner tự mở bằng browser headless
+ * riêng, đợi trang render xong rồi lấy ảnh, dùng cho bot tự động (không có trình duyệt NV nào
+ * để html2canvas chạy sẵn). => trả { ok, jobId } ngay; poll /api/job/:id để lấy kết quả.
  */
 app.post('/api/zalo/send', (req, res) => {
-  const { profile, account, keyword, name, message, strictMatch, imagePaths, images, notifyTarget, keepContext } = req.body || {};
-  const hasImages = (Array.isArray(imagePaths) && imagePaths.length) || (Array.isArray(images) && images.length);
+  const { profile, account, keyword, name, message, strictMatch, imagePaths, images, renderUrl, notifyTarget, keepContext } = req.body || {};
+  const hasImages = (Array.isArray(imagePaths) && imagePaths.length) || (Array.isArray(images) && images.length) || !!renderUrl;
   if ((!keyword && !name) || (!message && !hasImages)) {
-    return res.status(400).json({ ok: false, error: 'Thiếu (keyword/name) hoặc (message/imagePaths/images)' });
-  }
-
-  let tempPaths = [];
-  let allImagePaths = imagePaths || [];
-  if (Array.isArray(images) && images.length) {
-    try {
-      tempPaths = writeTempImages(images);
-    } catch (e) {
-      return res.status(400).json({ ok: false, error: `Lỗi ghi ảnh tạm: ${e.message}` });
-    }
-    allImagePaths = [...allImagePaths, ...tempPaths];
+    return res.status(400).json({ ok: false, error: 'Thiếu (keyword/name) hoặc (message/imagePaths/images/renderUrl)' });
   }
 
   const jobId = createJob(
-    { profile, account, keyword, name, message, strictMatch, imagePaths: allImagePaths, notifyTarget, keepContext },
+    { profile, account, keyword, name, message, strictMatch, imagePaths: imagePaths || [], images, renderUrl, notifyTarget, keepContext },
     async (payload) => {
+      const { images: imgs, renderUrl: rUrl, imagePaths: basePaths, ...rest } = payload;
+      const tempPaths = [];
       try {
-        return await sendBaoHang(payload);
+        if (Array.isArray(imgs) && imgs.length) tempPaths.push(...writeTempImages(imgs));
+        if (rUrl) {
+          const dataUrl = await renderPrintPage(rUrl);
+          tempPaths.push(...writeTempImages([{ name: 'phieu-bao-hang-ve.png', dataBase64: dataUrl }]));
+        }
+        return await sendBaoHang({ ...rest, imagePaths: [...basePaths, ...tempPaths] });
       } finally {
         for (const p of tempPaths) { try { fs.unlinkSync(p); } catch { /* ignore */ } }
       }

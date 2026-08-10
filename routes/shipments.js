@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto  = require('crypto');
 const express = require('express');
 const db      = require('../db');
 const { computePaidStatus } = require('../lib/paidStatus');
@@ -7,6 +8,13 @@ const { sendZaloMessage }   = require('../lib/zaloNotify');
 const { maybeNotify: maybeAutoNotifyShipped } = require('../lib/autoNotifyShipped');
 
 const router = express.Router();
+
+// So khớp key theo thời gian hằng định (chống dò timing) — cùng cách server.js đang làm.
+function safeEqual(a, b) {
+  const ba = Buffer.from(String(a || ''));
+  const bb = Buffer.from(String(b || ''));
+  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+}
 
 // ─── Helper: today as YYYY-MM-DD in Vietnam local time ───────────────────────
 function todayStr() {
@@ -476,6 +484,53 @@ router.post('/batch/notify', (req, res) => {
     `).get(batch_date, cid);
 
     res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// GET /api/shipments/print-data
+// Dữ liệu để trang /print/arrival render đúng phiếu báo hàng về (giống hệt lúc NV bấm nút
+// thủ công) — dùng cho local-runner tự mở trang này chụp ảnh cho bot tự động. Trang /print
+// không có đăng nhập nào khác nên bảo vệ bằng "key" dùng CHUNG với ZALO_RUNNER_API_KEY —
+// không khoá thì lộ tên khách/số tiền/QR chuyển khoản ra Internet cho bất kỳ ai đoán được
+// batch_date + customer_id.
+// Query: { batch_date, customer_id, key }
+// ═════════════════════════════════════════════════════════════════════════════
+router.get('/print-data', (req, res) => {
+  try {
+    const { batch_date, customer_id, key } = req.query;
+    const expected = process.env.ZALO_RUNNER_API_KEY;
+    if (!expected || !key || !safeEqual(key, expected)) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!batch_date || !customer_id) {
+      return res.status(400).json({ error: 'batch_date and customer_id are required' });
+    }
+
+    const cid = parseInt(customer_id);
+    const customer = db.prepare('SELECT name FROM customers WHERE id = ?').get(cid);
+    if (!customer) return res.status(404).json({ error: 'Customer not found' });
+
+    const items = db.prepare(`
+      SELECT tracking_no, product, weight, ROUND(weight * customer_rate + surcharge, 2) AS customer_fee
+      FROM shipments WHERE import_date = ? AND customer_id = ?
+    `).all(batch_date, cid);
+
+    const companyRow = db.prepare("SELECT value FROM company_info WHERE key = 'company_name'").get();
+    const bank = db.prepare(
+      'SELECT bank_name, account_number, account_holder FROM bank_accounts ORDER BY is_default DESC, id LIMIT 1'
+    ).get() || null;
+
+    res.json({
+      customerName: customer.name,
+      date: batch_date,
+      items,
+      company: { company_name: companyRow?.value || 'ShipUS' },
+      bank,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
