@@ -1,8 +1,13 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import { Bell, Bot, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
 import { todayInputValue } from '../utils.jsx';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const TYPE_LABEL    = { arrival: 'Báo hàng về', shipped: 'Báo mã vận đơn' };
 const CHANNEL_LABEL = { zalo: 'Zalo', manual: 'Thủ công' };
@@ -196,7 +201,7 @@ export default function NotificationLog() {
             ) : paged.map(r => (
               <tr key={r.id}>
                 <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>
-                  {dayjs(r.notified_at).format('DD/MM/YYYY HH:mm')}
+                  {dayjs.utc(r.notified_at).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm')}
                 </td>
                 <td>
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)' }}>
