@@ -47,11 +47,9 @@ export default function Shipping() {
   const [settings, setSettings] = useState({ company: {} });
   const [paymentModal, setPaymentModal] = useState(null);
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
-  const [vanDonModal, setVanDonModal] = useState(null); // { custId, dateKey, customerName, totalFee, van_don_code, rows }
   const [vanDonRowModal, setVanDonRowModal] = useState(null); // { shipmentId, tracking_no, van_don_code }
-  const [shipNotifModal, setShipNotifModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee, rows }
+  const [shipModal, setShipModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee, rows, text }
   const [sendingZalo, setSendingZalo] = useState(false);
-  const [shipNotifText, setShipNotifText] = useState('');
 
   const [period, setPeriod] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
@@ -211,29 +209,50 @@ export default function Shipping() {
     return `Anh/Chị ${customerName} ơi, đơn hàng của mình đã được bàn giao cho ${c} rồi ạ 🚚\n📦 Mã vận đơn: ${code}\n🔎 Theo dõi đơn hàng: https://i.ghtk.vn/${code}\n${footer}`;
   }
 
-  function openShipNotif(data) {
-    setShipNotifModal(data);
-    setShipNotifText(buildShipText(data));
+  function openShipModal(data) {
+    setShipModal({ ...data, text: buildShipText(data) });
   }
 
-  async function sendShipViaZalo() {
-    const { custId, dateKey } = shipNotifModal || {};
-    if (!custId || !dateKey) {
-      toast('Thiếu thông tin lô hàng để gửi', 'error');
-      return;
+  function updateShipModalCode(code) {
+    setShipModal((p) => {
+      const next = { ...p, van_don_code: code };
+      return { ...next, text: buildShipText(next) };
+    });
+  }
+
+  async function saveShipModalCode() {
+    try {
+      await axios.put('/api/shipments/batch', {
+        batch_date: shipModal.dateKey,
+        customer_id: shipModal.custId,
+        van_don_code: shipModal.van_don_code,
+      });
+      toast('Đã lưu mã vận đơn', 'success');
+      setShipModal(null);
+      fetchShipments();
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không thể lưu mã vận đơn', 'error');
     }
+  }
+
+  async function saveAndSendShipModal() {
     setSendingZalo(true);
     try {
+      await axios.put('/api/shipments/batch', {
+        batch_date: shipModal.dateKey,
+        customer_id: shipModal.custId,
+        van_don_code: shipModal.van_don_code,
+      });
       const bassoUser = getBassoUser();
       await axios.post('/api/shipments/batch/send-zalo', {
-        batch_date: dateKey,
-        customer_id: custId,
+        batch_date: shipModal.dateKey,
+        customer_id: shipModal.custId,
         type: 'shipped',
-        message: shipNotifText,
+        message: shipModal.text,
         sent_by: bassoUser?.name || bassoUser?.username || null,
       });
-      toast('Đã gửi Zalo cho khách!', 'success');
-      setShipNotifModal(null);
+      toast('Đã lưu & gửi Zalo cho khách!', 'success');
+      setShipModal(null);
       fetchShipments();
     } catch (err) {
       toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
@@ -584,12 +603,8 @@ export default function Shipping() {
                                       className="btn-icon" title="Báo hàng về">
                                       <Bell className="w-[15px] h-[15px]" />
                                     </button>
-                                    <button onClick={() => openShipNotif({ custId: cust.custId, dateKey, customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee, rows: cust.rows })}
-                                      className="btn-icon" title="Báo ship hàng">
-                                      <Send className="w-[15px] h-[15px]" />
-                                    </button>
-                                    <button onClick={() => setVanDonModal({ custId: cust.custId, dateKey, customerName: cust.customerName, totalFee: cust.totalFee, van_don_code: cust.vanDonCode, rows: cust.rows })}
-                                      className="btn-icon" title="Mã vận đơn">
+                                    <button onClick={() => openShipModal({ custId: cust.custId, dateKey, customerName: cust.customerName, carrier: settings.company?.delivery_carrier || '', van_don_code: cust.vanDonCode, totalFee: cust.totalFee, rows: cust.rows })}
+                                      className="btn-icon" title="Mã vận đơn & báo ship">
                                       <Truck className="w-[15px] h-[15px]" />
                                     </button>
                                   </div>
@@ -773,7 +788,7 @@ export default function Shipping() {
                                 <Bell className="w-3 h-3" /> Báo hàng về
                               </button>
                               <button
-                                onClick={() => openShipNotif({
+                                onClick={() => openShipModal({
                                   custId: cust.custId,
                                   dateKey,
                                   customerName: cust.customerName,
@@ -784,7 +799,7 @@ export default function Shipping() {
                                 })}
                                 className="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-semibold rounded-full" style={{ background: 'var(--sf2)', color: 'var(--tx2)', border: '1px solid var(--ln)' }}
                               >
-                                <Send className="w-3 h-3" /> Báo ship
+                                <Truck className="w-3 h-3" /> Mã vận đơn & báo ship
                               </button>
                               {getUserRole() !== 'staff' && cust.paidStatus !== 'paid' && (
                                 <button
@@ -879,62 +894,6 @@ export default function Shipping() {
         />
       )}
 
-      {/* Van đơn modal */}
-      {vanDonModal && (
-        <div className="modal-overlay">
-          <div className="modal-box modal-pop" style={{ maxWidth: 460 }}>
-            <div className="modal-header">
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>Mã vận đơn</h2>
-              <button onClick={() => setVanDonModal(null)} className="btn-icon">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>{vanDonModal.customerName} · {formatDate(vanDonModal.dateKey)}</p>
-              <input
-                type="text"
-                value={vanDonModal.van_don_code}
-                onChange={e => setVanDonModal(p => ({ ...p, van_don_code: e.target.value }))}
-                placeholder="Nhập mã vận đơn..."
-                className="input-field"
-                autoFocus
-              />
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setVanDonModal(null)} className="btn-secondary">Đóng</button>
-              <button
-                className="btn-primary"
-                onClick={async () => {
-                  try {
-                    await axios.put('/api/shipments/batch', {
-                      batch_date: vanDonModal.dateKey,
-                      customer_id: vanDonModal.custId,
-                      van_don_code: vanDonModal.van_don_code,
-                    });
-                    fetchShipments();
-                    const saved = { ...vanDonModal };
-                    setVanDonModal(null);
-                    openShipNotif({
-                      custId: saved.custId,
-                      dateKey: saved.dateKey,
-                      customerName: saved.customerName,
-                      carrier: settings.company?.delivery_carrier || '',
-                      van_don_code: saved.van_don_code,
-                      totalFee: saved.totalFee,
-                      rows: saved.rows,
-                    });
-                  } catch (err) {
-                    toast(err.response?.data?.error || 'Không thể lưu mã vận đơn', 'error');
-                  }
-                }}
-              >
-                Lưu & Báo ship
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Van đơn per-row modal */}
       {vanDonRowModal && (
         <div className="modal-overlay">
@@ -967,45 +926,56 @@ export default function Shipping() {
         </div>
       )}
 
-      {/* Ship notification modal */}
-      {shipNotifModal && (
+      {/* Mã vận đơn + báo ship modal */}
+      {shipModal && (
         <div className="modal-overlay">
           <div className="modal-box modal-pop" style={{ maxWidth: 500 }}>
             <div className="modal-header">
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>
-                Báo ship – {shipNotifModal.customerName}
+                Báo ship – {shipModal.customerName}
               </h2>
-              <button onClick={() => setShipNotifModal(null)} className="btn-icon">
+              <button onClick={() => setShipModal(null)} className="btn-icon">
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <textarea
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>{shipModal.customerName} · {formatDate(shipModal.dateKey)}</p>
+              <input
+                type="text"
+                value={shipModal.van_don_code}
+                onChange={e => updateShipModalCode(e.target.value)}
+                placeholder="Nhập mã vận đơn..."
                 className="input-field"
-                style={{ width: '100%', resize: 'none', lineHeight: 1.6, fontSize: 13 }}
-                rows={10}
-                value={shipNotifText}
-                onChange={e => setShipNotifText(e.target.value)}
+                autoFocus
               />
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <textarea
+                  className="input-field"
+                  style={{ width: '100%', resize: 'none', lineHeight: 1.6, fontSize: 13 }}
+                  rows={9}
+                  value={shipModal.text}
+                  onChange={e => setShipModal(p => ({ ...p, text: e.target.value }))}
+                />
                 <button
-                  onClick={() => { navigator.clipboard.writeText(shipNotifText); toast('Đã copy nội dung!', 'success'); }}
-                  className="btn-secondary"
-                  style={{ flex: 1, justifyContent: 'center' }}
+                  onClick={() => { navigator.clipboard.writeText(shipModal.text); toast('Đã copy nội dung!', 'success'); }}
+                  className="btn-icon"
+                  title="Copy nội dung"
+                  style={{ alignSelf: 'flex-end' }}
                 >
                   <Copy className="w-4 h-4" />
-                  Copy nội dung
-                </button>
-                <button
-                  onClick={sendShipViaZalo}
-                  disabled={sendingZalo}
-                  className="btn-primary disabled:opacity-50"
-                  style={{ flex: 1, justifyContent: 'center' }}
-                >
-                  <Send className="w-4 h-4" />
-                  {sendingZalo ? 'Đang gửi…' : 'Gửi qua Zalo'}
                 </button>
               </div>
+            </div>
+            <div className="modal-footer">
+              <button onClick={saveShipModalCode} className="btn-secondary">Lưu</button>
+              <button
+                onClick={saveAndSendShipModal}
+                disabled={sendingZalo}
+                className="btn-primary disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                {sendingZalo ? 'Đang gửi…' : 'Gửi qua Zalo'}
+              </button>
             </div>
           </div>
         </div>
