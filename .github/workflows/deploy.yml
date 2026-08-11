@@ -22,8 +22,8 @@ jobs:
             git reset --hard origin/main
             # PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: BASSO server chỉ chạy backend/frontend, KHÔNG
             # chạy local-runner (Playwright/Chrome sống trên máy riêng) — bỏ qua tải Chromium.
-            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --omit=dev || echo "npm install skipped (node_modules exists)"
-            npm --prefix client install || echo "client install skipped"
+            PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --omit=dev
+            npm --prefix client install
             npm --prefix client run build
             pm2 restart chaien-shipus --update-env || pm2 start server.js --name chaien-shipus --env production
             pm2 save
