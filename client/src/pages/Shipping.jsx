@@ -308,6 +308,8 @@ export default function Shipping() {
         const batchStatus = rows[0]?.batch_status || '';
         if (ttFilter !== 'all' && paidStatus !== ttFilter) continue;
         if (statusFilter !== 'all' && batchStatus !== statusFilter) continue;
+        const paidAmt = rows[0]?.paid_amount || 0;
+        const remAmt = rows[0]?.remaining_amount || 0;
         customers.push({
           custId,
           customerCode: cleanCode(rows[0].customer_code),
@@ -319,10 +321,10 @@ export default function Shipping() {
           rows,
           count: rows.length,
           totalWeight: rows.reduce((a, s) => a + (s.weight || 0), 0),
-          totalFee: rows.reduce((a, s) => a + (s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0), 0),
+          totalFee: paidAmt + remAmt || rows.reduce((a, s) => a + (s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0), 0),
           paidStatus,
-          paidAmount: rows[0]?.paid_amount || 0,
-          remainingAmount: rows[0]?.remaining_amount || 0,
+          paidAmount: paidAmt,
+          remainingAmount: remAmt,
         });
       }
       const statusOrder = { '': 0, 'Đã báo hàng': 1, 'Đã báo ship': 2 };
