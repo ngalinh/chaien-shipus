@@ -683,8 +683,8 @@ export default function Shipping() {
                                     )}
                                   </div>
                                 </td>
-                                <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5, flexWrap: 'nowrap' }}>
+                                <td style={{ textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flexWrap: 'nowrap' }}>
                                     <button onClick={() => triggerNotification(cust.rows, cust.customerCode, cust.customerName, cust.custId, dateKey)}
                                       className="btn-icon" title="Báo hàng về">
                                       <Bell className="w-[15px] h-[15px]" />
