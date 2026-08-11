@@ -95,10 +95,10 @@ router.get('/', (req, res) => {
       ORDER BY s.import_date DESC, s.id DESC
     `).all(...params);
 
-    // Trạng thái thanh toán theo lô (import_date + customer_id) — FIFO trên sổ cái khách
+    // Trạng thái thanh toán theo lô (import_date + customer_id + warehouse_id) — FIFO trên sổ cái khách
     const paidMap = computePaidStatus(rows.map((r) => r.customer_id));
     for (const r of rows) {
-      const info = paidMap.get(`${r.import_date}|${r.customer_id}`);
+      const info = paidMap.get(`${r.import_date}|${r.customer_id}|${r.warehouse_id ?? 'null'}`);
       r.paid_status        = info ? info.status           : 'unpaid';
       r.paid_amount        = info ? info.paid_amount       : 0;
       r.remaining_amount   = info ? info.remaining_amount  : 0;
@@ -435,7 +435,20 @@ router.get('/bao-khach', (req, res) => {
       ORDER BY s.id
     `);
 
-    const paidMap = computePaidStatus(batches.map((b) => b.customer_id));
+    // whMap keys: `${date}|${cid}|${wid}` — aggregate về (date, cid) cho endpoint này
+    const whMap = computePaidStatus(batches.map((b) => b.customer_id));
+    const paidMap = new Map();
+    for (const [key, val] of whMap) {
+      const sep = key.lastIndexOf('|');
+      const aggKey = key.slice(0, sep);
+      const cur = paidMap.get(aggKey) || { paid_amount: 0, remaining_amount: 0 };
+      cur.paid_amount += val.paid_amount;
+      cur.remaining_amount += val.remaining_amount;
+      paidMap.set(aggKey, cur);
+    }
+    for (const [, val] of paidMap) {
+      val.status = val.remaining_amount <= 0.001 ? 'paid' : val.paid_amount > 0.001 ? 'partial' : 'unpaid';
+    }
     const result = batches.map((b) => {
       const info = paidMap.get(`${b.batch_date}|${b.customer_id}`);
       return {
@@ -627,24 +640,29 @@ router.patch('/batch-status', (req, res) => {
 });
 
 // PATCH /api/shipments/batch-rate
-// Cập nhật customer_rate cho toàn bộ shipment trong 1 lô (batch_date + customer_id)
-// Body: { batch_date, customer_id, customer_rate }
+// Cập nhật customer_rate cho shipments trong 1 lô (batch_date + customer_id + warehouse_id)
+// Body: { batch_date, customer_id, warehouse_id, customer_rate }
 router.patch('/batch-rate', (req, res) => {
   try {
-    const { batch_date, customer_id, customer_rate } = req.body;
+    const { batch_date, customer_id, warehouse_id, customer_rate } = req.body;
     if (!batch_date || !customer_id || customer_rate === undefined) {
       return res.status(400).json({ error: 'batch_date, customer_id and customer_rate are required' });
     }
     const rate = parseFloat(customer_rate);
     if (isNaN(rate) || rate < 0) return res.status(400).json({ error: 'Invalid customer_rate' });
     const cid = parseInt(customer_id);
+    const wid = warehouse_id != null ? parseInt(warehouse_id) : null;
     const exists = db.prepare(
-      'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? LIMIT 1'
-    ).get(batch_date, cid);
+      wid != null
+        ? 'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? AND warehouse_id = ? LIMIT 1'
+        : 'SELECT id FROM shipments WHERE import_date = ? AND customer_id = ? AND warehouse_id IS NULL LIMIT 1'
+    ).get(...(wid != null ? [batch_date, cid, wid] : [batch_date, cid]));
     if (!exists) return res.status(404).json({ error: 'Batch not found' });
     db.prepare(
-      'UPDATE shipments SET customer_rate = ? WHERE import_date = ? AND customer_id = ?'
-    ).run(rate, batch_date, cid);
+      wid != null
+        ? 'UPDATE shipments SET customer_rate = ? WHERE import_date = ? AND customer_id = ? AND warehouse_id = ?'
+        : 'UPDATE shipments SET customer_rate = ? WHERE import_date = ? AND customer_id = ? AND warehouse_id IS NULL'
+    ).run(...(wid != null ? [rate, batch_date, cid, wid] : [rate, batch_date, cid]));
     triggerAutoDebit(batch_date, cid);
     res.json({ ok: true });
   } catch (err) {

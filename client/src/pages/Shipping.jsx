@@ -371,12 +371,12 @@ export default function Shipping() {
     }
   }
 
-  async function saveRate(custId, dateKey, value) {
+  async function saveRate(custId, dateKey, warehouseId, value) {
     const rate = parseFloat(String(value).replace(/[^0-9.]/g, ''));
     setEditingRate(null);
     if (isNaN(rate) || rate < 0) return;
     try {
-      await axios.patch('/api/shipments/batch-rate', { batch_date: dateKey, customer_id: custId, customer_rate: rate });
+      await axios.patch('/api/shipments/batch-rate', { batch_date: dateKey, customer_id: custId, warehouse_id: warehouseId, customer_rate: rate });
       fetchShipments();
     } catch (err) {
       toast(err.response?.data?.error || 'Không thể cập nhật cước', 'error');
@@ -397,12 +397,15 @@ export default function Shipping() {
     for (const s of qFiltered) {
       if (!dateMap.has(s.import_date)) dateMap.set(s.import_date, new Map());
       const custMap = dateMap.get(s.import_date);
-      if (!custMap.has(s.customer_id)) custMap.set(s.customer_id, []);
-      custMap.get(s.customer_id).push(s);
+      // Group by (customer_id, warehouse_id) — mỗi kho là 1 dòng riêng
+      const wKey = `${s.customer_id}|${s.warehouse_id ?? 'null'}`;
+      if (!custMap.has(wKey)) custMap.set(wKey, []);
+      custMap.get(wKey).push(s);
     }
     for (const [dateKey, custMap] of dateMap) {
       const customers = [];
-      for (const [custId, rows] of custMap) {
+      for (const [, rows] of custMap) {
+        const custId = rows[0].customer_id;
         const paidStatus = groupPaidStatus(rows);
         const batchStatus = rows[0]?.batch_status || '';
         if (ttFilter !== 'all' && paidStatus !== ttFilter) continue;
@@ -411,6 +414,8 @@ export default function Shipping() {
         const remAmt = rows[0]?.remaining_amount || 0;
         customers.push({
           custId,
+          warehouseId: rows[0].warehouse_id ?? null,
+          warehouseCode: rows[0].warehouse_code || '',
           customerCode: cleanCode(rows[0].customer_code),
           customerName: rows[0].customer_name || '',
           customerPhone: rows[0].customer_phone || '',
@@ -598,7 +603,7 @@ export default function Shipping() {
                       </thead>
                       <tbody>
                         {customers.map((cust) => {
-                          const custKey = `${dateKey}_${cust.custId}`;
+                          const custKey = `${dateKey}_${cust.custId}_${cust.warehouseId ?? 'null'}`;
                           const isExpanded = expandedCustomers[custKey];
                           return (
                             <Fragment key={custKey}>
@@ -625,7 +630,10 @@ export default function Shipping() {
                                   </Link>
                                 </td>
                                 <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12.5, color: 'var(--mu)' }}>{cust.customerPhone || '–'}</td>
-                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 600, color: 'var(--tx)' }}>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)</td>
+                                <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 600, color: 'var(--tx)' }}>
+                                  {cust.totalWeight.toFixed(2)} kg ({cust.count} kiện)
+                                  {cust.warehouseCode && <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ac)', marginTop: 2 }}>{cust.warehouseCode}</div>}
+                                </td>
                                 <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, color: 'var(--mu)' }} onClick={e => e.stopPropagation()}>
                                   {getUserRole() !== 'staff' && editingRate?.custKey === custKey ? (
                                     <input
@@ -634,9 +642,9 @@ export default function Shipping() {
                                       value={editingRate.value}
                                       autoFocus
                                       onChange={(e) => setEditingRate((p) => ({ ...p, value: e.target.value }))}
-                                      onBlur={() => saveRate(cust.custId, dateKey, editingRate.value)}
+                                      onBlur={() => saveRate(cust.custId, dateKey, cust.warehouseId, editingRate.value)}
                                       onKeyDown={(e) => {
-                                        if (e.key === 'Enter') saveRate(cust.custId, dateKey, editingRate.value);
+                                        if (e.key === 'Enter') saveRate(cust.custId, dateKey, cust.warehouseId, editingRate.value);
                                         if (e.key === 'Escape') setEditingRate(null);
                                       }}
                                     />
