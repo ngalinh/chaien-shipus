@@ -26,5 +26,8 @@ jobs:
             npm --prefix client install || echo "client install skipped"
             npm --prefix client run build
             cp client/dist/index.html index.html
+            sudo cp client/dist/assets/*.js assets/ 2>/dev/null || true
+            sudo cp client/dist/assets/*.css assets/ 2>/dev/null || true
+            sudo cp client/dist/assets/*.png assets/ 2>/dev/null || true
             pm2 restart chaien-shipus --update-env || pm2 start server.js --name chaien-shipus --env production
             pm2 save
