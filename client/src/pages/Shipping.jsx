@@ -428,7 +428,7 @@ export default function Shipping() {
           <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>Quản lý kiện hàng về</p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={openBulkReport} disabled={!!bulkRun} className="btn-secondary disabled:opacity-50">
+          <button onClick={openBulkReport} disabled={!!bulkRun} className="btn-primary disabled:opacity-50">
             <Megaphone className="w-4 h-4" />
             {bulkRun ? `Đang báo (${bulkRun.index}/${bulkRun.list.length})…` : 'Báo hàng loạt'}
           </button>
