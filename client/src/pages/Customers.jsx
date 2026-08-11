@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Search, X, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, FileSpreadsheet, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDate, formatCurrency, calcCustomerStatus, getUserRole, getBassoUser } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
@@ -53,11 +53,14 @@ export default function Customers() {
   const [editCustomer, setEditCustomer] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [sortVc, setSortVc] = useState('desc'); // 'desc' | 'asc' | null
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
 
   const role = getUserRole();
   const currentUser = getBassoUser();
 
   useEffect(() => { fetchCustomers(); }, []);
+  useEffect(() => { setPage(1); }, [search, filterRate, filterSale]);
 
   async function fetchCustomers() {
     setLoading(true);
@@ -124,6 +127,13 @@ export default function Customers() {
         : (a.total_vc_fee || 0) - (b.total_vc_fee || 0)
     );
   }, [filtered, sortVc]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sorted.slice(start, start + pageSize);
+  }, [sorted, currentPage]);
 
   const rateOptions = useMemo(() => {
     const set = new Set();
@@ -246,7 +256,7 @@ export default function Customers() {
                   {search ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'}
                 </td>
               </tr>
-            ) : sorted.map(c => {
+            ) : paginated.map(c => {
               const status = calcCustomerStatus(c.latest_shipment_date);
               const canViewAccount = role !== 'staff' || c.sale_username === currentUser?.username;
               return (
@@ -301,6 +311,37 @@ export default function Customers() {
           </tbody>
         </table>
       </div>
+
+      {!loading && sorted.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12.5, color: 'var(--mu)' }}>
+            Trang {currentPage}/{totalPages} · {sorted.length} khách hàng
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="btn-icon"
+              title="Trang trước"
+              style={{ opacity: currentPage === 1 ? 0.4 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span style={{ fontSize: 12.5, color: 'var(--tx)', fontFamily: '"JetBrains Mono", monospace', minWidth: 20, textAlign: 'center' }}>
+              {currentPage}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="btn-icon"
+              title="Trang sau"
+              style={{ opacity: currentPage === totalPages ? 0.4 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalOpen && (
         <CustomerModal

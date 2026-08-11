@@ -4,12 +4,13 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import {
   Plus, Edit2, Trash2, Bell, ChevronDown, ChevronRight, Calendar, PackageOpen, CreditCard,
-  Truck, Send, X, Copy, Search,
+  Truck, Send, X, Copy, Search, Megaphone,
 } from 'lucide-react';
 import { formatCurrency, formatDate, todayInputValue, PaidBadge, PAID_FILTERS, getUserRole, getBassoUser } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
+import NotificationTemplate from '../components/NotificationTemplate.jsx';
 import MoneyInput from '../components/MoneyInput.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 
@@ -50,6 +51,8 @@ export default function Shipping() {
   const [vanDonRowModal, setVanDonRowModal] = useState(null); // { shipmentId, tracking_no, van_don_code }
   const [shipModal, setShipModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee, rows, text }
   const [sendingZalo, setSendingZalo] = useState(false);
+  const [bulkModal, setBulkModal] = useState(null); // { date, customers }
+  const [bulkRun, setBulkRun] = useState(null); // { date, list, index, sent, failed, skippedNoPhone, alreadyReported }
 
   const [period, setPeriod] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
@@ -182,6 +185,83 @@ export default function Shipping() {
   function handleImported() {
     setImportModal(false);
     fetchShipments();
+  }
+
+  async function openBulkReport() {
+    const today = todayInputValue();
+    try {
+      const res = await axios.get('/api/shipments', { params: { start_date: today, end_date: today } });
+      const rows = res.data || [];
+      if (!rows.length) {
+        toast('Không có hàng nhập kho hôm nay', 'warning');
+        return;
+      }
+      const custMap = new Map();
+      for (const s of rows) {
+        if (!custMap.has(s.customer_id)) custMap.set(s.customer_id, []);
+        custMap.get(s.customer_id).push(s);
+      }
+      const customers = [...custMap.entries()].map(([custId, list]) => ({
+        custId,
+        customerCode: cleanCode(list[0].customer_code),
+        customerName: list[0].customer_name || '',
+        phone: list[0].customer_phone || '',
+        batchStatus: list[0].batch_status || '',
+        items: list.map((s) => ({
+          tracking_no: s.tracking_no,
+          product: s.product,
+          weight: s.weight,
+          customer_fee: s.phi_vc,
+        })),
+      }));
+      setBulkModal({ date: today, customers });
+    } catch (err) {
+      toast(err.response?.data?.error || 'Không tải được dữ liệu hôm nay', 'error');
+    }
+  }
+
+  function confirmBulkReport() {
+    const { date, customers } = bulkModal;
+    const pending = customers.filter((c) => !c.batchStatus && c.phone);
+    const skippedNoPhone = customers.filter((c) => !c.batchStatus && !c.phone).length;
+    const alreadyReported = customers.filter((c) => c.batchStatus).length;
+    setBulkModal(null);
+    if (!pending.length) {
+      toast('Không có khách nào cần báo hàng (đã báo hết hoặc thiếu SĐT)', 'warning');
+      return;
+    }
+    setBulkRun({ date, list: pending, index: 0, sent: 0, failed: 0, skippedNoPhone, alreadyReported });
+  }
+
+  async function handleBulkRendered(dataUrl) {
+    const cust = bulkRun.list[bulkRun.index];
+    let ok = false;
+    if (dataUrl) {
+      try {
+        const bassoUser = getBassoUser();
+        await axios.post('/api/shipments/batch/send-zalo', {
+          batch_date: bulkRun.date,
+          customer_id: cust.custId,
+          type: 'arrival',
+          image: { name: `thong-bao-${cust.customerCode || 'kh'}-${bulkRun.date}.png`, dataBase64: dataUrl },
+          sent_by: bassoUser?.name || bassoUser?.username || null,
+        });
+        ok = true;
+      } catch { /* count as failed below */ }
+    }
+    const nextIndex = bulkRun.index + 1;
+    const sent = bulkRun.sent + (ok ? 1 : 0);
+    const failed = bulkRun.failed + (ok ? 0 : 1);
+    if (nextIndex >= bulkRun.list.length) {
+      const parts = [`${sent} thành công`];
+      if (failed) parts.push(`${failed} lỗi`);
+      if (bulkRun.skippedNoPhone) parts.push(`${bulkRun.skippedNoPhone} bỏ qua (thiếu SĐT)`);
+      toast(`Báo hàng loạt: ${parts.join(', ')}`, failed ? 'warning' : 'success');
+      setBulkRun(null);
+      fetchShipments();
+    } else {
+      setBulkRun({ ...bulkRun, index: nextIndex, sent, failed });
+    }
   }
 
   function toggleCustomer(key) {
@@ -366,10 +446,16 @@ export default function Shipping() {
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--tx)' }}>Hàng về</h1>
           <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>Quản lý kiện hàng về</p>
         </div>
-        <button onClick={() => setImportModal(true)} className="btn-primary">
-          <Plus className="w-4 h-4" />
-          Nhập kho
-        </button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={openBulkReport} disabled={!!bulkRun} className="btn-primary disabled:opacity-50">
+            <Megaphone className="w-4 h-4" />
+            {bulkRun ? `Đang báo (${bulkRun.index}/${bulkRun.list.length})…` : 'Báo hàng loạt'}
+          </button>
+          <button onClick={() => setImportModal(true)} className="btn-primary">
+            <Plus className="w-4 h-4" />
+            Nhập kho
+          </button>
+        </div>
       </header>
 
       {/* Toolbar */}
@@ -873,6 +959,54 @@ export default function Shipping() {
 
       {importModal && (
         <ImportModal onClose={() => setImportModal(false)} onImported={handleImported} />
+      )}
+
+      {/* Bulk report confirm modal */}
+      {bulkModal && (
+        <div className="modal-overlay">
+          <div className="modal-box modal-pop" style={{ maxWidth: 460 }}>
+            <div className="modal-header">
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>Xác nhận báo hàng loạt</h2>
+              <button onClick={() => setBulkModal(null)} className="btn-icon">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--tx2)' }}>
+                Báo hàng về hàng loạt cho lô nhập ngày <strong>{formatDate(bulkModal.date)}</strong>.
+              </p>
+              <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>
+                {bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length} khách sẽ được báo
+                {bulkModal.customers.some((c) => c.batchStatus)
+                  ? `, ${bulkModal.customers.filter((c) => c.batchStatus).length} khách đã báo trước đó (bỏ qua)`
+                  : ''}
+                {bulkModal.customers.some((c) => !c.batchStatus && !c.phone)
+                  ? `, ${bulkModal.customers.filter((c) => !c.batchStatus && !c.phone).length} khách thiếu SĐT (bỏ qua)`
+                  : ''}.
+              </p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setBulkModal(null)} className="btn-secondary">Hủy</button>
+              <button onClick={confirmBulkReport} className="btn-primary">Xác nhận báo hàng loạt</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk report: hidden offscreen renderer, processes bulkRun.list one at a time */}
+      {bulkRun && bulkRun.index < bulkRun.list.length && (
+        <div className="fixed -left-[9999px] top-0 z-[-1]">
+          <NotificationTemplate
+            key={bulkRun.list[bulkRun.index].custId}
+            customerName={bulkRun.list[bulkRun.index].customerName}
+            date={bulkRun.date}
+            items={bulkRun.list[bulkRun.index].items}
+            companyName={settings.company?.company_name || 'ShipUS'}
+            bank={(settings.bank_accounts || []).find((b) => b.is_default) || (settings.bank_accounts || [])[0] || null}
+            autoDownload={false}
+            onRendered={handleBulkRendered}
+          />
+        </div>
       )}
       {paymentModal && (
         <PaymentModal
