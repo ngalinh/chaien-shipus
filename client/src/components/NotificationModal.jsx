@@ -22,6 +22,22 @@ export default function NotificationModal({ notifData, company = {}, bank = null
   const [copied, setCopied] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
   const [sendingZalo, setSendingZalo] = useState(false);
+  const [logged, setLogged] = useState(false);
+
+  // Ghi nhận "đã báo" khi NV thực sự lấy ảnh đi gửi khách (Copy/Tải về) — không ghi ngay
+  // lúc mở popup xem trước, vì lúc đó NV có thể chỉ xem rồi đóng lại chứ chưa gửi gì.
+  function logManualNotify() {
+    if (logged) return;
+    setLogged(true);
+    const { batch_date, customer_id } = notifData.batch || {};
+    if (!batch_date || !customer_id) return;
+    const bassoUser = getBassoUser();
+    axios.post('/api/shipments/batch/notify', {
+      batch_date,
+      customer_id,
+      sent_by: bassoUser?.name || bassoUser?.username || null,
+    }).catch(() => { /* non-critical */ });
+  }
 
   function handleRendered(url) {
     if (url) setDataUrl(url);
@@ -41,6 +57,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
       // ClipboardItem chỉ chạy trong secure context (HTTPS) + Chrome/Edge; Safari/FF hạn chế.
       await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': blob })]);
       setCopied(true);
+      logManualNotify();
       toast('Đã copy ảnh — dán (Ctrl/⌘ + V) để gửi khách', 'success');
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -56,6 +73,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    logManualNotify();
   }
 
   async function handleSendZalo() {

@@ -154,19 +154,11 @@ export default function Shipping() {
     setEditValues({});
   }
 
-  async function triggerNotification(rows, customerCode, customerName, customerId, batchDate) {
+  function triggerNotification(rows, customerCode, customerName, customerId, batchDate) {
     if (!rows.length) {
       toast('Không có kiện hàng trong lô này', 'warning');
       return;
     }
-    try {
-      const bassoUser = getBassoUser();
-      await axios.post('/api/shipments/batch/notify', {
-        batch_date: batchDate,
-        customer_id: customerId,
-        sent_by: bassoUser?.name || bassoUser?.username || null,
-      });
-    } catch { /* non-critical */ }
 
     setNotifData({
       batch: { details: rows, customer_name: customerName, batch_date: batchDate, customer_code: customerCode, customer_id: customerId },
