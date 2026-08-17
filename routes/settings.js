@@ -6,6 +6,7 @@ const path                = require('path');
 const fs                  = require('fs');
 const db                  = require('../db');
 const { imageFileFilter } = require('../lib/imageUpload');
+const { normPhone }       = require('../lib/phone');
 
 const router = express.Router();
 
@@ -40,7 +41,8 @@ router.get('/', (_req, res) => {
     const rates        = db.prepare('SELECT * FROM customer_rates ORDER BY name').all();
     const warehouses   = db.prepare('SELECT * FROM partner_warehouses ORDER BY code').all();
     const bankAccounts = db.prepare('SELECT * FROM bank_accounts ORDER BY is_default DESC, bank_name').all();
-    res.json({ rates, warehouses, bank_accounts: bankAccounts, company: readCompany() });
+    const zaloContacts = db.prepare('SELECT * FROM zalo_contacts ORDER BY updated_at DESC').all();
+    res.json({ rates, warehouses, bank_accounts: bankAccounts, zalo_contacts: zaloContacts, company: readCompany() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -367,6 +369,78 @@ router.post('/auto-notify-shipped', (req, res) => {
       ).run();
     }
     res.json({ enabled: !!enabled });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Danh bạ Zalo — SĐT -> tên hội thoại Zalo (nhóm/tài khoản) + cách gửi ưu tiên.
+// Dùng làm fallback khi local-runner không tự tìm ra hội thoại theo SĐT (xem lib/zaloNotify.js).
+// ═════════════════════════════════════════════════════════════════════════════
+
+const REPORT_TARGETS = new Set(['', 'personal', 'group']);
+
+router.get('/zalo-contacts', (_req, res) => {
+  try {
+    const rows = db.prepare('SELECT * FROM zalo_contacts ORDER BY updated_at DESC').all();
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/zalo-contacts', (req, res) => {
+  try {
+    const { phone, zalo_name, report_target = '', note } = req.body;
+    const key = normPhone(phone);
+    if (!key) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
+    if (!REPORT_TARGETS.has(report_target)) {
+      return res.status(400).json({ error: 'report_target không hợp lệ' });
+    }
+    const info = db.prepare(
+      `INSERT INTO zalo_contacts (phone, raw_phone, zalo_name, report_target, note)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(key, phone.trim(), (zalo_name || '').trim(), report_target, (note || '').trim());
+    const row = db.prepare('SELECT * FROM zalo_contacts WHERE id = ?').get(info.lastInsertRowid);
+    res.status(201).json(row);
+  } catch (err) {
+    if (String(err.message).includes('UNIQUE')) {
+      return res.status(409).json({ error: 'Số điện thoại này đã có trong danh bạ' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/zalo-contacts/:id', (req, res) => {
+  try {
+    const { phone, zalo_name, report_target = '', note } = req.body;
+    const key = normPhone(phone);
+    if (!key) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
+    if (!REPORT_TARGETS.has(report_target)) {
+      return res.status(400).json({ error: 'report_target không hợp lệ' });
+    }
+    const info = db.prepare(
+      `UPDATE zalo_contacts SET phone = ?, raw_phone = ?, zalo_name = ?, report_target = ?, note = ?,
+         updated_at = datetime('now')
+       WHERE id = ?`
+    ).run(key, phone.trim(), (zalo_name || '').trim(), report_target, (note || '').trim(), parseInt(req.params.id));
+    if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
+    const row = db.prepare('SELECT * FROM zalo_contacts WHERE id = ?').get(req.params.id);
+    res.json(row);
+  } catch (err) {
+    if (String(err.message).includes('UNIQUE')) {
+      return res.status(409).json({ error: 'Số điện thoại này đã có trong danh bạ' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/zalo-contacts/:id', (req, res) => {
+  try {
+    const info = db.prepare('DELETE FROM zalo_contacts WHERE id = ?').run(parseInt(req.params.id));
+    if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
