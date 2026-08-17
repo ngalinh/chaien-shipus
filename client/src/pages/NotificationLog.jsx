@@ -206,12 +206,18 @@ export default function NotificationLog() {
                 <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12 }}>
                   {dayjs.utc(r.notified_at).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm')}
                 </td>
-                <td>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)' }}>
+                <td style={{ maxWidth: 0 }}>
+                  <span
+                    title={r.customer_name || ''}
+                    style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
                     {r.customer_name || `#${r.customer_id}`}
                   </span>
                   {r.customer_code && (
-                    <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11, color: 'var(--mu)', marginTop: 2 }}>
+                    <div
+                      title={r.customer_code}
+                      style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11, color: 'var(--mu)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
                       {r.customer_code}
                     </div>
                   )}
@@ -263,7 +269,14 @@ export default function NotificationLog() {
                     <span style={{ fontSize: 13, color: 'var(--mu)' }}>– (ảnh phiếu báo)</span>
                   )}
                   {r.status === 'failed' && r.error && (
-                    <div style={{ fontSize: 11, color: 'var(--badTx)', marginTop: 3 }}>
+                    <div
+                      title={r.error}
+                      style={{
+                        fontSize: 11, color: 'var(--badTx)', marginTop: 3,
+                        whiteSpace: expanded === r.id ? 'pre-wrap' : 'nowrap',
+                        overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}
+                    >
                       Lỗi: {r.error}
                     </div>
                   )}
