@@ -41,8 +41,7 @@ router.get('/', (_req, res) => {
     const rates        = db.prepare('SELECT * FROM customer_rates ORDER BY name').all();
     const warehouses   = db.prepare('SELECT * FROM partner_warehouses ORDER BY code').all();
     const bankAccounts = db.prepare('SELECT * FROM bank_accounts ORDER BY is_default DESC, bank_name').all();
-    const zaloContacts = db.prepare('SELECT * FROM zalo_contacts ORDER BY updated_at DESC').all();
-    res.json({ rates, warehouses, bank_accounts: bankAccounts, zalo_contacts: zaloContacts, company: readCompany() });
+    res.json({ rates, warehouses, bank_accounts: bankAccounts, company: readCompany() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

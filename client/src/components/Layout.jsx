@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, Link, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Truck, Receipt, TrendingUp, Settings, BookOpen,
-  Bell, X, Moon, Sun, ChevronLeft, ChevronRight, ExternalLink,
+  Bell, BookUser, X, Moon, Sun, ChevronLeft, ChevronRight, ExternalLink,
 } from 'lucide-react';
 import axios from 'axios';
 import { getUserRole } from '../utils.jsx';
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/transactions', label: 'Giao dịch',  short: 'GD', icon: Receipt,                       badgeKey: null },
   { to: '/revenue',      label: 'Doanh thu VC', short: 'DV', icon: TrendingUp,                  badgeKey: null },
   { to: '/notification-log', label: 'Lịch sử gửi tin', short: 'LS', icon: Bell,                 badgeKey: null },
+  { to: '/zalo-contacts', label: 'Danh bạ Zalo', short: 'DB', icon: BookUser,                    badgeKey: null },
   { to: '/guide',        label: 'HDSD',       short: 'HD', icon: BookOpen,                       badgeKey: null },
   { to: '/settings',     label: 'Cài đặt',   short: 'CĐ', icon: Settings,                      badgeKey: null },
 ];
