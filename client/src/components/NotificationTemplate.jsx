@@ -79,7 +79,7 @@ export default function NotificationTemplate({
 
   const { totalWeight, totalFee } = items.reduce(
     ({ totalWeight, totalFee }, i) => ({
-      totalWeight: totalWeight + (parseFloat(i.weight) || 0),
+      totalWeight: totalWeight + (parseFloat(i.weight) > 0 ? Math.max(0.5, parseFloat(i.weight)) : 0),
       totalFee:    totalFee    + (parseFloat(i.customer_fee) || 0),
     }),
     { totalWeight: 0, totalFee: 0 }
@@ -298,7 +298,7 @@ export default function NotificationTemplate({
               </div>
               <div data-nudge="7" style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
               <div data-nudge="7" style={{ fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
-                {item.weight ? Number(item.weight).toFixed(2) : '–'}
+                {item.weight ? Math.max(0.5, Number(item.weight)).toFixed(2) : '–'}
               </div>
               <div data-nudge="7" style={{ fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
                 {item.customer_fee ? fmtMoney(item.customer_fee) : '–'}
