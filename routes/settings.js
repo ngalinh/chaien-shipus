@@ -391,16 +391,16 @@ router.get('/zalo-contacts', (_req, res) => {
 
 router.post('/zalo-contacts', (req, res) => {
   try {
-    const { phone, zalo_name, report_target = '', note } = req.body;
+    const { phone, customer_name, zalo_name, report_target = '', note } = req.body;
     const key = normPhone(phone);
     if (!key) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
     if (!REPORT_TARGETS.has(report_target)) {
       return res.status(400).json({ error: 'report_target không hợp lệ' });
     }
     const info = db.prepare(
-      `INSERT INTO zalo_contacts (phone, raw_phone, zalo_name, report_target, note)
-       VALUES (?, ?, ?, ?, ?)`
-    ).run(key, phone.trim(), (zalo_name || '').trim(), report_target, (note || '').trim());
+      `INSERT INTO zalo_contacts (phone, raw_phone, customer_name, zalo_name, report_target, note)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(key, phone.trim(), (customer_name || '').trim(), (zalo_name || '').trim(), report_target, (note || '').trim());
     const row = db.prepare('SELECT * FROM zalo_contacts WHERE id = ?').get(info.lastInsertRowid);
     res.status(201).json(row);
   } catch (err) {
@@ -413,17 +413,17 @@ router.post('/zalo-contacts', (req, res) => {
 
 router.put('/zalo-contacts/:id', (req, res) => {
   try {
-    const { phone, zalo_name, report_target = '', note } = req.body;
+    const { phone, customer_name, zalo_name, report_target = '', note } = req.body;
     const key = normPhone(phone);
     if (!key) return res.status(400).json({ error: 'Số điện thoại không hợp lệ' });
     if (!REPORT_TARGETS.has(report_target)) {
       return res.status(400).json({ error: 'report_target không hợp lệ' });
     }
     const info = db.prepare(
-      `UPDATE zalo_contacts SET phone = ?, raw_phone = ?, zalo_name = ?, report_target = ?, note = ?,
+      `UPDATE zalo_contacts SET phone = ?, raw_phone = ?, customer_name = ?, zalo_name = ?, report_target = ?, note = ?,
          updated_at = datetime('now')
        WHERE id = ?`
-    ).run(key, phone.trim(), (zalo_name || '').trim(), report_target, (note || '').trim(), parseInt(req.params.id));
+    ).run(key, phone.trim(), (customer_name || '').trim(), (zalo_name || '').trim(), report_target, (note || '').trim(), parseInt(req.params.id));
     if (info.changes === 0) return res.status(404).json({ error: 'Contact not found' });
     const row = db.prepare('SELECT * FROM zalo_contacts WHERE id = ?').get(req.params.id);
     res.json(row);
