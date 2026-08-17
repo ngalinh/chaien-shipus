@@ -146,6 +146,21 @@ db.exec(`
   );
 `);
 
+// Danh bạ Zalo: SĐT -> tên hội thoại Zalo (nhóm/tài khoản) + cách gửi ưu tiên. Dùng làm
+// fallback khi local-runner tìm hội thoại theo SĐT không ra (KHONG_THAY_HOI_THOAI) — xem
+// lib/zaloNotify.js.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS zalo_contacts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone         TEXT    NOT NULL UNIQUE,
+    raw_phone     TEXT    NOT NULL,
+    zalo_name     TEXT,
+    report_target TEXT    NOT NULL DEFAULT '',
+    note          TEXT,
+    updated_at    DATETIME DEFAULT (datetime('now'))
+  );
+`);
+
 // Backfill 1 dòng log cho các lô đã báo trước khi có notification_log (idempotent)
 try {
   db.exec(`

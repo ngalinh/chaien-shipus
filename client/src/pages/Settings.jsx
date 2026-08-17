@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import axios from 'axios';
 import {
   Plus, Edit2, Trash2, X,
-  Star, Upload, Building2, Warehouse, CreditCard, Send,
+  Star, Upload, Building2, Warehouse, CreditCard, Send, Users,
 } from 'lucide-react';
 import { formatCurrency } from '../utils.jsx';
 import { toast } from '../components/Toast.jsx';
@@ -29,6 +29,7 @@ function Modal({ title, onClose, children }) {
 export default function Settings() {
   const [warehouses, setWarehouses] = useState([]);
   const [bankAccounts, setBankAccounts] = useState([]);
+  const [zaloContacts, setZaloContacts] = useState([]);
   const [company, setCompany] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +41,7 @@ export default function Settings() {
       const res = await axios.get('/api/settings');
       setWarehouses(res.data.warehouses || []);
       setBankAccounts(res.data.bank_accounts || []);
+      setZaloContacts(res.data.zalo_contacts || []);
       setCompany(res.data.company || {});
     } catch (err) {
       console.error('fetchAll:', err);
@@ -67,6 +69,7 @@ export default function Settings() {
       <CompanySection company={company} setCompany={setCompany} />
       <WarehousesSection warehouses={warehouses} setWarehouses={setWarehouses} />
       <BankAccountsSection bankAccounts={bankAccounts} setBankAccounts={setBankAccounts} />
+      <ZaloContactsSection zaloContacts={zaloContacts} setZaloContacts={setZaloContacts} />
       <AutoNotifyArrivalSection company={company} setCompany={setCompany} />
       <AutoNotifyShippedSection company={company} setCompany={setCompany} />
     </div>
@@ -654,6 +657,174 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
                   className="w-4 h-4" />
                 <span className="text-sm" style={{ color: 'var(--tx2)' }}>Đặt làm tài khoản mặc định</span>
               </label>
+            </div>
+
+            <div className="modal-footer">
+              <button type="button" onClick={() => setModal(null)} className="btn-secondary">Hủy</button>
+              <button type="submit" disabled={saving} className="btn-primary">
+                {saving ? '...' : 'Lưu'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </section>
+  );
+}
+
+// ── Danh bạ Zalo ──────────────────────────────────────────────────────────────
+// SĐT -> tên hội thoại Zalo (nhóm/tài khoản) hiển thị đúng trên Zalo + cách gửi ưu tiên
+// riêng cho khách này. Dùng làm fallback khi hệ thống tìm hội thoại theo SĐT không ra
+// (lỗi KHONG_THAY_HOI_THOAI trong Lịch sử gửi tin) — xem lib/zaloNotify.js.
+const EMPTY_ZALO_CONTACT = { phone: '', zalo_name: '', report_target: '', note: '' };
+const REPORT_TARGET_LABEL = {
+  '': 'Mặc định (Nhóm trước, Cá nhân sau)',
+  group: 'Chỉ báo Nhóm',
+  personal: 'Chỉ báo Cá nhân',
+};
+
+function ZaloContactsSection({ zaloContacts, setZaloContacts }) {
+  const [modal, setModal] = useState(null); // null | { mode: 'add'|'edit', data?: row }
+  const [form, setForm] = useState(EMPTY_ZALO_CONTACT);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  function openAdd() { setForm(EMPTY_ZALO_CONTACT); setModal({ mode: 'add' }); }
+  function openEdit(c) {
+    setForm({
+      phone: c.raw_phone || c.phone,
+      zalo_name: c.zalo_name || '',
+      report_target: c.report_target || '',
+      note: c.note || '',
+    });
+    setModal({ mode: 'edit', data: c });
+  }
+
+  async function handleSave(e) {
+    e.preventDefault();
+    if (!form.phone.trim()) return;
+    setSaving(true);
+    try {
+      if (modal.mode === 'add') {
+        const res = await axios.post('/api/settings/zalo-contacts', form);
+        setZaloContacts((p) => [res.data, ...p]);
+        toast('Đã thêm liên hệ', 'success');
+      } else {
+        const res = await axios.put(`/api/settings/zalo-contacts/${modal.data.id}`, form);
+        setZaloContacts((p) => p.map((c) => (c.id === modal.data.id ? res.data : c)));
+        toast('Đã cập nhật', 'success');
+      }
+      setModal(null);
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi', 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Xóa liên hệ này khỏi danh bạ Zalo?')) return;
+    setDeleting(id);
+    try {
+      await axios.delete(`/api/settings/zalo-contacts/${id}`);
+      setZaloContacts((p) => p.filter((c) => c.id !== id));
+      toast('Đã xóa', 'success');
+    } catch (err) {
+      toast(err.response?.data?.error || 'Lỗi', 'error');
+    } finally {
+      setDeleting(null);
+    }
+  }
+
+  return (
+    <section className="card p-5">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary-600" />
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: 'var(--tx)' }}>Danh bạ Zalo</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--mu)' }}>
+              Gắn SĐT khách với đúng tên nhóm/tài khoản Zalo và cách gửi ưu tiên — dùng khi hệ
+              thống báo "không tìm thấy hội thoại" cho khách đó.
+            </p>
+          </div>
+        </div>
+        <button onClick={openAdd} className="btn-primary text-sm py-1.5 shrink-0">
+          <Plus className="w-4 h-4" />
+          Thêm liên hệ
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {zaloContacts.length === 0 ? (
+          <p className="text-center py-6 text-sm" style={{ color: 'var(--mu)' }}>Chưa có liên hệ nào</p>
+        ) : zaloContacts.map((c) => (
+          <div key={c.id} className="flex items-start justify-between gap-4 p-3 rounded-xl"
+            style={{ background: 'var(--sf2)', border: '1px solid var(--ln)' }}>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-medium" style={{ color: 'var(--tx)' }}>{c.raw_phone || c.phone}</span>
+                {c.zalo_name && (
+                  <span className="text-sm" style={{ color: 'var(--tx2)' }}>{c.zalo_name}</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1.5 text-xs">
+                <span style={{ color: 'var(--mu)' }}>{REPORT_TARGET_LABEL[c.report_target || '']}</span>
+                {c.note && <span style={{ color: 'var(--mu)' }}>{c.note}</span>}
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => openEdit(c)} className="btn-icon" title="Sửa">
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button onClick={() => handleDelete(c.id)} disabled={deleting === c.id}
+                className="btn-icon btn-icon-danger disabled:opacity-50" title="Xóa">
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {modal && (
+        <Modal
+          title={modal.mode === 'add' ? 'Thêm liên hệ Zalo' : 'Sửa liên hệ Zalo'}
+          onClose={() => setModal(null)}
+        >
+          <form onSubmit={handleSave}>
+            <div className="modal-body">
+              <div>
+                <label className="label">Số điện thoại *</label>
+                <input value={form.phone}
+                  onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                  className="input-field" placeholder="0917134252" required
+                  autoFocus={modal.mode === 'add'} />
+              </div>
+              <div>
+                <label className="label">Tên nhóm/tài khoản Zalo</label>
+                <input value={form.zalo_name}
+                  onChange={(e) => setForm((p) => ({ ...p, zalo_name: e.target.value }))}
+                  className="input-field" placeholder="Tên hiển thị đúng như trên Zalo" />
+                <p className="text-xs mt-1" style={{ color: 'var(--mu)' }}>
+                  Dùng để tìm hội thoại khi tên/SĐT khách không khớp tên hiển thị trên Zalo.
+                </p>
+              </div>
+              <div>
+                <label className="label">Cách gửi</label>
+                <select value={form.report_target}
+                  onChange={(e) => setForm((p) => ({ ...p, report_target: e.target.value }))}
+                  className="input-field">
+                  {Object.entries(REPORT_TARGET_LABEL).map(([v, label]) => (
+                    <option key={v} value={v}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Ghi chú</label>
+                <input value={form.note}
+                  onChange={(e) => setForm((p) => ({ ...p, note: e.target.value }))}
+                  className="input-field" placeholder="Tùy chọn" />
+              </div>
             </div>
 
             <div className="modal-footer">
