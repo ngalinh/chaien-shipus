@@ -202,6 +202,8 @@ try { db.exec("ALTER TABLE notification_log ADD COLUMN status TEXT NOT NULL DEFA
 try { db.exec('ALTER TABLE notification_log ADD COLUMN error TEXT'); } catch { /* already exists */ }
 // Ai bấm gửi (tên NV BASSO) — null/'Bot tự động' cho các lần auto-notify-arrival
 try { db.exec('ALTER TABLE notification_log ADD COLUMN sent_by TEXT'); } catch { /* already exists */ }
+// Tên khách (KHÁC zalo_name — tên hội thoại Zalo) để phân biệt nhanh các liên hệ dùng chung 1 nhóm
+try { db.exec('ALTER TABLE zalo_contacts ADD COLUMN customer_name TEXT'); } catch { /* already exists */ }
 
 // ─── Seed default data ────────────────────────────────────────────────────────
 

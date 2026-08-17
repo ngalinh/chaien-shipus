@@ -23,7 +23,7 @@ function Modal({ title, onClose, children }) {
 // Danh bạ Zalo: SĐT -> tên hội thoại Zalo (nhóm/tài khoản) hiển thị đúng trên Zalo + cách
 // gửi ưu tiên riêng cho khách này. Dùng làm fallback khi hệ thống tìm hội thoại theo SĐT
 // không ra (lỗi KHONG_THAY_HOI_THOAI trong Lịch sử gửi tin) — xem lib/zaloNotify.js.
-const EMPTY_ZALO_CONTACT = { phone: '', zalo_name: '', report_target: '', note: '' };
+const EMPTY_ZALO_CONTACT = { phone: '', customer_name: '', zalo_name: '', report_target: '', note: '' };
 const REPORT_TARGET_LABEL = {
   '': 'Mặc định (Nhóm trước, Cá nhân sau)',
   group: 'Chỉ báo Nhóm',
@@ -56,6 +56,7 @@ export default function ZaloContacts() {
   function openEdit(c) {
     setForm({
       phone: c.raw_phone || c.phone,
+      customer_name: c.customer_name || '',
       zalo_name: c.zalo_name || '',
       report_target: c.report_target || '',
       note: c.note || '',
@@ -132,6 +133,9 @@ export default function ZaloContacts() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono font-medium" style={{ color: 'var(--tx)' }}>{c.raw_phone || c.phone}</span>
+                  {c.customer_name && (
+                    <span className="text-sm font-semibold" style={{ color: 'var(--tx)' }}>{c.customer_name}</span>
+                  )}
                   {c.zalo_name && (
                     <span className="text-sm" style={{ color: 'var(--tx2)' }}>{c.zalo_name}</span>
                   )}
@@ -168,6 +172,12 @@ export default function ZaloContacts() {
                   onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                   className="input-field" placeholder="0917134252" required
                   autoFocus={modal.mode === 'add'} />
+              </div>
+              <div>
+                <label className="label">Tên khách</label>
+                <input value={form.customer_name}
+                  onChange={(e) => setForm((p) => ({ ...p, customer_name: e.target.value }))}
+                  className="input-field" placeholder="Để phân biệt các liên hệ" />
               </div>
               <div>
                 <label className="label">Tên nhóm/tài khoản Zalo</label>
