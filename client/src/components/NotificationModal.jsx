@@ -21,7 +21,6 @@ export default function NotificationModal({ notifData, company = {}, bank = null
   const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [renderKey, setRenderKey] = useState(0);
-  const [sendingZalo, setSendingZalo] = useState(false);
   const [logged, setLogged] = useState(false);
 
   // Ghi nhận "đã báo" khi NV thực sự lấy ảnh đi gửi khách (Copy/Tải về) — không ghi ngay
@@ -76,30 +75,27 @@ export default function NotificationModal({ notifData, company = {}, bank = null
     logManualNotify();
   }
 
-  async function handleSendZalo() {
+  function handleSendZalo() {
     if (!dataUrl) return;
     const { batch_date, customer_id } = notifData.batch || {};
     if (!batch_date || !customer_id) {
       toast('Thiếu thông tin lô hàng để gửi', 'error');
       return;
     }
-    setSendingZalo(true);
-    try {
-      const bassoUser = getBassoUser();
-      await axios.post('/api/shipments/batch/send-zalo', {
-        batch_date,
-        customer_id,
-        type: 'arrival',
-        image: { name: notifData.fileName || 'phieu-bao-hang-ve.png', dataBase64: dataUrl },
-        sent_by: bassoUser?.name || bassoUser?.username || null,
-      });
+    toast('Đang gửi Zalo cho khách…', 'info');
+    const bassoUser = getBassoUser();
+    axios.post('/api/shipments/batch/send-zalo', {
+      batch_date,
+      customer_id,
+      type: 'arrival',
+      image: { name: notifData.fileName || 'phieu-bao-hang-ve.png', dataBase64: dataUrl },
+      sent_by: bassoUser?.name || bassoUser?.username || null,
+    }).then(() => {
       toast('Đã gửi Zalo cho khách!', 'success');
-      onClose();
-    } catch (err) {
+    }).catch((err) => {
       toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
-    } finally {
-      setSendingZalo(false);
-    }
+    });
+    onClose();
   }
 
   return (
@@ -143,9 +139,9 @@ export default function NotificationModal({ notifData, company = {}, bank = null
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Đã copy' : 'Copy ảnh'}
           </button>
-          <button onClick={handleSendZalo} disabled={!dataUrl || sendingZalo} className="btn-primary disabled:opacity-50">
+          <button onClick={handleSendZalo} disabled={!dataUrl} className="btn-primary disabled:opacity-50">
             <Send className="w-4 h-4" />
-            {sendingZalo ? 'Đang gửi…' : 'Gửi qua Zalo'}
+            Gửi qua Zalo
           </button>
         </div>
       </div>
