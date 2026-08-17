@@ -93,6 +93,7 @@ export default function NotificationLog() {
     return rows.filter(r =>
       (r.customer_code || '').toLowerCase().includes(q) ||
       (r.customer_name || '').toLowerCase().includes(q) ||
+      (r.customer_phone || '').toLowerCase().includes(q) ||
       (r.message || '').toLowerCase().includes(q) ||
       (r.sent_by || '').toLowerCase().includes(q)
     );
@@ -164,6 +165,7 @@ export default function NotificationLog() {
           <colgroup>
             <col style={{ width: '12%' }} />
             <col style={{ width: '15%' }} />
+            <col style={{ width: '10%' }} />
             <col style={{ width: '12%' }} />
             <col style={{ width: '8%' }} />
             <col style={{ width: '12%' }} />
@@ -174,6 +176,7 @@ export default function NotificationLog() {
             <tr>
               <th>Thời gian</th>
               <th>Khách hàng</th>
+              <th>SĐT</th>
               <th>Loại tin</th>
               <th>Kênh</th>
               <th>Nhân viên</th>
@@ -184,7 +187,7 @@ export default function NotificationLog() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--mu)' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--mu)' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 16, height: 16, border: '2px solid var(--ac)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     Đang tải...
@@ -193,7 +196,7 @@ export default function NotificationLog() {
               </tr>
             ) : display.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--mu)' }}>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--mu)' }}>
                   <Bell className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--sf2)', opacity: 0.5 }} strokeWidth={1.4} />
                   {search ? 'Không tìm thấy tin phù hợp' : 'Chưa có tin nào được gửi trong khoảng này'}
                 </td>
@@ -212,6 +215,9 @@ export default function NotificationLog() {
                       {r.customer_code}
                     </div>
                   )}
+                </td>
+                <td style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12, color: 'var(--tx2)' }}>
+                  {r.customer_phone || '–'}
                 </td>
                 <td>
                   <span style={{

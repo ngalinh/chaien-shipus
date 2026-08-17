@@ -367,7 +367,7 @@ router.get('/notification-log', (req, res) => {
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 
     const rows = db.prepare(`
-      SELECT nl.id, nl.batch_date, nl.customer_id, c.code AS customer_code, c.name AS customer_name,
+      SELECT nl.id, nl.batch_date, nl.customer_id, c.code AS customer_code, c.name AS customer_name, c.phone AS customer_phone,
              nl.type, nl.channel, nl.message, nl.status, nl.error, nl.sent_by, nl.notified_at
       FROM notification_log nl
       LEFT JOIN customers c ON c.id = nl.customer_id
