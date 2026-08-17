@@ -668,4 +668,3 @@ function BankAccountsSection({ bankAccounts, setBankAccounts }) {
     </section>
   );
 }
-
