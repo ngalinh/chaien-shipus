@@ -79,18 +79,24 @@ export default function NotificationTemplate({
 
   const { totalWeight, totalFee } = items.reduce(
     ({ totalWeight, totalFee }, i) => ({
-      totalWeight: totalWeight + (parseFloat(i.weight) > 0 ? Math.max(0.5, parseFloat(i.weight)) : 0),
+      totalWeight: totalWeight + (parseFloat(i.weight) > 0 ? parseFloat(i.weight) : 0),
       totalFee:    totalFee    + (parseFloat(i.customer_fee) || 0),
     }),
     { totalWeight: 0, totalFee: 0 }
   );
+  // Min 0.5kg áp dụng cho tổng batch, không phải từng kiện
+  const displayTotalWeight = Math.max(0.5, totalWeight);
+  // Phí tổng theo min weight (scale khi totalWeight < 0.5, giả sử surcharge ≈ 0)
+  const displayTotalFee = totalWeight > 0 && totalWeight < 0.5
+    ? Math.round(totalFee * 0.5 / totalWeight)
+    : totalFee;
 
   // QR VietQR: chỉ tạo khi map được mã ngân hàng. Nội dung CK = tên khách (bỏ dấu).
   const bankCode = bank ? vietqrBankCode(bank.bank_name) : null;
   const transferNote = noAccent(customerName || '').toUpperCase().trim();
   const qrSrc = bankCode
     ? `https://img.vietqr.io/image/${bankCode}-${bank.account_number}-qr_only.png` +
-      `?amount=${Math.round(totalFee)}&addInfo=${encodeURIComponent(transferNote)}`
+      `?amount=${Math.round(displayTotalFee)}&addInfo=${encodeURIComponent(transferNote)}`
     : null;
 
   // Tải QR về dataURL trước khi chụp (tránh ảnh ngoài bị taint/CORS trong html2canvas).
@@ -298,7 +304,7 @@ export default function NotificationTemplate({
               </div>
               <div data-nudge="7" style={{ fontSize: 15, color: '#3f5a6b' }}>{item.product || '–'}</div>
               <div data-nudge="7" style={{ fontSize: 15, fontWeight: 600, color: '#1a3a4d' }}>
-                {item.weight ? Math.max(0.5, Number(item.weight)).toFixed(2) : '–'}
+                {item.weight ? Number(item.weight).toFixed(2) : '–'}
               </div>
               <div data-nudge="7" style={{ fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
                 {item.customer_fee ? fmtMoney(item.customer_fee) : '–'}
@@ -310,8 +316,8 @@ export default function NotificationTemplate({
             <div data-nudge="9" style={{ gridColumn: '1 / 4', textAlign: 'left', fontSize: 15, fontWeight: 600, color: '#ffffff' }}>
               Tổng cộng ({items.length} kiện hàng)
             </div>
-            <div data-nudge="9" style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{totalWeight.toFixed(2)}</div>
-            <div data-nudge="9" style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(totalFee)}</div>
+            <div data-nudge="9" style={{ fontSize: 16, fontWeight: 700, color: '#fff' }}>{displayTotalWeight.toFixed(2)}</div>
+            <div data-nudge="9" style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{fmtMoney(displayTotalFee)}</div>
           </div>
         </div>
 
@@ -331,7 +337,7 @@ export default function NotificationTemplate({
               Vui lòng thanh toán phí vận chuyển trước khi nhận hàng.
             </div>
           </div>
-          <div style={{ fontSize: 29, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(totalFee)}</div>
+          <div style={{ fontSize: 29, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(displayTotalFee)}</div>
         </div>
 
         {/* ── Thông tin chuyển khoản + QR ── */}
