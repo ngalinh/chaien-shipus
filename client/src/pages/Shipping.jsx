@@ -50,7 +50,6 @@ export default function Shipping() {
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
   const [vanDonRowModal, setVanDonRowModal] = useState(null); // { shipmentId, tracking_no, van_don_code }
   const [shipModal, setShipModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee, rows, text }
-  const [sendingZalo, setSendingZalo] = useState(false);
   const [bulkModal, setBulkModal] = useState(null); // { date, customers }
   const [bulkRun, setBulkRun] = useState(null); // { date, list, index, sent, failed, skippedNoPhone, alreadyReported }
 
@@ -307,30 +306,31 @@ export default function Shipping() {
     }
   }
 
-  async function saveAndSendShipModal() {
-    setSendingZalo(true);
-    try {
-      await axios.put('/api/shipments/batch', {
-        batch_date: shipModal.dateKey,
-        customer_id: shipModal.custId,
-        van_don_code: shipModal.van_don_code,
-      });
-      const bassoUser = getBassoUser();
-      await axios.post('/api/shipments/batch/send-zalo', {
-        batch_date: shipModal.dateKey,
-        customer_id: shipModal.custId,
-        type: 'shipped',
-        message: shipModal.text,
-        sent_by: bassoUser?.name || bassoUser?.username || null,
-      });
-      toast('Đã lưu & gửi Zalo cho khách!', 'success');
-      setShipModal(null);
-      fetchShipments();
-    } catch (err) {
-      toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
-    } finally {
-      setSendingZalo(false);
-    }
+  function saveAndSendShipModal() {
+    const { dateKey, custId, van_don_code, text, customerName } = shipModal;
+    toast(`Đang gửi Zalo cho ${customerName}…`, 'info');
+    const bassoUser = getBassoUser();
+    (async () => {
+      try {
+        await axios.put('/api/shipments/batch', {
+          batch_date: dateKey,
+          customer_id: custId,
+          van_don_code,
+        });
+        await axios.post('/api/shipments/batch/send-zalo', {
+          batch_date: dateKey,
+          customer_id: custId,
+          type: 'shipped',
+          message: text,
+          sent_by: bassoUser?.name || bassoUser?.username || null,
+        });
+        toast(`Đã lưu & gửi Zalo cho ${customerName}!`, 'success');
+        fetchShipments();
+      } catch (err) {
+        toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
+      }
+    })();
+    setShipModal(null);
   }
 
   async function saveVanDonRow() {
@@ -1104,11 +1104,10 @@ export default function Shipping() {
               <button onClick={saveShipModalCode} className="btn-secondary">Lưu</button>
               <button
                 onClick={saveAndSendShipModal}
-                disabled={sendingZalo}
                 className="btn-primary disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                {sendingZalo ? 'Đang gửi…' : 'Gửi qua Zalo'}
+                Gửi qua Zalo
               </button>
             </div>
           </div>

@@ -574,6 +574,7 @@ router.get('/print-data', (req, res) => {
 router.post('/batch/send-zalo', async (req, res) => {
   const { batch_date, customer_id, type, message, image, sent_by } = req.body;
   const logType = type || 'arrival';
+  let logId = null;
   try {
     if (!batch_date || !customer_id || (!message && !image)) {
       return res.status(400).json({ error: 'batch_date, customer_id and (message or image) are required' });
@@ -583,11 +584,16 @@ router.post('/batch/send-zalo', async (req, res) => {
     if (!customer) return res.status(404).json({ error: 'Customer not found' });
     if (!customer.phone) return res.status(400).json({ error: 'Khách chưa có số điện thoại' });
 
+    // Ghi dòng "sending" ngay khi bắt đầu để trang Lịch sử gửi tin thấy được lúc đang gửi,
+    // rồi update lại chính dòng này thành success/failed thay vì insert dòng mới.
+    logId = db.prepare(
+      'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    ).run(batch_date, cid, logType, 'zalo', message || null, 'sending', sent_by || null).lastInsertRowid;
+
     const result = await sendZaloMessage({ phone: customer.phone, name: customer.name, message, image });
     if (!result.ok) {
-      db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run(batch_date, cid, logType, 'zalo', message || null, 'failed', result.error || 'Gửi Zalo thất bại', sent_by || null);
+      db.prepare('UPDATE notification_log SET status = ?, error = ? WHERE id = ?')
+        .run('failed', result.error || 'Gửi Zalo thất bại', logId);
       return res.status(502).json({ error: result.error || 'Gửi Zalo thất bại' });
     }
 
@@ -601,9 +607,7 @@ router.post('/batch/send-zalo', async (req, res) => {
         VALUES (?, ?, datetime('now'), ?)
         ON CONFLICT(batch_date, customer_id) DO UPDATE SET notified_at = datetime('now'), status = excluded.status
       `).run(batch_date, cid, batchStatus);
-      db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).run(batch_date, cid, logType, 'zalo', message || null, 'success', sent_by || null);
+      db.prepare('UPDATE notification_log SET status = ? WHERE id = ?').run('success', logId);
     });
     markNotified();
 
@@ -611,9 +615,13 @@ router.post('/batch/send-zalo', async (req, res) => {
   } catch (err) {
     console.error(err);
     try {
-      db.prepare(
-        'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-      ).run(batch_date, parseInt(customer_id) || null, logType, 'zalo', message || null, 'failed', err.message, sent_by || null);
+      if (logId != null) {
+        db.prepare('UPDATE notification_log SET status = ?, error = ? WHERE id = ?').run('failed', err.message, logId);
+      } else {
+        db.prepare(
+          'INSERT INTO notification_log (batch_date, customer_id, type, channel, message, status, error, sent_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        ).run(batch_date, parseInt(customer_id) || null, logType, 'zalo', message || null, 'failed', err.message, sent_by || null);
+      }
     } catch { /* ignore secondary logging failure */ }
     res.status(502).json({ error: err.message });
   }

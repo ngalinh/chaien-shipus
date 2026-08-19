@@ -65,14 +65,17 @@ export default function NotificationLog() {
   useEffect(() => {
     if (period === 'custom' && (!customStart || !customEnd)) return;
     fetchLog();
+    // Poll để dòng "Đang gửi" tự chuyển sang Thành công/Thất bại mà NV không cần bấm tải lại.
+    const id = setInterval(() => fetchLog({ silent: true }), 5000);
+    return () => clearInterval(id);
   }, [period, customStart, customEnd, typeFilter, statusFilter]);
 
   useEffect(() => {
     setPage(1);
   }, [period, customStart, customEnd, typeFilter, statusFilter, search]);
 
-  async function fetchLog() {
-    setLoading(true);
+  async function fetchLog({ silent = false } = {}) {
+    if (!silent) setLoading(true);
     try {
       const params = {};
       if (period === 'custom') { params.start_date = customStart; params.end_date = customEnd; }
@@ -83,7 +86,7 @@ export default function NotificationLog() {
     } catch (err) {
       console.error('fetchLog:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -286,11 +289,11 @@ export default function NotificationLog() {
                     display: 'inline-flex', alignItems: 'center',
                     padding: '3px 10px', borderRadius: 999,
                     fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                    color:      r.status === 'failed' ? 'var(--badTx)' : 'var(--okTx)',
-                    background: r.status === 'failed' ? 'var(--badBg)' : 'var(--okBg)',
-                    border: `1px solid ${r.status === 'failed' ? 'var(--badLn)' : 'var(--okLn)'}`,
+                    color:      r.status === 'failed' ? 'var(--badTx)' : r.status === 'sending' ? 'var(--warnTx)' : 'var(--okTx)',
+                    background: r.status === 'failed' ? 'var(--badBg)' : r.status === 'sending' ? 'var(--warnBg)' : 'var(--okBg)',
+                    border: `1px solid ${r.status === 'failed' ? 'var(--badLn)' : r.status === 'sending' ? 'var(--warnLn)' : 'var(--okLn)'}`,
                   }}>
-                    {r.status === 'failed' ? 'Thất bại' : 'Thành công'}
+                    {r.status === 'failed' ? 'Thất bại' : r.status === 'sending' ? 'Đang gửi' : 'Thành công'}
                   </span>
                 </td>
               </tr>

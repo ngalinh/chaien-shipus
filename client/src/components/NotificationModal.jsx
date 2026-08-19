@@ -82,7 +82,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
       toast('Thiếu thông tin lô hàng để gửi', 'error');
       return;
     }
-    toast('Đang gửi Zalo cho khách…', 'info');
+    toast(`Đang gửi Zalo cho ${notifData.customerName}…`, 'info');
     const bassoUser = getBassoUser();
     axios.post('/api/shipments/batch/send-zalo', {
       batch_date,
@@ -91,7 +91,7 @@ export default function NotificationModal({ notifData, company = {}, bank = null
       image: { name: notifData.fileName || 'phieu-bao-hang-ve.png', dataBase64: dataUrl },
       sent_by: bassoUser?.name || bassoUser?.username || null,
     }).then(() => {
-      toast('Đã gửi Zalo cho khách!', 'success');
+      toast(`Đã gửi Zalo cho ${notifData.customerName}!`, 'success');
     }).catch((err) => {
       toast(err.response?.data?.error || 'Không gửi được qua Zalo', 'error');
     });
