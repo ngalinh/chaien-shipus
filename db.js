@@ -146,6 +146,21 @@ db.exec(`
   );
 `);
 
+// Danh bạ Zalo: SĐT -> tên hội thoại Zalo (nhóm/tài khoản) + cách gửi ưu tiên. Dùng làm
+// fallback khi local-runner tìm hội thoại theo SĐT không ra (KHONG_THAY_HOI_THOAI) — xem
+// lib/zaloNotify.js.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS zalo_contacts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    phone         TEXT    NOT NULL UNIQUE,
+    raw_phone     TEXT    NOT NULL,
+    zalo_name     TEXT,
+    report_target TEXT    NOT NULL DEFAULT '',
+    note          TEXT,
+    updated_at    DATETIME DEFAULT (datetime('now'))
+  );
+`);
+
 // Backfill 1 dòng log cho các lô đã báo trước khi có notification_log (idempotent)
 try {
   db.exec(`
@@ -187,6 +202,8 @@ try { db.exec("ALTER TABLE notification_log ADD COLUMN status TEXT NOT NULL DEFA
 try { db.exec('ALTER TABLE notification_log ADD COLUMN error TEXT'); } catch { /* already exists */ }
 // Ai bấm gửi (tên NV BASSO) — null/'Bot tự động' cho các lần auto-notify-arrival
 try { db.exec('ALTER TABLE notification_log ADD COLUMN sent_by TEXT'); } catch { /* already exists */ }
+// Tên khách (KHÁC zalo_name — tên hội thoại Zalo) để phân biệt nhanh các liên hệ dùng chung 1 nhóm
+try { db.exec('ALTER TABLE zalo_contacts ADD COLUMN customer_name TEXT'); } catch { /* already exists */ }
 
 // ─── Seed default data ────────────────────────────────────────────────────────
 

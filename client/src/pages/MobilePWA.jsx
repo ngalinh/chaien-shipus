@@ -176,6 +176,8 @@ function Btn({ onClick, style, children }) {
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function MobilePWA() {
+  const hangMonthRef = useRef(null);
+
   // ── State ─────────────────────────────────────────────────────────────────
   const [route, setRoute]           = useState('dash');
   const [theme, setTheme]           = useState(() => localStorage.getItem('shipus_theme') || 'dark');
@@ -204,6 +206,19 @@ export default function MobilePWA() {
   const [custFrom, setCustFrom]           = useState('khach');
   const [settingsModal, setSettingsModal] = useState(null); // { type, data, isNew }
   const [settingsSaving, setSettingsSaving] = useState(false);
+
+  // Hang view filter
+  const [hangPeriod, setHangPeriod]         = useState('month');
+  const [hangMonth, setHangMonth]           = useState(() => dayjs().format('YYYY-MM'));
+  const [hangShips, setHangShips]           = useState([]);
+  const [hangStatusFilter, setHangStatusFilter] = useState('all');
+  const [hangCollapsed, setHangCollapsed]   = useState({});
+  // Per-row actions (shared between hang expanded view and cust profile)
+  const [rowVanDon, setRowVanDon]           = useState(null); // { id, tracking_no, code }
+  const [rowEditId, setRowEditId]           = useState(null);
+  const [rowEditVals, setRowEditVals]       = useState({});
+  const [rowDelId, setRowDelId]             = useState(null);
+  const [rowEditModal, setRowEditModal]     = useState(false);
 
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
@@ -234,6 +249,10 @@ export default function MobilePWA() {
   useEffect(() => {
     fetchTransactions();
   }, [period]);
+
+  useEffect(() => {
+    fetchHangShipments(hangPeriod, hangMonth);
+  }, [hangPeriod, hangMonth]);
 
   useEffect(() => {
     if (route === 'rev') {
@@ -267,6 +286,20 @@ export default function MobilePWA() {
       const params = period === 'month' ? { start_date: monthStart(), end_date: todayStr() } : {};
       const res = await axios.get('/api/transactions/ledger', { params });
       setTxRows(res.data);
+    } catch { /* ignore */ }
+  }
+
+  async function fetchHangShipments(period, month) {
+    try {
+      let params = {};
+      if (period === 'month') {
+        params = {
+          start_date: dayjs(month).startOf('month').format('YYYY-MM-DD'),
+          end_date:   dayjs(month).endOf('month').format('YYYY-MM-DD'),
+        };
+      }
+      const res = await axios.get('/api/shipments', { params });
+      setHangShips(res.data);
     } catch { /* ignore */ }
   }
 
@@ -316,6 +349,7 @@ export default function MobilePWA() {
     }
     return Object.values(map).map((c) => ({
       ...c,
+      dateKey: batchDate,
       kg: Math.round(c.kg * 100) / 100,
       fee: Math.round(c.fee),
       paidStatus: groupPaidStatus(c.paidStatuses),
@@ -355,6 +389,60 @@ export default function MobilePWA() {
     if (payFilter === 'paid')   list = list.filter((c) => c.paidStatus === 'paid');
     return list;
   }, [batchCustomers, q, payFilter]);
+
+  // Hang date groups (date-filtered view with multiple dates)
+  const hangDateGroups = useMemo(() => {
+    let filtered = hangShips;
+    if (q.trim()) {
+      const qn = q.trim().toLowerCase();
+      filtered = filtered.filter((s) =>
+        (s.customer_name || '').toLowerCase().includes(qn) ||
+        (s.customer_code || '').toLowerCase().includes(qn) ||
+        (s.tracking_no || '').toLowerCase().includes(qn)
+      );
+    }
+    const dateMap = new Map();
+    for (const s of filtered) {
+      if (!dateMap.has(s.import_date)) dateMap.set(s.import_date, new Map());
+      const custMap = dateMap.get(s.import_date);
+      const cid = s.customer_id;
+      if (!custMap.has(cid)) {
+        custMap.set(cid, {
+          id: cid, name: s.customer_name, code: s.customer_code, dateKey: s.import_date,
+          kg: 0, fee: 0, rate: s.customer_rate, parcels: [],
+          paidStatuses: [], notifyStatus: s.batch_status || '', van_don_code: '',
+        });
+      }
+      const c = custMap.get(cid);
+      const w = parseFloat(s.weight) > 0 ? Math.max(0.5, parseFloat(s.weight)) : 0;
+      c.kg  += w;
+      c.fee += parseFloat(s.phi_vc) || (w * (s.customer_rate || 0) + (s.surcharge || 0));
+      c.paidStatuses.push(s.paid_status || 'unpaid');
+      if (s.batch_status) c.notifyStatus = s.batch_status;
+      if (s.van_don_code) c.van_don_code = s.van_don_code;
+      c.parcels.push(s);
+    }
+    const groups = [];
+    for (const [dateKey, custMap] of [...dateMap.entries()].sort((a, b) => b[0].localeCompare(a[0]))) {
+      let customers = [...custMap.values()].map((c) => ({
+        ...c,
+        kg: Math.round(c.kg * 100) / 100,
+        fee: Math.round(c.fee),
+        paidStatus: groupPaidStatus(c.paidStatuses),
+      }));
+      if (payFilter === 'none') customers = customers.filter((c) => c.paidStatus === 'unpaid');
+      if (payFilter === 'part') customers = customers.filter((c) => c.paidStatus === 'partial');
+      if (payFilter === 'paid') customers = customers.filter((c) => c.paidStatus === 'paid');
+      if (hangStatusFilter !== 'all') {
+        customers = customers.filter((c) => {
+          const ns = notifyState[c.id] ?? c.notifyStatus;
+          return hangStatusFilter === '' ? !ns : ns === hangStatusFilter;
+        });
+      }
+      if (customers.length > 0) groups.push({ dateKey, customers });
+    }
+    return groups;
+  }, [hangShips, q, payFilter, hangStatusFilter, notifyState]);
 
   // Filtered khach list
   const khachList = useMemo(() => {
@@ -413,19 +501,20 @@ export default function MobilePWA() {
   }
 
   async function handleNotify(cust, status) {
+    const dateKey = cust.dateKey ?? batchDate;
     const prev = notifyState[cust.id] ?? cust.notifyStatus;
     setNotifyState((s) => ({ ...s, [cust.id]: status }));
     showToast(`✓ ${status} · ${cust.name}`);
     try {
       await axios.patch('/api/shipments/batch-status', {
-        batch_date: batchDate,
+        batch_date: dateKey,
         customer_id: cust.id,
         status,
       });
       if (status === 'Đã báo hàng') {
         const bassoUser = getBassoUser();
         axios.post('/api/shipments/batch/notify', {
-          batch_date: batchDate,
+          batch_date: dateKey,
           customer_id: cust.id,
           sent_by: bassoUser?.name || bassoUser?.username || null,
         }).catch(() => {});
@@ -436,6 +525,7 @@ export default function MobilePWA() {
   }
 
   async function handleBaoHang(c) {
+    const dateKey = c.dateKey ?? batchDate;
     handleNotify(c, 'Đã báo hàng');
     let sd = settingsData;
     if (!sd) {
@@ -448,14 +538,14 @@ export default function MobilePWA() {
     setNotifModalData({
       notifData: {
         customerName: c.name,
-        date: batchDate,
+        date: dateKey,
         items: c.parcels.map((p) => ({
           tracking_no: p.tracking_no,
           product: p.product,
           weight: p.weight,
           customer_fee: p.phi_vc || (p.weight * p.customer_rate + p.surcharge),
         })),
-        fileName: `thong-bao-${c.code || 'kh'}-${batchDate}.png`,
+        fileName: `thong-bao-${c.code || 'kh'}-${dateKey}.png`,
       },
       company: sd.company || {},
       bank: (sd.bank_accounts || []).find((b) => b.is_default) || (sd.bank_accounts || [])[0] || null,
@@ -468,9 +558,10 @@ export default function MobilePWA() {
 
   async function saveVanDon() {
     if (!vanDonData) return;
+    const dateKey = vanDonData.cust.dateKey ?? batchDate;
     try {
       await axios.put('/api/shipments/batch', {
-        batch_date: batchDate,
+        batch_date: dateKey,
         customer_id: vanDonData.cust.id,
         van_don_code: vanDonData.code,
       });
@@ -483,7 +574,7 @@ export default function MobilePWA() {
   }
 
   function openPay(cust) {
-    setPayTarget({ custId: cust.id, name: cust.name, fee: cust.fee, batchDate });
+    setPayTarget({ custId: cust.id, name: cust.name, fee: cust.fee, batchDate: cust.dateKey ?? batchDate });
     setPayMethod('bank');
     setPayOpen(true);
   }
@@ -514,6 +605,48 @@ export default function MobilePWA() {
     setPayTarget({ custId: custDetail.id, name: custDetail.name, fee: Math.round(due), batchDate });
     setPayMethod('bank');
     setPayOpen(true);
+  }
+
+  async function saveRowVanDon() {
+    if (!rowVanDon) return;
+    try {
+      await axios.patch(`/api/shipments/${rowVanDon.id}/van-don`, { van_don_code: rowVanDon.code });
+      const upd = (s) => s.id === rowVanDon.id ? { ...s, shipment_van_don_code: rowVanDon.code || null } : s;
+      setHangShips((prev) => prev.map(upd));
+      setCustParcels((prev) => prev.map(upd));
+      setRowVanDon(null);
+      showToast('Đã lưu mã vận đơn');
+    } catch { showToast('Lỗi lưu mã vận đơn'); }
+  }
+
+  async function saveRowEdit(id) {
+    try {
+      const res = await axios.put(`/api/shipments/${id}`, rowEditVals);
+      const upd = (s) => s.id === id ? { ...s, ...res.data } : s;
+      setHangShips((prev) => prev.map(upd));
+      setCustParcels((prev) => prev.map(upd));
+      setRowEditId(null);
+      setRowEditModal(false);
+      showToast('Đã cập nhật');
+    } catch { showToast('Lỗi cập nhật'); }
+  }
+
+  async function deleteRow(id) {
+    if (!window.confirm('Xóa kiện hàng này?')) return;
+    setRowDelId(id);
+    try {
+      await axios.delete(`/api/shipments/${id}`);
+      setHangShips((prev) => prev.filter((s) => s.id !== id));
+      setCustParcels((prev) => prev.filter((s) => s.id !== id));
+      showToast('Đã xóa');
+    } catch { showToast('Lỗi xóa'); }
+    finally { setRowDelId(null); }
+  }
+
+  function openRowEdit(p) {
+    setRowEditId(p.id);
+    setRowEditVals({ tracking_no: p.tracking_no || '', product: p.product || '', weight: p.weight, surcharge: p.surcharge, notes: p.notes || '' });
+    setRowEditModal(true);
   }
 
   // ── CSS: card surface ────────────────────────────────────────────────────
@@ -637,13 +770,119 @@ export default function MobilePWA() {
   }
 
   function renderHang() {
-    const shownFee = hangList.reduce((s, c) => s + c.fee, 0);
+    const allCustomers = hangDateGroups.flatMap((g) => g.customers);
+    const shownFee  = allCustomers.reduce((s, c) => s + c.fee, 0);
+    const shownKiel = allCustomers.reduce((s, c) => s + c.parcels.length, 0);
+    const shownKg   = allCustomers.reduce((s, c) => s + c.kg, 0);
+
     const PAY_FILTERS = [
-      { key: 'all',  label: 'Tất cả'     },
-      { key: 'none', label: 'Chưa TT'   },
-      { key: 'part', label: 'Một phần'  },
-      { key: 'paid', label: 'Đã TT'     },
+      { key: 'all',  label: 'Tất cả'    },
+      { key: 'none', label: 'Chưa TT'  },
+      { key: 'part', label: 'Một phần' },
+      { key: 'paid', label: 'Đã TT'    },
     ];
+    const STATUS_FILTERS = [
+      { key: 'all',        label: 'Tất cả trạng thái' },
+      { key: '',           label: 'Chưa báo'           },
+      { key: 'Đã báo hàng', label: 'Đã báo hàng'       },
+      { key: 'Đã báo ship', label: 'Đã báo ship'        },
+    ];
+
+    function CustomerCard({ c }) {
+      const ns  = notifyState[c.id] ?? c.notifyStatus;
+      const nui = notifyUI(ns);
+      const pui = paidUI(c.paidStatus);
+      const cardKey = `${c.dateKey}_${c.id}`;
+      const isOpen  = openCards[cardKey];
+      return (
+        <div style={{
+          padding: 14, borderRadius: 20,
+          background: isOpen ? 'rgba(58,175,211,.09)' : 'var(--sf)',
+          border: '1px solid var(--ln)',
+        }}>
+          <div onClick={() => setOpenCards((s) => ({ ...s, [cardKey]: !s[cardKey] }))} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer' }}>
+            <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 14, color: 'var(--onbtn)', background: 'var(--btn)' }}>
+              {initial(c.name)}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--tx)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+              <span style={{ display: 'block', font: '500 10px "JetBrains Mono",monospace', color: 'var(--mu)', marginTop: 3 }}>{c.code} · {c.parcels.length} kiện</span>
+            </span>
+            <span style={{ flexShrink: 0, textAlign: 'right' }}>
+              <span style={{ display: 'block', font: '700 14px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(c.fee)}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 5, padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: pui.bg, color: pui.color }}>
+                <span style={{ width: 5, height: 5, borderRadius: 5, background: pui.dot }} />
+                {pui.label}
+              </span>
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
+            <span style={{ padding: '5px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--tx2)' }}>{fmtKg(c.kg)} kg</span>
+            <span style={{ padding: '5px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--tx2)' }}>{fmt(c.rate)} đ/kg</span>
+            <select
+              value={ns || 'Chưa báo'}
+              onChange={(e) => { e.stopPropagation(); handleNotify(c, e.target.value); }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ padding: '5px 9px', borderRadius: 10, fontSize: 10.5, fontWeight: 700, background: nui.bg, border: `1px solid ${nui.border}`, color: nui.color, outline: 'none', cursor: 'pointer' }}
+            >
+              <option value="Chưa báo">Chưa báo</option>
+              <option value="Đã báo hàng">Đã báo hàng</option>
+              <option value="Đã báo ship">Đã báo ship</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            {c.paidStatus !== 'paid' && (
+              <Btn onClick={() => openPay(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Thanh toán</Btn>
+            )}
+            <Btn onClick={() => handleBaoHang(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
+            <Btn onClick={() => openShipMsg(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo ship</Btn>
+            <Btn onClick={() => setVanDonData({ cust: c, code: c.van_don_code || '' })} style={{
+              flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
+              color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
+            }} title="Mã vận đơn (đợt)"><IcoTruck /></Btn>
+            <Btn onClick={() => setOpenCards((s) => ({ ...s, [cardKey]: !s[cardKey] }))} style={{
+              flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
+              color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
+              transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 200ms ease',
+            }}><IcoChevR /></Btn>
+          </div>
+          {isOpen && (
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--ln2)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8, animation: 'dcFade 200ms ease both' }}>
+              {c.parcels.map((p) => (
+                <div key={p.id} style={{ padding: '9px 11px', borderRadius: 13, background: 'var(--sunk)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 8, font: '700 9.5px "JetBrains Mono",monospace', background: 'var(--acBg)', color: 'var(--ac)' }}>{p.warehouse_code || 'WH'}</span>
+                    <span style={{ flex: 1, minWidth: 0, font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--tx2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.tracking_no || '—'}</span>
+                    <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(Math.max(0.5, p.weight))} kg</span>
+                    <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc || (Math.max(0.5, p.weight) * p.customer_rate + (p.surcharge || 0)))}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, marginTop: 7, justifyContent: 'flex-end' }}>
+                    <Btn onClick={() => setRowVanDon({ id: p.id, tracking_no: p.tracking_no, code: p.shipment_van_don_code || '' })} style={{
+                      width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', border: '1px solid var(--ln)',
+                      background: p.shipment_van_don_code ? 'var(--acBg)' : 'var(--sf2)',
+                      color: p.shipment_van_don_code ? 'var(--ac)' : 'var(--tx2)',
+                    }} title="Mã vận đơn kiện"><IcoTruck /></Btn>
+                    <Btn onClick={() => openRowEdit(p)} style={{
+                      width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center',
+                      background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--tx2)',
+                    }} title="Sửa"><IcoEdit /></Btn>
+                    <Btn onClick={() => deleteRow(p.id)} disabled={rowDelId === p.id} style={{
+                      width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center',
+                      background: 'var(--badBg)', border: '1px solid var(--badLn)', color: 'var(--badTx)',
+                      opacity: rowDelId === p.id ? 0.5 : 1,
+                    }} title="Xóa"><IcoTrash /></Btn>
+                  </div>
+                </div>
+              ))}
+              <Btn onClick={() => openCust(c.id)} style={{ height: 38, borderRadius: 12, fontSize: 12, fontWeight: 700, color: 'var(--ac)', background: 'var(--acBg)', border: '1px solid var(--acLn)' }}>
+                Xem hồ sơ khách
+              </Btn>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
         {/* Search */}
@@ -655,8 +894,31 @@ export default function MobilePWA() {
             style={{ flex: 1, minWidth: 0, background: 'none', border: 0, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit' }}
           />
         </div>
-        {/* Filter chips */}
-        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 2px' }}>
+
+        {/* Period filter */}
+        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 2px', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <Btn onClick={() => { setHangPeriod('month'); try { hangMonthRef.current?.showPicker(); } catch {} }} style={{
+              height: 34, padding: '0 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, border: 0,
+              background: hangPeriod === 'month' ? 'var(--brand)' : 'var(--sf2)',
+              color: hangPeriod === 'month' ? '#fff' : 'var(--mu)',
+            }}>
+              {hangPeriod === 'month' ? dayjs(hangMonth).format('MM/YYYY') : 'Tháng'}
+            </Btn>
+            <input
+              ref={hangMonthRef}
+              type="month"
+              value={hangMonth}
+              onChange={(e) => { setHangMonth(e.target.value); setHangPeriod('month'); }}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: '100%', left: 0 }}
+            />
+          </div>
+          <Btn onClick={() => setHangPeriod('all')} style={{
+            flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, border: 0,
+            background: hangPeriod === 'all' ? 'var(--brand)' : 'var(--sf2)',
+            color: hangPeriod === 'all' ? '#fff' : 'var(--mu)',
+          }}>Tất cả</Btn>
+          <div style={{ width: 1, height: 20, background: 'var(--ln)', flexShrink: 0 }} />
           {PAY_FILTERS.map((f) => (
             <Btn key={f.key} onClick={() => setPayFilter(f.key)} style={{
               flexShrink: 0, height: 34, padding: '0 14px', borderRadius: 12, fontSize: 12, fontWeight: 700, border: 0,
@@ -664,96 +926,45 @@ export default function MobilePWA() {
               color: payFilter === f.key ? '#fff' : 'var(--mu)',
             }}>{f.label}</Btn>
           ))}
+          <div style={{ width: 1, height: 20, background: 'var(--ln)', flexShrink: 0 }} />
+          <select
+            value={hangStatusFilter}
+            onChange={(e) => setHangStatusFilter(e.target.value)}
+            style={{ flexShrink: 0, height: 34, padding: '0 10px', borderRadius: 12, fontSize: 11.5, fontWeight: 700, border: '1px solid var(--ln)', background: hangStatusFilter !== 'all' ? 'var(--acBg)' : 'var(--sf2)', color: hangStatusFilter !== 'all' ? 'var(--ac)' : 'var(--tx2)', outline: 'none', cursor: 'pointer' }}
+          >
+            {STATUS_FILTERS.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
         </div>
+
         {/* Summary */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px', fontSize: 11, color: 'var(--mu)' }}>
-          <span>{hangList.length} khách · {hangList.reduce((s, c) => s + c.parcels.length, 0)} kiện · {fmtKg(hangList.reduce((s, c) => s + c.kg, 0))} kg</span>
+          <span>{hangDateGroups.length} đợt · {allCustomers.length} khách · {shownKiel} kiện · {fmtKg(shownKg)} kg</span>
           <span style={{ font: '700 11.5px "JetBrains Mono",monospace', color: 'var(--tx2)' }}>{fmt(shownFee)} đ</span>
         </div>
-        {/* Customer cards */}
-        {hangList.map((c) => {
-          const ns = notifyState[c.id] ?? c.notifyStatus;
-          const nui = notifyUI(ns);
-          const pui = paidUI(c.paidStatus);
-          const isOpen = openCards[c.id];
-          return (
-            <div key={c.id} style={{
-              padding: 14, borderRadius: 20,
-              background: isOpen ? 'rgba(58,175,211,.09)' : 'var(--sf)',
-              border: '1px solid var(--ln)',
+
+        {/* Date groups */}
+        {hangDateGroups.map(({ dateKey, customers }) => (
+          <div key={dateKey}>
+            {/* Date header */}
+            <Btn onClick={() => setHangCollapsed((s) => ({ ...s, [dateKey]: !s[dateKey] }))} style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 9, padding: '7px 10px', borderRadius: 13,
+              background: 'var(--acBg)', border: '1px solid var(--acLn)', marginBottom: 8, textAlign: 'left',
             }}>
-              {/* Top row */}
-              <div onClick={() => setOpenCards((s) => ({ ...s, [c.id]: !s[c.id] }))} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, cursor: 'pointer' }}>
-                <span style={{ flexShrink: 0, width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 14, color: 'var(--onbtn)', background: 'var(--btn)' }}>
-                  {initial(c.name)}
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--tx)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
-                  <span style={{ display: 'block', font: '500 10px "JetBrains Mono",monospace', color: 'var(--mu)', marginTop: 3 }}>{c.code} · {c.parcels.length} kiện</span>
-                </span>
-                <span style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <span style={{ display: 'block', font: '700 14px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(c.fee)}</span>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 5, padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: pui.bg, color: pui.color }}>
-                    <span style={{ width: 5, height: 5, borderRadius: 5, background: pui.dot }} />
-                    {pui.label}
-                  </span>
-                </span>
+              <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ac)' }}>Đợt {fmtDate(dateKey)}</span>
+              <span style={{ fontSize: 11, color: 'var(--mu)' }}>{customers.length} khách · {customers.reduce((s, c) => s + c.parcels.length, 0)} kiện</span>
+              <span style={{ marginLeft: 'auto', font: '700 11.5px "JetBrains Mono",monospace', color: 'var(--tx2)' }}>{fmt(customers.reduce((s, c) => s + c.fee, 0))} đ</span>
+              <span style={{ transform: hangCollapsed[dateKey] ? 'rotate(-90deg)' : 'rotate(90deg)', transition: 'transform 200ms', color: 'var(--ac)' }}><IcoChevR /></span>
+            </Btn>
+            {!hangCollapsed[dateKey] && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {customers.map((c) => <CustomerCard key={`${dateKey}_${c.id}`} c={c} />)}
               </div>
-              {/* Chips */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 11 }}>
-                <span style={{ padding: '5px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--tx2)' }}>{fmtKg(c.kg)} kg</span>
-                <span style={{ padding: '5px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--tx2)' }}>{fmt(c.rate)} đ/kg</span>
-                <select
-                  value={ns || 'Chưa báo'}
-                  onChange={(e) => { e.stopPropagation(); handleNotify(c, e.target.value); }}
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ padding: '5px 9px', borderRadius: 10, fontSize: 10.5, fontWeight: 700, background: nui.bg, border: `1px solid ${nui.border}`, color: nui.color, outline: 'none', cursor: 'pointer' }}
-                >
-                  <option value="Chưa báo">Chưa báo</option>
-                  <option value="Đã báo hàng">Đã báo hàng</option>
-                  <option value="Đã báo ship">Đã báo ship</option>
-                </select>
-              </div>
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                {c.paidStatus !== 'paid' && (
-                  <Btn onClick={() => openPay(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Thanh toán</Btn>
-                )}
-                <Btn onClick={() => handleBaoHang(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
-                <Btn onClick={() => openShipMsg(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo ship</Btn>
-                <Btn onClick={() => setVanDonData({ cust: c, code: c.van_don_code || '' })} style={{
-                  flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
-                  color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
-                }} title="Mã vận đơn"><IcoTruck /></Btn>
-                <Btn onClick={() => setOpenCards((s) => ({ ...s, [c.id]: !s[c.id] }))} style={{
-                  flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
-                  color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
-                  transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 200ms ease',
-                }}><IcoChevR /></Btn>
-              </div>
-              {/* Expanded parcels */}
-              {isOpen && (
-                <div style={{ marginTop: 12, borderTop: '1px solid var(--ln2)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8, animation: 'dcFade 200ms ease both' }}>
-                  {c.parcels.map((p) => (
-                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', borderRadius: 13, background: 'var(--sunk)' }}>
-                      <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 8, font: '700 9.5px "JetBrains Mono",monospace', background: 'var(--acBg)', color: 'var(--ac)' }}>{p.warehouse_code || 'WH'}</span>
-                      <span style={{ flex: 1, minWidth: 0, font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--tx2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.tracking_no || '—'}</span>
-                      <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(p.weight)} kg</span>
-                      <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc || (p.weight * p.customer_rate + p.surcharge))}</span>
-                    </div>
-                  ))}
-                  <Btn onClick={() => openCust(c.id)} style={{ height: 38, borderRadius: 12, fontSize: 12, fontWeight: 700, color: 'var(--ac)', background: 'var(--acBg)', border: '1px solid var(--acLn)' }}>
-                    Xem hồ sơ khách
-                  </Btn>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {hangList.length === 0 && (
+            )}
+          </div>
+        ))}
+        {hangDateGroups.length === 0 && (
           <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--mu)' }}>Không có kết quả</div>
         )}
-        {/* FAB */}
         <div style={{ height: 80 }} />
       </div>
     );
@@ -954,11 +1165,31 @@ export default function MobilePWA() {
 
         {/* Tab: Kiện hàng */}
         {custTab === 'pc' && allParcels.map((p) => (
-          <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 13px', borderRadius: 16, ...cardStyle }}>
-            <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 8, font: '700 9.5px "JetBrains Mono",monospace', background: 'var(--acBg)', color: 'var(--ac)' }}>{p.warehouse_code || 'WH'}</span>
-            <span style={{ flex: 1, minWidth: 0, font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--tx2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.tracking_no || '—'}</span>
-            <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(p.weight)} kg</span>
-            <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc || p.weight * p.customer_rate)}</span>
+          <div key={p.id} style={{ padding: '11px 13px', borderRadius: 16, ...cardStyle }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 8, font: '700 9.5px "JetBrains Mono",monospace', background: 'var(--acBg)', color: 'var(--ac)' }}>{p.warehouse_code || 'WH'}</span>
+              <span style={{ flex: 1, minWidth: 0, font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--tx2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.tracking_no || '—'}</span>
+              <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(Math.max(0.5, p.weight))} kg</span>
+              <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc || (Math.max(0.5, p.weight) * p.customer_rate))}</span>
+            </div>
+            {p.product && <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--mu)', paddingLeft: 2 }}>{p.product}</div>}
+            {p.import_date && <div style={{ marginTop: 3, fontSize: 10, color: 'var(--mu)', paddingLeft: 2 }}>Nhập kho: {fmtDate(p.import_date)}</div>}
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, justifyContent: 'flex-end' }}>
+              <Btn onClick={() => setRowVanDon({ id: p.id, tracking_no: p.tracking_no, code: p.shipment_van_don_code || '' })} style={{
+                width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', border: '1px solid var(--ln)',
+                background: p.shipment_van_don_code ? 'var(--acBg)' : 'var(--sf2)',
+                color: p.shipment_van_don_code ? 'var(--ac)' : 'var(--tx2)',
+              }} title="Mã vận đơn"><IcoTruck /></Btn>
+              <Btn onClick={() => openRowEdit(p)} style={{
+                width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center',
+                background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--tx2)',
+              }} title="Sửa"><IcoEdit /></Btn>
+              <Btn onClick={() => deleteRow(p.id)} disabled={rowDelId === p.id} style={{
+                width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center',
+                background: 'var(--badBg)', border: '1px solid var(--badLn)', color: 'var(--badTx)',
+                opacity: rowDelId === p.id ? 0.5 : 1,
+              }} title="Xóa"><IcoTrash /></Btn>
+            </div>
           </div>
         ))}
         {custTab === 'pc' && allParcels.length === 0 && (
@@ -1440,6 +1671,65 @@ export default function MobilePWA() {
               <Btn onClick={() => { navigator.clipboard.writeText(shipMsgData.text); showToast('✓ Đã copy nội dung'); }} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <IcoCopy />Copy nội dung
               </Btn>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Row VanDon Modal (per-parcel van don) ── */}
+      {rowVanDon && (
+        <>
+          <div onClick={() => setRowVanDon(null)} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both' }}>
+            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
+              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Mã vận đơn kiện hàng</div>
+            <div style={{ fontSize: 11.5, color: 'var(--mu)', marginTop: 4, fontFamily: '"JetBrains Mono",monospace' }}>{rowVanDon.tracking_no || '—'}</div>
+            <input
+              value={rowVanDon.code}
+              onChange={(e) => setRowVanDon((d) => ({ ...d, code: e.target.value }))}
+              placeholder="Nhập mã vận đơn..."
+              style={{ width: '100%', marginTop: 14, height: 48, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 15, fontFamily: '"JetBrains Mono",monospace', padding: '0 16px', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
+              <Btn onClick={() => setRowVanDon(null)} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
+              <Btn onClick={saveRowVanDon} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Lưu mã vận đơn</Btn>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Row Edit Modal (edit parcel) ── */}
+      {rowEditModal && rowEditId && (
+        <>
+          <div onClick={() => { setRowEditModal(false); setRowEditId(null); }} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both' }}>
+            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
+              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)', marginBottom: 14 }}>Sửa kiện hàng</div>
+            {[
+              { key: 'tracking_no', label: 'Tracking #', type: 'text' },
+              { key: 'product',     label: 'Sản phẩm',   type: 'text' },
+              { key: 'weight',      label: 'Cân nặng (kg)', type: 'number' },
+              { key: 'surcharge',   label: 'Phụ thu',    type: 'number' },
+              { key: 'notes',       label: 'Ghi chú',    type: 'text' },
+            ].map(({ key, label, type }) => (
+              <div key={key} style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: 'var(--mu)', marginBottom: 4 }}>{label}</div>
+                <input
+                  type={type}
+                  value={rowEditVals[key] ?? ''}
+                  onChange={(e) => setRowEditVals((v) => ({ ...v, [key]: type === 'number' ? e.target.value : e.target.value }))}
+                  step={type === 'number' ? 0.01 : undefined}
+                  style={{ width: '100%', height: 44, borderRadius: 13, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 14, fontFamily: 'inherit', padding: '0 14px', boxSizing: 'border-box' }}
+                />
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 9, marginTop: 6 }}>
+              <Btn onClick={() => { setRowEditModal(false); setRowEditId(null); }} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
+              <Btn onClick={() => saveRowEdit(rowEditId)} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Lưu</Btn>
             </div>
           </div>
         </>
