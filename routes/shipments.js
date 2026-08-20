@@ -4,7 +4,7 @@ const crypto  = require('crypto');
 const express = require('express');
 const db      = require('../db');
 const { computePaidStatus } = require('../lib/paidStatus');
-const { sendZaloMessage }   = require('../lib/zaloNotify');
+const { sendZaloMessage, runnerBaseUrl, headers: runnerHeaders } = require('../lib/zaloNotify');
 const { maybeNotify: maybeAutoNotifyShipped } = require('../lib/autoNotifyShipped');
 const { maybeNotify: maybeAutoNotifyArrival } = require('../lib/autoNotifyArrival');
 
@@ -382,6 +382,31 @@ router.get('/notification-log', (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// GET /api/shipments/runner-logs
+// Proxy log hệ thống của local-runner (Playwright/Zalo) để xem trên "Lịch sử gửi tin" mà
+// không cần SSH vào máy runner. Query params: level (error|warn), q, limit — forward nguyên
+// sang /api/system-logs của runner (xem local-runner/logBuffer.js).
+// ═════════════════════════════════════════════════════════════════════════════
+router.get('/runner-logs', async (req, res) => {
+  try {
+    const { level, q, limit } = req.query;
+    const params = new URLSearchParams();
+    if (level) params.set('level', level);
+    if (q)     params.set('q', q);
+    if (limit) params.set('limit', limit);
+    const runnerRes = await fetch(`${runnerBaseUrl()}/api/system-logs?${params}`, { headers: runnerHeaders() });
+    if (!runnerRes.ok) {
+      const text = await runnerRes.text().catch(() => '');
+      return res.status(502).json({ error: `Local-runner từ chối (${runnerRes.status}): ${text}` });
+    }
+    const data = await runnerRes.json();
+    res.json(data);
+  } catch (err) {
+    res.status(502).json({ error: `Không kết nối được tới local-runner: ${err.message}` });
   }
 });
 

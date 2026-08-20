@@ -3,7 +3,7 @@ import axios from 'axios';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
-import { Bell, Bot, ChevronLeft, ChevronRight, Search, X } from 'lucide-react';
+import { Bell, Bot, ChevronLeft, ChevronRight, Search, Terminal, X } from 'lucide-react';
 import { todayInputValue } from '../utils.jsx';
 
 dayjs.extend(utc);
@@ -35,6 +35,19 @@ const SENDER_FILTERS = [
   { label: 'Bot tự động',  value: 'bot' },
   { label: 'Nhân viên',    value: 'staff' },
 ];
+
+const RUNNER_LOG_LEVELS = [
+  { label: 'Tất cả',  value: '' },
+  { label: 'Cảnh báo', value: 'warn' },
+  { label: 'Lỗi',     value: 'error' },
+];
+
+const LEVEL_COLOR = {
+  error: 'var(--badTx)',
+  warn:  'var(--warnTx)',
+  info:  'var(--tx2)',
+  debug: 'var(--mu)',
+};
 
 function PillGroup({ options, active, onSelect }) {
   return (
@@ -69,6 +82,13 @@ export default function NotificationLog() {
   const [expanded, setExpanded] = useState(null); // id của dòng đang xem full nội dung
   const [page, setPage] = useState(1);
 
+  const [runnerLogOpen, setRunnerLogOpen] = useState(false);
+  const [runnerLogs, setRunnerLogs] = useState([]);
+  const [runnerLogLoading, setRunnerLogLoading] = useState(false);
+  const [runnerLogError, setRunnerLogError] = useState('');
+  const [runnerLogLevel, setRunnerLogLevel] = useState('');
+  const [runnerLogQ, setRunnerLogQ] = useState('');
+
   useEffect(() => {
     if (period === 'custom' && (!customStart || !customEnd)) return;
     fetchLog();
@@ -98,6 +118,29 @@ export default function NotificationLog() {
     }
   }
 
+  async function fetchRunnerLogs() {
+    setRunnerLogLoading(true);
+    setRunnerLogError('');
+    try {
+      const params = { limit: 300 };
+      if (runnerLogLevel) params.level = runnerLogLevel;
+      if (runnerLogQ.trim()) params.q = runnerLogQ.trim();
+      const res = await axios.get('/api/shipments/runner-logs', { params });
+      setRunnerLogs(res.data.entries || []);
+    } catch (err) {
+      setRunnerLogError(err.response?.data?.error || 'Không tải được log runner');
+    } finally {
+      setRunnerLogLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!runnerLogOpen) return;
+    fetchRunnerLogs();
+    const id = setInterval(fetchRunnerLogs, 5000);
+    return () => clearInterval(id);
+  }, [runnerLogOpen, runnerLogLevel, runnerLogQ]);
+
   const display = useMemo(() => {
     if (!search.trim()) return rows;
     const q = search.trim().toLowerCase();
@@ -120,13 +163,19 @@ export default function NotificationLog() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
 
       {/* Header */}
-      <header>
-        <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--tx)' }}>
-          Lịch sử gửi tin
-        </h1>
-        <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>
-          Nhật ký gửi tin báo hàng về & báo mã vận đơn cho khách
-        </p>
+      <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 700, letterSpacing: '-.02em', color: 'var(--tx)' }}>
+            Lịch sử gửi tin
+          </h1>
+          <p style={{ margin: '7px 0 0', fontSize: 13, color: 'var(--mu)' }}>
+            Nhật ký gửi tin báo hàng về & báo mã vận đơn cho khách
+          </p>
+        </div>
+        <button onClick={() => setRunnerLogOpen(true)} className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+          <Terminal className="w-3.5 h-3.5" />
+          Xem log runner
+        </button>
       </header>
 
       {/* Filters */}
@@ -340,6 +389,58 @@ export default function NotificationLog() {
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Runner logs modal */}
+      {runnerLogOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box modal-pop" style={{ maxWidth: 780, width: '90vw' }}>
+            <div className="modal-header">
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--tx)' }}>
+                Log hệ thống local-runner
+              </h2>
+              <button onClick={() => setRunnerLogOpen(false)} className="btn-icon">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--mu)' }}>
+                Log kỹ thuật của máy chạy trình duyệt gửi Zalo (Playwright) — dùng để chẩn đoán khi tin bị "Thất bại". Tự làm mới mỗi 5 giây.
+              </p>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <PillGroup options={RUNNER_LOG_LEVELS} active={runnerLogLevel} onSelect={setRunnerLogLevel} />
+                <input
+                  value={runnerLogQ}
+                  onChange={e => setRunnerLogQ(e.target.value)}
+                  placeholder="Tìm trong log…"
+                  className="input-field"
+                  style={{ flex: 1, minWidth: 160 }}
+                />
+                <button onClick={fetchRunnerLogs} className="btn-secondary" style={{ padding: '7px 12px', fontSize: 12.5 }}>
+                  Làm mới
+                </button>
+              </div>
+              <div style={{
+                maxHeight: '55vh', overflowY: 'auto', borderRadius: 12, border: '1px solid var(--ln)',
+                background: 'var(--sunk)', padding: '10px 12px', fontFamily: '"JetBrains Mono", monospace', fontSize: 11.5,
+              }}>
+                {runnerLogError ? (
+                  <div style={{ color: 'var(--badTx)' }}>{runnerLogError}</div>
+                ) : runnerLogLoading && runnerLogs.length === 0 ? (
+                  <div style={{ color: 'var(--mu)' }}>Đang tải...</div>
+                ) : runnerLogs.length === 0 ? (
+                  <div style={{ color: 'var(--mu)' }}>Chưa có log nào.</div>
+                ) : runnerLogs.map(e => (
+                  <div key={e.seq} style={{ display: 'flex', gap: 8, padding: '3px 0', borderBottom: '1px solid var(--ln2)' }}>
+                    <span style={{ flexShrink: 0, color: 'var(--mu)' }}>{dayjs(e.t).format('HH:mm:ss')}</span>
+                    <span style={{ flexShrink: 0, fontWeight: 700, color: LEVEL_COLOR[e.level] || 'var(--tx2)', textTransform: 'uppercase', width: 42 }}>{e.level}</span>
+                    <span style={{ color: 'var(--tx2)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{e.msg}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
