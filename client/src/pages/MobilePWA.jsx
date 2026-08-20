@@ -287,8 +287,7 @@ export default function MobilePWA() {
   const [revData, setRevData]       = useState(null);
   const [revTab, setRevTab]         = useState('customer');
   const [settingsData, setSettingsData] = useState(null);
-  const [vanDonData, setVanDonData] = useState(null); // { cust, code }
-  const [shipMsgData, setShipMsgData] = useState(null); // { customerName, text }
+  const [shipMsgData, setShipMsgData] = useState(null); // { custId, dateKey, van_don_code, customerName, text }
   const [notifModalData, setNotifModalData] = useState(null); // { notifData, company, bank }
   const [custFrom, setCustFrom]           = useState('khach');
   const [settingsModal, setSettingsModal] = useState(null); // { type, data, isNew }
@@ -781,6 +780,26 @@ export default function MobilePWA() {
     });
   }
 
+  function updateShipMsgCode(code) {
+    setShipMsgData((d) => ({ ...d, van_don_code: code, text: buildShipText(d.customerName, code) }));
+  }
+
+  async function saveShipMsgCode() {
+    const { custId, dateKey, van_don_code } = shipMsgData;
+    try {
+      await axios.put('/api/shipments/batch', {
+        batch_date: dateKey,
+        customer_id: custId,
+        van_don_code,
+      });
+      showToast('✓ Đã lưu mã vận đơn');
+      setShipMsgData(null);
+      fetchShipments();
+    } catch {
+      showToast('Lỗi lưu mã vận đơn');
+    }
+  }
+
   function sendShipMsg() {
     const { custId, dateKey, van_don_code, text, customerName } = shipMsgData;
     showToast(`Đang gửi Zalo cho ${customerName}…`);
@@ -806,23 +825,6 @@ export default function MobilePWA() {
         showToast('Lỗi gửi Zalo');
       }
     })();
-  }
-
-  async function saveVanDon() {
-    if (!vanDonData) return;
-    const dateKey = vanDonData.cust.dateKey ?? batchDate;
-    try {
-      await axios.put('/api/shipments/batch', {
-        batch_date: dateKey,
-        customer_id: vanDonData.cust.id,
-        van_don_code: vanDonData.code,
-      });
-      setVanDonData(null);
-      fetchShipments();
-      openShipMsg({ ...vanDonData.cust, van_don_code: vanDonData.code });
-    } catch {
-      showToast('Lỗi lưu mã vận đơn');
-    }
   }
 
   function openPay(cust) {
@@ -1087,11 +1089,9 @@ export default function MobilePWA() {
               <Btn onClick={() => openPay(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Thanh toán</Btn>
             )}
             <Btn onClick={() => handleBaoHang(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo hàng</Btn>
-            <Btn onClick={() => openShipMsg(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Báo ship</Btn>
-            <Btn onClick={() => setVanDonData({ cust: c, code: c.van_don_code || '' })} style={{
-              flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
-              color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
-            }} title="Mã vận đơn (đợt)"><IcoTruck /></Btn>
+            <Btn onClick={() => openShipMsg(c)} style={{ flex: 1, height: 40, borderRadius: 13, fontSize: 12, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              <IcoTruck />Mã vận đơn & báo ship
+            </Btn>
             <Btn onClick={() => setOpenCards((s) => ({ ...s, [cardKey]: !s[cardKey] }))} style={{
               flexShrink: 0, width: 40, height: 40, borderRadius: 13, display: 'grid', placeItems: 'center',
               color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)',
@@ -2160,30 +2160,6 @@ export default function MobilePWA() {
         </>
       )}
 
-      {/* ── Van Don Modal ── */}
-      {vanDonData && (
-        <>
-          <div onClick={() => setVanDonData(null)} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
-          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both' }}>
-            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
-              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Mã vận đơn</div>
-            <div style={{ fontSize: 11.5, color: 'var(--mu)', marginTop: 4 }}>{vanDonData.cust.name}</div>
-            <input
-              value={vanDonData.code}
-              onChange={(e) => setVanDonData((d) => ({ ...d, code: e.target.value }))}
-              placeholder="Nhập mã vận đơn..."
-              style={{ width: '100%', marginTop: 14, height: 48, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 15, fontFamily: '"JetBrains Mono", monospace', padding: '0 16px', boxSizing: 'border-box' }}
-            />
-            <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
-              <Btn onClick={() => setVanDonData(null)} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
-              <Btn onClick={saveVanDon} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0 }}>Lưu & Báo ship</Btn>
-            </div>
-          </div>
-        </>
-      )}
-
       {/* ── Ship Msg Modal ── */}
       {shipMsgData && (
         <>
@@ -2192,7 +2168,13 @@ export default function MobilePWA() {
             <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
               <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
             </div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Báo ship – {shipMsgData.customerName}</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Mã vận đơn & báo ship – {shipMsgData.customerName}</div>
+            <input
+              value={shipMsgData.van_don_code}
+              onChange={(e) => updateShipMsgCode(e.target.value)}
+              placeholder="Nhập mã vận đơn..."
+              style={{ width: '100%', marginTop: 14, height: 48, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 15, fontFamily: '"JetBrains Mono", monospace', padding: '0 16px', boxSizing: 'border-box' }}
+            />
             <textarea
               value={shipMsgData.text}
               onChange={(e) => setShipMsgData((d) => ({ ...d, text: e.target.value }))}
@@ -2205,7 +2187,7 @@ export default function MobilePWA() {
               </Btn>
             </div>
             <div style={{ display: 'flex', gap: 9, marginTop: 10 }}>
-              <Btn onClick={() => setShipMsgData(null)} style={{ flexShrink: 0, padding: '0 16px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Đóng</Btn>
+              <Btn onClick={saveShipMsgCode} style={{ flexShrink: 0, padding: '0 16px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Lưu</Btn>
               <Btn onClick={sendShipMsg} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 Gửi qua Zalo
               </Btn>
