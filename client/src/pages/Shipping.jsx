@@ -178,15 +178,11 @@ export default function Shipping() {
     fetchShipments();
   }
 
-  async function openBulkReport() {
-    const today = todayInputValue();
+  async function loadBulkReportDate(date) {
+    setBulkModal({ date, customers: [], loading: true });
     try {
-      const res = await axios.get('/api/shipments', { params: { start_date: today, end_date: today } });
+      const res = await axios.get('/api/shipments', { params: { start_date: date, end_date: date } });
       const rows = res.data || [];
-      if (!rows.length) {
-        toast('Không có hàng nhập kho hôm nay', 'warning');
-        return;
-      }
       const custMap = new Map();
       for (const s of rows) {
         if (!custMap.has(s.customer_id)) custMap.set(s.customer_id, []);
@@ -205,10 +201,15 @@ export default function Shipping() {
           customer_fee: s.phi_vc,
         })),
       }));
-      setBulkModal({ date: today, customers });
+      setBulkModal({ date, customers, loading: false });
     } catch (err) {
-      toast(err.response?.data?.error || 'Không tải được dữ liệu hôm nay', 'error');
+      toast(err.response?.data?.error || 'Không tải được dữ liệu lô hàng', 'error');
+      setBulkModal({ date, customers: [], loading: false });
     }
+  }
+
+  function openBulkReport() {
+    loadBulkReportDate(todayInputValue());
   }
 
   function confirmBulkReport() {
@@ -972,22 +973,65 @@ export default function Shipping() {
               </button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--tx2)' }}>
-                Báo hàng về hàng loạt cho lô nhập ngày <strong>{formatDate(bulkModal.date)}</strong>.
-              </p>
-              <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>
-                {bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length} khách sẽ được báo
-                {bulkModal.customers.some((c) => c.batchStatus)
-                  ? `, ${bulkModal.customers.filter((c) => c.batchStatus).length} khách đã báo trước đó (bỏ qua)`
-                  : ''}
-                {bulkModal.customers.some((c) => !c.batchStatus && !c.phone)
-                  ? `, ${bulkModal.customers.filter((c) => !c.batchStatus && !c.phone).length} khách thiếu SĐT (bỏ qua)`
-                  : ''}.
-              </p>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--mu)', marginBottom: 6 }}>Lô nhập ngày</label>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <button
+                    onClick={() => loadBulkReportDate(todayInputValue())}
+                    className={bulkModal.date === todayInputValue() ? 'btn-primary' : 'btn-secondary'}
+                    style={{ padding: '5px 10px', fontSize: 12 }}
+                  >
+                    Hôm nay
+                  </button>
+                  <button
+                    onClick={() => loadBulkReportDate(dayjs().subtract(1, 'day').format('YYYY-MM-DD'))}
+                    className={bulkModal.date === dayjs().subtract(1, 'day').format('YYYY-MM-DD') ? 'btn-primary' : 'btn-secondary'}
+                    style={{ padding: '5px 10px', fontSize: 12 }}
+                  >
+                    Hôm qua
+                  </button>
+                  <input
+                    type="date"
+                    value={bulkModal.date}
+                    max={todayInputValue()}
+                    onChange={(e) => e.target.value && loadBulkReportDate(e.target.value)}
+                    className="input-field"
+                    style={{ width: 'auto', padding: '5px 8px', fontSize: 12 }}
+                  />
+                </div>
+              </div>
+              {bulkModal.loading ? (
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>Đang tải dữ liệu…</p>
+              ) : (
+                <>
+                  <p style={{ margin: 0, fontSize: 13, color: 'var(--tx2)' }}>
+                    Báo hàng về hàng loạt cho lô nhập ngày <strong>{formatDate(bulkModal.date)}</strong>.
+                  </p>
+                  {bulkModal.customers.length === 0 ? (
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>Không có hàng nhập kho ngày này.</p>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>
+                      {bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length} khách sẽ được báo
+                      {bulkModal.customers.some((c) => c.batchStatus)
+                        ? `, ${bulkModal.customers.filter((c) => c.batchStatus).length} khách đã báo trước đó (bỏ qua)`
+                        : ''}
+                      {bulkModal.customers.some((c) => !c.batchStatus && !c.phone)
+                        ? `, ${bulkModal.customers.filter((c) => !c.batchStatus && !c.phone).length} khách thiếu SĐT (bỏ qua)`
+                        : ''}.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
             <div className="modal-footer">
               <button onClick={() => setBulkModal(null)} className="btn-secondary">Hủy</button>
-              <button onClick={confirmBulkReport} className="btn-primary">Xác nhận báo hàng loạt</button>
+              <button
+                onClick={confirmBulkReport}
+                disabled={bulkModal.loading || bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length === 0}
+                className="btn-primary disabled:opacity-50"
+              >
+                Xác nhận báo hàng loạt
+              </button>
             </div>
           </div>
         </div>
