@@ -10,7 +10,7 @@ const jobs = new Map(); // id -> { id, status, result, error, createdAt, started
 const queue = [];
 let running = false;
 
-function createJob(payload, handler) {
+function createJob(payload, handler, timeoutMs) {
   const id = crypto.randomUUID();
   const job = {
     id,
@@ -22,6 +22,7 @@ function createJob(payload, handler) {
     startedAt: null,
     finishedAt: null,
     _handler: handler,
+    _timeoutMs: timeoutMs,
   };
   jobs.set(id, job);
   queue.push(id);
@@ -29,6 +30,8 @@ function createJob(payload, handler) {
   return id;
 }
 
+// Job chạy quá timeoutMs -> báo lỗi ngay để KHÔNG chặn các job xếp sau trong hàng đợi (job gốc
+// vẫn chạy ngầm tới khi tự xong/lỗi, nhưng không ai còn chờ kết quả của nó nữa).
 async function pump() {
   if (running) return;
   running = true;
@@ -40,7 +43,24 @@ async function pump() {
       job.status = 'running';
       job.startedAt = Date.now();
       try {
-        job.result = await job._handler(job.payload);
+        const handlerPromise = job._handler(job.payload);
+        handlerPromise.catch(() => {}); // nuốt lỗi trễ nếu job bị bỏ qua do timeout, tránh unhandledRejection
+        if (job._timeoutMs) {
+          let timer;
+          const timeout = new Promise((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error(`JOB_TIMEOUT: job chạy quá ${Math.round(job._timeoutMs / 1000)}s trên runner — đã huỷ để không chặn hàng đợi (máy/mạng Zalo web có thể đang chậm).`)),
+              job._timeoutMs
+            );
+          });
+          try {
+            job.result = await Promise.race([handlerPromise, timeout]);
+          } finally {
+            clearTimeout(timer);
+          }
+        } else {
+          job.result = await handlerPromise;
+        }
         job.status = 'done';
       } catch (err) {
         job.status = 'error';
@@ -48,6 +68,7 @@ async function pump() {
       } finally {
         job.finishedAt = Date.now();
         delete job._handler;
+        delete job._timeoutMs;
       }
     }
   } finally {

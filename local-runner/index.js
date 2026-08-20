@@ -134,7 +134,10 @@ app.post('/api/zalo/send', (req, res) => {
       } finally {
         for (const p of tempPaths) { try { fs.unlinkSync(p); } catch { /* ignore */ } }
       }
-    }
+    },
+    // Thấp hơn deadline poll bên backend (90s có renderUrl / 60s không có — xem zaloNotify.js)
+    // ~10s để runner luôn kịp trả trạng thái lỗi rõ ràng trước khi backend tự bỏ cuộc.
+    renderUrl ? 80000 : 50000
   );
   res.json({ ok: true, jobId });
 });
