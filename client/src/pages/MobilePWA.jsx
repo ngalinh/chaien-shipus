@@ -4,6 +4,7 @@ import dayjs from 'dayjs';
 import shipusLogo from '../assets/shipus-logo.png';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
+import NotificationTemplate from '../components/NotificationTemplate.jsx';
 import { getBassoUser } from '../utils.jsx';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -213,6 +214,8 @@ export default function MobilePWA() {
   const [hangShips, setHangShips]           = useState([]);
   const [hangStatusFilter, setHangStatusFilter] = useState('all');
   const [hangCollapsed, setHangCollapsed]   = useState({});
+  const [bulkModal, setBulkModal]           = useState(null); // { startDate, endDate, customers, loading }
+  const [bulkRun, setBulkRun]               = useState(null); // { list, index, sent, failed, skippedNoPhone, alreadyReported }
   // Per-row actions (shared between hang expanded view and cust profile)
   const [rowVanDon, setRowVanDon]           = useState(null); // { id, tracking_no, code }
   const [rowEditId, setRowEditId]           = useState(null);
@@ -552,8 +555,129 @@ export default function MobilePWA() {
     });
   }
 
+  async function loadBulkReportRange(startDate, endDate) {
+    setBulkModal({ startDate, endDate, customers: [], loading: true });
+    try {
+      const res = await axios.get('/api/shipments', { params: { start_date: startDate, end_date: endDate } });
+      const rows = res.data || [];
+      const custMap = new Map();
+      for (const s of rows) {
+        const key = `${s.import_date}_${s.customer_id}`;
+        if (!custMap.has(key)) custMap.set(key, []);
+        custMap.get(key).push(s);
+      }
+      const customers = [...custMap.entries()].map(([key, list]) => ({
+        key,
+        date: list[0].import_date,
+        custId: list[0].customer_id,
+        customerCode: list[0].customer_code || '',
+        customerName: list[0].customer_name || '',
+        phone: list[0].customer_phone || '',
+        batchStatus: list[0].batch_status || '',
+        items: list.map((s) => ({
+          tracking_no: s.tracking_no,
+          product: s.product,
+          weight: s.weight,
+          customer_fee: s.phi_vc,
+        })),
+      }));
+      setBulkModal({ startDate, endDate, customers, loading: false });
+    } catch {
+      showToast('Lỗi tải dữ liệu lô hàng');
+      setBulkModal({ startDate, endDate, customers: [], loading: false });
+    }
+  }
+
+  async function openBulkReport() {
+    if (!settingsData) {
+      try {
+        const r = await axios.get('/api/settings');
+        setSettingsData(r.data);
+      } catch { /* ignore, template falls back to defaults */ }
+    }
+    const today = todayStr();
+    loadBulkReportRange(today, today);
+  }
+
+  function confirmBulkReport() {
+    const { customers } = bulkModal;
+    const pending = customers.filter((c) => !c.batchStatus && c.phone);
+    const skippedNoPhone = customers.filter((c) => !c.batchStatus && !c.phone).length;
+    const alreadyReported = customers.filter((c) => c.batchStatus).length;
+    setBulkModal(null);
+    if (!pending.length) {
+      showToast('Không có khách nào cần báo hàng');
+      return;
+    }
+    setBulkRun({ list: pending, index: 0, sent: 0, failed: 0, skippedNoPhone, alreadyReported });
+  }
+
+  async function handleBulkRendered(dataUrl) {
+    const cust = bulkRun.list[bulkRun.index];
+    let ok = false;
+    if (dataUrl) {
+      try {
+        const bassoUser = getBassoUser();
+        await axios.post('/api/shipments/batch/send-zalo', {
+          batch_date: cust.date,
+          customer_id: cust.custId,
+          type: 'arrival',
+          image: { name: `thong-bao-${cust.customerCode || 'kh'}-${cust.date}.png`, dataBase64: dataUrl },
+          sent_by: bassoUser?.name || bassoUser?.username || null,
+        });
+        ok = true;
+      } catch { /* count as failed below */ }
+    }
+    const nextIndex = bulkRun.index + 1;
+    const sent = bulkRun.sent + (ok ? 1 : 0);
+    const failed = bulkRun.failed + (ok ? 0 : 1);
+    if (nextIndex >= bulkRun.list.length) {
+      const parts = [`${sent} thành công`];
+      if (failed) parts.push(`${failed} lỗi`);
+      if (bulkRun.skippedNoPhone) parts.push(`${bulkRun.skippedNoPhone} thiếu SĐT`);
+      showToast(`Báo hàng loạt: ${parts.join(', ')}`);
+      setBulkRun(null);
+      fetchShipments();
+    } else {
+      setBulkRun({ ...bulkRun, index: nextIndex, sent, failed });
+    }
+  }
+
   function openShipMsg(cust) {
-    setShipMsgData({ customerName: cust.name, text: buildShipText(cust.name, cust.van_don_code) });
+    setShipMsgData({
+      custId: cust.id,
+      dateKey: cust.dateKey ?? batchDate,
+      van_don_code: cust.van_don_code || '',
+      customerName: cust.name,
+      text: buildShipText(cust.name, cust.van_don_code),
+    });
+  }
+
+  function sendShipMsg() {
+    const { custId, dateKey, van_don_code, text, customerName } = shipMsgData;
+    showToast(`Đang gửi Zalo cho ${customerName}…`);
+    const bassoUser = getBassoUser();
+    setShipMsgData(null);
+    (async () => {
+      try {
+        await axios.put('/api/shipments/batch', {
+          batch_date: dateKey,
+          customer_id: custId,
+          van_don_code,
+        });
+        await axios.post('/api/shipments/batch/send-zalo', {
+          batch_date: dateKey,
+          customer_id: custId,
+          type: 'shipped',
+          message: text,
+          sent_by: bassoUser?.name || bassoUser?.username || null,
+        });
+        showToast(`✓ Đã gửi Zalo cho ${customerName}`);
+        fetchShipments();
+      } catch {
+        showToast('Lỗi gửi Zalo');
+      }
+    })();
   }
 
   async function saveVanDon() {
@@ -567,7 +691,7 @@ export default function MobilePWA() {
       });
       setVanDonData(null);
       fetchShipments();
-      openShipMsg({ name: vanDonData.cust.name, van_don_code: vanDonData.code });
+      openShipMsg({ ...vanDonData.cust, van_don_code: vanDonData.code });
     } catch {
       showToast('Lỗi lưu mã vận đơn');
     }
@@ -886,13 +1010,22 @@ export default function MobilePWA() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
         {/* Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 13px', height: 44, borderRadius: 15, background: 'var(--sunk)', border: '1px solid var(--ln2)', color: 'var(--mu)' }}>
-          <IcoSearch />
-          <input
-            value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Tìm tên, mã KH, tracking…"
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 0, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit' }}
-          />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 9, padding: '0 13px', height: 44, borderRadius: 15, background: 'var(--sunk)', border: '1px solid var(--ln2)', color: 'var(--mu)' }}>
+            <IcoSearch />
+            <input
+              value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder="Tìm tên, mã KH, tracking…"
+              style={{ flex: 1, minWidth: 0, background: 'none', border: 0, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit' }}
+            />
+          </div>
+          <Btn onClick={openBulkReport} style={{
+            flexShrink: 0, height: 44, padding: '0 14px', borderRadius: 15, fontSize: 12, fontWeight: 700,
+            color: 'var(--onbtn)', background: 'var(--btn)', border: 0,
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+            <IcoZalo />Báo loạt
+          </Btn>
         </div>
 
         {/* Period filter */}
@@ -1666,14 +1799,100 @@ export default function MobilePWA() {
               rows={8}
               style={{ width: '100%', marginTop: 14, borderRadius: 15, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '12px 16px', boxSizing: 'border-box', resize: 'none', lineHeight: 1.6 }}
             />
-            <div style={{ display: 'flex', gap: 9, marginTop: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+              <Btn onClick={() => { navigator.clipboard.writeText(shipMsgData.text); showToast('✓ Đã copy nội dung'); }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 10, fontSize: 11.5, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>
+                <IcoCopy />Copy
+              </Btn>
+            </div>
+            <div style={{ display: 'flex', gap: 9, marginTop: 10 }}>
               <Btn onClick={() => setShipMsgData(null)} style={{ flexShrink: 0, padding: '0 16px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Đóng</Btn>
-              <Btn onClick={() => { navigator.clipboard.writeText(shipMsgData.text); showToast('✓ Đã copy nội dung'); }} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <IcoCopy />Copy nội dung
+              <Btn onClick={sendShipMsg} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                Gửi qua Zalo
               </Btn>
             </div>
           </div>
         </>
+      )}
+
+      {/* ── Bulk Report Modal ── */}
+      {bulkModal && (
+        <>
+          <div onClick={() => setBulkModal(null)} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both' }}>
+            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
+              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Báo hàng loạt</div>
+            <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 4 }}>Lô nhập</div>
+            <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
+              <Btn onClick={() => { const t = todayStr(); loadBulkReportRange(t, t); }} style={{
+                height: 32, padding: '0 12px', borderRadius: 11, fontSize: 11.5, fontWeight: 700, border: 0,
+                background: bulkModal.startDate === todayStr() && bulkModal.endDate === todayStr() ? 'var(--brand)' : 'var(--sf2)',
+                color: bulkModal.startDate === todayStr() && bulkModal.endDate === todayStr() ? '#fff' : 'var(--mu)',
+              }}>Hôm nay</Btn>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--mu)' }}>Từ</span>
+              <input
+                type="date"
+                value={bulkModal.startDate}
+                max={bulkModal.endDate}
+                onChange={(e) => e.target.value && loadBulkReportRange(e.target.value, bulkModal.endDate)}
+                style={{ height: 32, borderRadius: 11, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 11.5, padding: '0 8px' }}
+              />
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--mu)' }}>Đến</span>
+              <input
+                type="date"
+                value={bulkModal.endDate}
+                min={bulkModal.startDate}
+                max={todayStr()}
+                onChange={(e) => e.target.value && loadBulkReportRange(bulkModal.startDate, e.target.value)}
+                style={{ height: 32, borderRadius: 11, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 11.5, padding: '0 8px' }}
+              />
+            </div>
+            {bulkModal.loading ? (
+              <div style={{ fontSize: 12.5, color: 'var(--mu)', marginTop: 14 }}>Đang tải dữ liệu…</div>
+            ) : bulkModal.customers.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: 'var(--mu)', marginTop: 14 }}>Không có hàng nhập kho trong khoảng thời gian này.</div>
+            ) : (
+              <div style={{ fontSize: 12.5, color: 'var(--tx2)', marginTop: 14, lineHeight: 1.6 }}>
+                {bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length} khách sẽ được báo
+                {bulkModal.customers.some((c) => c.batchStatus)
+                  ? `, ${bulkModal.customers.filter((c) => c.batchStatus).length} đã báo trước đó`
+                  : ''}
+                {bulkModal.customers.some((c) => !c.batchStatus && !c.phone)
+                  ? `, ${bulkModal.customers.filter((c) => !c.batchStatus && !c.phone).length} thiếu SĐT`
+                  : ''}.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
+              <Btn onClick={() => setBulkModal(null)} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
+              <Btn onClick={() => {
+                if (bulkModal.loading || !bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length) return;
+                confirmBulkReport();
+              }} style={{
+                flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0,
+                opacity: (bulkModal.loading || !bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length) ? 0.5 : 1,
+              }}>
+                Xác nhận báo hàng loạt
+              </Btn>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Bulk report: hidden offscreen renderer, processes bulkRun.list one at a time */}
+      {bulkRun && bulkRun.index < bulkRun.list.length && (
+        <div style={{ position: 'fixed', left: -9999, top: 0, zIndex: -1 }}>
+          <NotificationTemplate
+            key={bulkRun.list[bulkRun.index].key}
+            customerName={bulkRun.list[bulkRun.index].customerName}
+            date={bulkRun.list[bulkRun.index].date}
+            items={bulkRun.list[bulkRun.index].items}
+            companyName={settingsData?.company?.company_name || 'ShipUS'}
+            bank={(settingsData?.bank_accounts || []).find((b) => b.is_default) || (settingsData?.bank_accounts || [])[0] || null}
+            autoDownload={false}
+            onRendered={handleBulkRendered}
+          />
+        </div>
       )}
 
       {/* ── Row VanDon Modal (per-parcel van don) ── */}
