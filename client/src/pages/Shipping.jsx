@@ -50,8 +50,8 @@ export default function Shipping() {
   const [editingRate, setEditingRate] = useState(null); // { custKey, custId, dateKey, value }
   const [vanDonRowModal, setVanDonRowModal] = useState(null); // { shipmentId, tracking_no, van_don_code }
   const [shipModal, setShipModal] = useState(null); // { custId, dateKey, customerName, carrier, van_don_code, totalFee, rows, text }
-  const [bulkModal, setBulkModal] = useState(null); // { date, customers }
-  const [bulkRun, setBulkRun] = useState(null); // { date, list, index, sent, failed, skippedNoPhone, alreadyReported }
+  const [bulkModal, setBulkModal] = useState(null); // { startDate, endDate, customers, loading }
+  const [bulkRun, setBulkRun] = useState(null); // { list, index, sent, failed, skippedNoPhone, alreadyReported }
 
   const [period, setPeriod] = useState('month');
   const [selectedMonth, setSelectedMonth] = useState(() => dayjs().format('YYYY-MM'));
@@ -178,18 +178,21 @@ export default function Shipping() {
     fetchShipments();
   }
 
-  async function loadBulkReportDate(date) {
-    setBulkModal({ date, customers: [], loading: true });
+  async function loadBulkReportRange(startDate, endDate) {
+    setBulkModal({ startDate, endDate, customers: [], loading: true });
     try {
-      const res = await axios.get('/api/shipments', { params: { start_date: date, end_date: date } });
+      const res = await axios.get('/api/shipments', { params: { start_date: startDate, end_date: endDate } });
       const rows = res.data || [];
       const custMap = new Map();
       for (const s of rows) {
-        if (!custMap.has(s.customer_id)) custMap.set(s.customer_id, []);
-        custMap.get(s.customer_id).push(s);
+        const key = `${s.import_date}_${s.customer_id}`;
+        if (!custMap.has(key)) custMap.set(key, []);
+        custMap.get(key).push(s);
       }
-      const customers = [...custMap.entries()].map(([custId, list]) => ({
-        custId,
+      const customers = [...custMap.entries()].map(([key, list]) => ({
+        key,
+        date: list[0].import_date,
+        custId: list[0].customer_id,
         customerCode: cleanCode(list[0].customer_code),
         customerName: list[0].customer_name || '',
         phone: list[0].customer_phone || '',
@@ -201,19 +204,20 @@ export default function Shipping() {
           customer_fee: s.phi_vc,
         })),
       }));
-      setBulkModal({ date, customers, loading: false });
+      setBulkModal({ startDate, endDate, customers, loading: false });
     } catch (err) {
       toast(err.response?.data?.error || 'Không tải được dữ liệu lô hàng', 'error');
-      setBulkModal({ date, customers: [], loading: false });
+      setBulkModal({ startDate, endDate, customers: [], loading: false });
     }
   }
 
   function openBulkReport() {
-    loadBulkReportDate(todayInputValue());
+    const today = todayInputValue();
+    loadBulkReportRange(today, today);
   }
 
   function confirmBulkReport() {
-    const { date, customers } = bulkModal;
+    const { customers } = bulkModal;
     const pending = customers.filter((c) => !c.batchStatus && c.phone);
     const skippedNoPhone = customers.filter((c) => !c.batchStatus && !c.phone).length;
     const alreadyReported = customers.filter((c) => c.batchStatus).length;
@@ -222,7 +226,7 @@ export default function Shipping() {
       toast('Không có khách nào cần báo hàng (đã báo hết hoặc thiếu SĐT)', 'warning');
       return;
     }
-    setBulkRun({ date, list: pending, index: 0, sent: 0, failed: 0, skippedNoPhone, alreadyReported });
+    setBulkRun({ list: pending, index: 0, sent: 0, failed: 0, skippedNoPhone, alreadyReported });
   }
 
   async function handleBulkRendered(dataUrl) {
@@ -232,10 +236,10 @@ export default function Shipping() {
       try {
         const bassoUser = getBassoUser();
         await axios.post('/api/shipments/batch/send-zalo', {
-          batch_date: bulkRun.date,
+          batch_date: cust.date,
           customer_id: cust.custId,
           type: 'arrival',
-          image: { name: `thong-bao-${cust.customerCode || 'kh'}-${bulkRun.date}.png`, dataBase64: dataUrl },
+          image: { name: `thong-bao-${cust.customerCode || 'kh'}-${cust.date}.png`, dataBase64: dataUrl },
           sent_by: bassoUser?.name || bassoUser?.username || null,
         });
         ok = true;
@@ -974,27 +978,31 @@ export default function Shipping() {
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, color: 'var(--mu)', marginBottom: 6 }}>Lô nhập ngày</label>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--mu)', marginBottom: 6 }}>Lô nhập</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
                   <button
-                    onClick={() => loadBulkReportDate(todayInputValue())}
-                    className={bulkModal.date === todayInputValue() ? 'btn-primary' : 'btn-secondary'}
+                    onClick={() => { const t = todayInputValue(); loadBulkReportRange(t, t); }}
+                    className={bulkModal.startDate === todayInputValue() && bulkModal.endDate === todayInputValue() ? 'btn-primary' : 'btn-secondary'}
                     style={{ padding: '5px 10px', fontSize: 12 }}
                   >
                     Hôm nay
                   </button>
-                  <button
-                    onClick={() => loadBulkReportDate(dayjs().subtract(1, 'day').format('YYYY-MM-DD'))}
-                    className={bulkModal.date === dayjs().subtract(1, 'day').format('YYYY-MM-DD') ? 'btn-primary' : 'btn-secondary'}
-                    style={{ padding: '5px 10px', fontSize: 12 }}
-                  >
-                    Hôm qua
-                  </button>
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Từ:</span>
                   <input
                     type="date"
-                    value={bulkModal.date}
+                    value={bulkModal.startDate}
+                    max={bulkModal.endDate}
+                    onChange={(e) => e.target.value && loadBulkReportRange(e.target.value, bulkModal.endDate)}
+                    className="input-field"
+                    style={{ width: 'auto', padding: '5px 8px', fontSize: 12 }}
+                  />
+                  <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)' }}>Đến:</span>
+                  <input
+                    type="date"
+                    value={bulkModal.endDate}
+                    min={bulkModal.startDate}
                     max={todayInputValue()}
-                    onChange={(e) => e.target.value && loadBulkReportDate(e.target.value)}
+                    onChange={(e) => e.target.value && loadBulkReportRange(bulkModal.startDate, e.target.value)}
                     className="input-field"
                     style={{ width: 'auto', padding: '5px 8px', fontSize: 12 }}
                   />
@@ -1005,10 +1013,12 @@ export default function Shipping() {
               ) : (
                 <>
                   <p style={{ margin: 0, fontSize: 13, color: 'var(--tx2)' }}>
-                    Báo hàng về hàng loạt cho lô nhập ngày <strong>{formatDate(bulkModal.date)}</strong>.
+                    {bulkModal.startDate === bulkModal.endDate
+                      ? <>Báo hàng về hàng loạt cho lô nhập ngày <strong>{formatDate(bulkModal.startDate)}</strong>.</>
+                      : <>Báo hàng về hàng loạt cho các lô nhập từ ngày <strong>{formatDate(bulkModal.startDate)}</strong> đến <strong>{formatDate(bulkModal.endDate)}</strong>.</>}
                   </p>
                   {bulkModal.customers.length === 0 ? (
-                    <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>Không có hàng nhập kho ngày này.</p>
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>Không có hàng nhập kho trong khoảng thời gian này.</p>
                   ) : (
                     <p style={{ margin: 0, fontSize: 13, color: 'var(--mu)' }}>
                       {bulkModal.customers.filter((c) => !c.batchStatus && c.phone).length} khách sẽ được báo
@@ -1041,9 +1051,9 @@ export default function Shipping() {
       {bulkRun && bulkRun.index < bulkRun.list.length && (
         <div className="fixed -left-[9999px] top-0 z-[-1]">
           <NotificationTemplate
-            key={bulkRun.list[bulkRun.index].custId}
+            key={bulkRun.list[bulkRun.index].key}
             customerName={bulkRun.list[bulkRun.index].customerName}
-            date={bulkRun.date}
+            date={bulkRun.list[bulkRun.index].date}
             items={bulkRun.list[bulkRun.index].items}
             companyName={settings.company?.company_name || 'ShipUS'}
             bank={(settings.bank_accounts || []).find((b) => b.is_default) || (settings.bank_accounts || [])[0] || null}
