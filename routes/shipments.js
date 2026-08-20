@@ -353,7 +353,7 @@ router.delete('/:id', (req, res) => {
 // ═════════════════════════════════════════════════════════════════════════════
 router.get('/notification-log', (req, res) => {
   try {
-    const { start_date, end_date, customer_id, type, status } = req.query;
+    const { start_date, end_date, customer_id, type, status, sender } = req.query;
 
     const conditions = [];
     const params     = [];
@@ -363,6 +363,8 @@ router.get('/notification-log', (req, res) => {
     if (customer_id) { conditions.push('nl.customer_id = ?');        params.push(parseInt(customer_id)); }
     if (type)        { conditions.push('nl.type = ?');               params.push(type); }
     if (status)      { conditions.push('nl.status = ?');             params.push(status); }
+    if (sender === 'bot')   { conditions.push("nl.sent_by = 'Bot tự động'"); }
+    if (sender === 'staff') { conditions.push("nl.sent_by IS NOT NULL AND nl.sent_by != 'Bot tự động'"); }
 
     const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
 

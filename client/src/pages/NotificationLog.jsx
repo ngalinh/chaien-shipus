@@ -30,6 +30,12 @@ const STATUS_FILTERS = [
   { label: 'Thất bại',   value: 'failed' },
 ];
 
+const SENDER_FILTERS = [
+  { label: 'Tất cả',       value: 'all' },
+  { label: 'Bot tự động',  value: 'bot' },
+  { label: 'Nhân viên',    value: 'staff' },
+];
+
 function PillGroup({ options, active, onSelect }) {
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -58,6 +64,7 @@ export default function NotificationLog() {
   const [customEnd, setCustomEnd]     = useState(todayInputValue());
   const [typeFilter, setTypeFilter]     = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [senderFilter, setSenderFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState(null); // id của dòng đang xem full nội dung
   const [page, setPage] = useState(1);
@@ -68,11 +75,11 @@ export default function NotificationLog() {
     // Poll để dòng "Đang gửi" tự chuyển sang Thành công/Thất bại mà NV không cần bấm tải lại.
     const id = setInterval(() => fetchLog({ silent: true }), 5000);
     return () => clearInterval(id);
-  }, [period, customStart, customEnd, typeFilter, statusFilter]);
+  }, [period, customStart, customEnd, typeFilter, statusFilter, senderFilter]);
 
   useEffect(() => {
     setPage(1);
-  }, [period, customStart, customEnd, typeFilter, statusFilter, search]);
+  }, [period, customStart, customEnd, typeFilter, statusFilter, senderFilter, search]);
 
   async function fetchLog({ silent = false } = {}) {
     if (!silent) setLoading(true);
@@ -81,6 +88,7 @@ export default function NotificationLog() {
       if (period === 'custom') { params.start_date = customStart; params.end_date = customEnd; }
       if (typeFilter !== 'all')   params.type   = typeFilter;
       if (statusFilter !== 'all') params.status = statusFilter;
+      if (senderFilter !== 'all') params.sender = senderFilter;
       const res = await axios.get('/api/shipments/notification-log', { params });
       setRows(res.data);
     } catch (err) {
@@ -134,6 +142,10 @@ export default function NotificationLog() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Trạng thái:</span>
           <PillGroup options={STATUS_FILTERS} active={statusFilter} onSelect={setStatusFilter} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mu)', whiteSpace: 'nowrap' }}>Người gửi:</span>
+          <PillGroup options={SENDER_FILTERS} active={senderFilter} onSelect={setSenderFilter} />
         </div>
         {/* Search */}
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 9, padding: '0 15px', height: 40, borderRadius: 999, background: 'var(--sf)', border: '1px solid var(--ln)', backdropFilter: 'blur(14px)' }}>
