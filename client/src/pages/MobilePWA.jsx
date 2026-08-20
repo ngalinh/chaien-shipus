@@ -1,19 +1,87 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import shipusLogo from '../assets/shipus-logo.png';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
 import NotificationTemplate from '../components/NotificationTemplate.jsx';
 import { getBassoUser } from '../utils.jsx';
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (v) => (v == null || isNaN(v) ? '0' : Number(v).toLocaleString('en-US'));
 const fmtKg = (v) => Number(v || 0).toFixed(2);
 const fmtDate = (d) => (d ? dayjs(d).format('DD/MM/YYYY') : '');
+const fmtDateTime = (d) => (d ? dayjs.utc(d).tz('Asia/Ho_Chi_Minh').format('DD/MM/YYYY HH:mm') : '');
 const initial = (n) => (n || 'A').trim().charAt(0).toUpperCase();
 const todayStr = () => dayjs().format('YYYY-MM-DD');
 const monthStart = () => dayjs().startOf('month').format('YYYY-MM-DD');
+
+const NOTIF_TYPE_LABEL = { arrival: 'Báo hàng về', shipped: 'Báo mã vận đơn' };
+const NOTIF_CHANNEL_LABEL = { zalo: 'Zalo', manual: 'Thủ công' };
+const ZALO_REPORT_TARGET_LABEL = {
+  '': 'Mặc định (Nhóm trước, Cá nhân sau)',
+  group: 'Chỉ báo Nhóm',
+  personal: 'Chỉ báo Cá nhân',
+};
+
+const GUIDE_SECTIONS = [
+  {
+    num: '01', title: 'Hàng về', routeKey: 'hang',
+    features: [
+      'Nhập kho: dán dữ liệu Excel từ đối tác (Tab-separated, 5 cột)',
+      'Trạng thái lô: Chưa báo → Đã báo hàng → Đã báo ship',
+      'Tình trạng TT: Chưa TT · TT 1 phần · Đã TT',
+      '3 thao tác: Báo hàng về · Báo ship · Mã vận đơn',
+      'Bấm "Báo loạt" để báo hàng về hàng loạt theo khoảng ngày',
+    ],
+  },
+  {
+    num: '02', title: 'Khách hàng', routeKey: 'khach',
+    features: [
+      'Badge trạng thái: Active 1m / 2m / 3m / Inactive',
+      'Chạm tên khách → xem tài khoản: lịch sử hàng + sổ giao dịch',
+      'Tạo / sửa / xóa khách, gán nhóm cước',
+      'Mã KH kho US: SU + tên khách (VD: SU Ngalinh)',
+      'Mã KH kho UK: Duonglinh + tên khách (VD: Duonglinh Ngalinh)',
+    ],
+  },
+  {
+    num: '03', title: 'Giao dịch', routeKey: 'tx',
+    features: [
+      'Tổng Thu · Chi · Chênh lệch trong kỳ hiển thị đầu trang',
+      'Giao dịch tự tạo khi nhập kho hoặc ghi nhận thanh toán',
+      'Ghi nhận thanh toán trực tiếp từ thẻ khách trong Hàng về',
+    ],
+  },
+  {
+    num: '04', title: 'Doanh thu VC', routeKey: 'rev',
+    features: [
+      'Bảng doanh thu từng tháng: tổng phí · đã thu · còn phải thu',
+      'Lọc theo tháng, xem chi tiết từng khách trong kỳ',
+    ],
+  },
+  {
+    num: '05', title: 'Lịch sử gửi tin', routeKey: 'notiflog',
+    features: [
+      'Nhật ký gửi tin báo hàng về & báo mã vận đơn cho khách',
+      'Lọc theo loại tin và trạng thái (Thành công / Thất bại)',
+      'Dòng "Đang gửi" tự chuyển trạng thái sau vài giây',
+    ],
+  },
+  {
+    num: '06', title: 'Danh bạ Zalo', routeKey: 'zalocontacts',
+    features: [
+      'Gắn SĐT khách với đúng tên nhóm/tài khoản Zalo',
+      'Dùng khi hệ thống báo "không tìm thấy hội thoại" cho khách đó',
+      'Chọn cách gửi ưu tiên: Nhóm, Cá nhân, hoặc mặc định cả hai',
+    ],
+  },
+];
 
 function groupPaidStatus(statuses) {
   if (!statuses.length) return 'unpaid';
@@ -156,6 +224,21 @@ const IcoTrash = () => (
     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
   </svg>
 );
+const IcoBell = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+  </svg>
+);
+const IcoBookUser = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><circle cx="12" cy="8" r="2"/><path d="M9.5 13a2.5 2.5 0 0 1 5 0"/>
+  </svg>
+);
+const IcoBookOpen = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+  </svg>
+);
 
 const NAV_ITEMS = [
   { key: 'dash',  label: 'Tổng quan',   Icon: IcoHome    },
@@ -163,6 +246,9 @@ const NAV_ITEMS = [
   { key: 'khach', label: 'Khách hàng',  Icon: IcoUsers,  badge: 'customers' },
   { key: 'tx',    label: 'Giao dịch',   Icon: IcoReceipt },
   { key: 'rev',   label: 'Doanh thu VC',Icon: IcoChart   },
+  { key: 'notiflog', label: 'Lịch sử gửi tin', Icon: IcoBell },
+  { key: 'zalocontacts', label: 'Danh bạ Zalo', Icon: IcoBookUser },
+  { key: 'guide', label: 'HDSD',        Icon: IcoBookOpen },
   { key: 'set',   label: 'Cài đặt',     Icon: IcoGear    },
 ];
 
@@ -223,6 +309,20 @@ export default function MobilePWA() {
   const [rowDelId, setRowDelId]             = useState(null);
   const [rowEditModal, setRowEditModal]     = useState(false);
 
+  // Notification log
+  const [notifLogRows, setNotifLogRows]         = useState([]);
+  const [notifLogLoading, setNotifLogLoading]   = useState(false);
+  const [notifLogType, setNotifLogType]         = useState('all');
+  const [notifLogStatus, setNotifLogStatus]     = useState('all');
+  const [notifLogSearch, setNotifLogSearch]     = useState('');
+  const [notifLogExpanded, setNotifLogExpanded] = useState(null);
+
+  // Zalo contacts
+  const [zaloContacts, setZaloContacts]         = useState([]);
+  const [zaloContactsLoading, setZaloContactsLoading] = useState(false);
+  const [zaloContactModal, setZaloContactModal] = useState(null); // { data, isNew }
+  const [zaloContactSaving, setZaloContactSaving] = useState(false);
+
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
   const [customers,   setCustomers]   = useState([]);
@@ -268,6 +368,34 @@ export default function MobilePWA() {
     if (route === 'set' && !settingsData) {
       axios.get('/api/settings').then((r) => setSettingsData(r.data)).catch(() => {});
     }
+  }, [route]);
+
+  async function fetchNotifLog({ silent = false } = {}) {
+    if (!silent) setNotifLogLoading(true);
+    try {
+      const params = {};
+      if (notifLogType !== 'all') params.type = notifLogType;
+      if (notifLogStatus !== 'all') params.status = notifLogStatus;
+      const res = await axios.get('/api/shipments/notification-log', { params });
+      setNotifLogRows(res.data || []);
+    } catch { /* ignore */ }
+    finally { if (!silent) setNotifLogLoading(false); }
+  }
+
+  useEffect(() => {
+    if (route !== 'notiflog') return;
+    fetchNotifLog();
+    const id = setInterval(() => fetchNotifLog({ silent: true }), 5000);
+    return () => clearInterval(id);
+  }, [route, notifLogType, notifLogStatus]);
+
+  useEffect(() => {
+    if (route !== 'zalocontacts') return;
+    setZaloContactsLoading(true);
+    axios.get('/api/settings/zalo-contacts')
+      .then((r) => setZaloContacts(r.data || []))
+      .catch(() => {})
+      .finally(() => setZaloContactsLoading(false));
   }, [route]);
 
   async function fetchShipments() {
@@ -1469,6 +1597,239 @@ export default function MobilePWA() {
     finally { setSettingsSaving(false); }
   }
 
+  async function toggleAutoNotify(field) {
+    const enabled = settingsData?.company?.[field] === 'true';
+    const endpoint = field === 'auto_notify_arrival' ? 'auto-notify-arrival' : 'auto-notify-shipped';
+    try {
+      await axios.post(`/api/settings/${endpoint}`, { enabled: !enabled });
+      setSettingsData((sd) => ({ ...sd, company: { ...sd.company, [field]: (!enabled).toString() } }));
+      showToast(!enabled ? 'Đã bật' : 'Đã tắt');
+    } catch {
+      showToast('Lỗi lưu cấu hình');
+    }
+  }
+
+  async function saveZaloContact() {
+    if (!zaloContactModal || zaloContactSaving) return;
+    const { data, isNew } = zaloContactModal;
+    if (!data.phone.trim()) return;
+    setZaloContactSaving(true);
+    try {
+      if (isNew) {
+        const res = await axios.post('/api/settings/zalo-contacts', data);
+        setZaloContacts((p) => [res.data, ...p]);
+      } else {
+        const res = await axios.put(`/api/settings/zalo-contacts/${data.id}`, data);
+        setZaloContacts((p) => p.map((c) => (c.id === data.id ? res.data : c)));
+      }
+      setZaloContactModal(null);
+      showToast('Đã lưu');
+    } catch {
+      showToast('Lỗi lưu');
+    } finally {
+      setZaloContactSaving(false);
+    }
+  }
+
+  async function deleteZaloContact(id) {
+    try {
+      await axios.delete(`/api/settings/zalo-contacts/${id}`);
+      setZaloContacts((p) => p.filter((c) => c.id !== id));
+      showToast('Đã xóa');
+    } catch {
+      showToast('Lỗi xóa');
+    }
+  }
+
+  function renderNotifLog() {
+    const qn = notifLogSearch.trim().toLowerCase();
+    const display = qn
+      ? notifLogRows.filter((r) =>
+          (r.customer_code || '').toLowerCase().includes(qn) ||
+          (r.customer_name || '').toLowerCase().includes(qn) ||
+          (r.customer_phone || '').toLowerCase().includes(qn) ||
+          (r.message || '').toLowerCase().includes(qn) ||
+          (r.sent_by || '').toLowerCase().includes(qn)
+        )
+      : notifLogRows;
+
+    const TYPE_FILTERS = [
+      { key: 'all', label: 'Tất cả' },
+      { key: 'arrival', label: 'Báo hàng về' },
+      { key: 'shipped', label: 'Báo mã vận đơn' },
+    ];
+    const STATUS_FILTERS = [
+      { key: 'all', label: 'Tất cả' },
+      { key: 'success', label: 'Thành công' },
+      { key: 'failed', label: 'Thất bại' },
+    ];
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 13px', height: 44, borderRadius: 15, background: 'var(--sunk)', border: '1px solid var(--ln2)', color: 'var(--mu)' }}>
+          <IcoSearch />
+          <input
+            value={notifLogSearch} onChange={(e) => setNotifLogSearch(e.target.value)}
+            placeholder="Tìm mã KH, tên khách, nội dung…"
+            style={{ flex: 1, minWidth: 0, background: 'none', border: 0, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', margin: '0 -16px', padding: '0 16px 2px', alignItems: 'center' }}>
+          {TYPE_FILTERS.map((f) => (
+            <Btn key={f.key} onClick={() => setNotifLogType(f.key)} style={{
+              flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 11, fontSize: 11.5, fontWeight: 700, border: 0,
+              background: notifLogType === f.key ? 'var(--brand)' : 'var(--sf2)',
+              color: notifLogType === f.key ? '#fff' : 'var(--mu)',
+            }}>{f.label}</Btn>
+          ))}
+          <div style={{ width: 1, height: 20, background: 'var(--ln)', flexShrink: 0 }} />
+          {STATUS_FILTERS.map((f) => (
+            <Btn key={f.key} onClick={() => setNotifLogStatus(f.key)} style={{
+              flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 11, fontSize: 11.5, fontWeight: 700, border: 0,
+              background: notifLogStatus === f.key ? 'var(--navOn)' : 'var(--sf2)',
+              color: notifLogStatus === f.key ? '#fff' : 'var(--mu)',
+            }}>{f.label}</Btn>
+          ))}
+        </div>
+
+        {notifLogLoading ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--mu)' }}>Đang tải...</div>
+        ) : display.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--mu)' }}>Chưa có tin nào</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {display.map((r) => {
+              const isExpanded = notifLogExpanded === r.id;
+              const statusUI = r.status === 'failed'
+                ? { bg: 'var(--badBg)', color: 'var(--badTx)', label: 'Thất bại' }
+                : r.status === 'sending'
+                ? { bg: 'var(--warnBg)', color: 'var(--warnTx)', label: 'Đang gửi' }
+                : { bg: 'var(--okBg)', color: 'var(--okTx)', label: 'Thành công' };
+              return (
+                <div key={r.id} onClick={() => r.message && setNotifLogExpanded(isExpanded ? null : r.id)} style={{
+                  padding: 13, borderRadius: 17, background: 'var(--sf)', border: '1px solid var(--ln)', cursor: r.message ? 'pointer' : 'default',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {r.customer_name || `#${r.customer_id}`}
+                      </div>
+                      <div style={{ font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--mu)', marginTop: 2 }}>
+                        {r.customer_code ? `${r.customer_code} · ` : ''}{r.customer_phone || '—'}
+                      </div>
+                    </div>
+                    <span style={{ flexShrink: 0, padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: statusUI.bg, color: statusUI.color }}>
+                      {statusUI.label}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
+                    <span style={{ padding: '4px 9px', borderRadius: 10, fontSize: 10.5, fontWeight: 700, background: 'var(--acBg)', color: 'var(--ac)' }}>
+                      {NOTIF_TYPE_LABEL[r.type] || r.type}
+                    </span>
+                    <span style={{ padding: '4px 9px', borderRadius: 10, fontSize: 10.5, fontWeight: 600, background: 'var(--sf2)', color: 'var(--tx2)' }}>
+                      {NOTIF_CHANNEL_LABEL[r.channel] || r.channel}
+                    </span>
+                    <span style={{ padding: '4px 9px', borderRadius: 10, font: '600 10.5px "JetBrains Mono",monospace', background: 'var(--sf2)', color: 'var(--mu)' }}>
+                      {fmtDateTime(r.notified_at)}
+                    </span>
+                  </div>
+                  {r.sent_by && (
+                    <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 7 }}>NV: {r.sent_by}</div>
+                  )}
+                  {r.message && (
+                    <div style={{
+                      fontSize: 11.5, color: 'var(--tx2)', marginTop: 7, lineHeight: 1.55,
+                      whiteSpace: isExpanded ? 'pre-wrap' : 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>
+                      {r.message}
+                    </div>
+                  )}
+                  {r.status === 'failed' && r.error && (
+                    <div style={{ fontSize: 10.5, color: 'var(--badTx)', marginTop: 5 }}>Lỗi: {r.error}</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderZaloContacts() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
+        <div style={{ fontSize: 11.5, color: 'var(--mu)', lineHeight: 1.55 }}>
+          Gắn SĐT khách với đúng tên nhóm/tài khoản Zalo và cách gửi ưu tiên — dùng khi hệ thống báo "không tìm thấy hội thoại".
+        </div>
+        <Btn onClick={() => setZaloContactModal({ data: { phone: '', customer_name: '', zalo_name: '', report_target: '', note: '' }, isNew: true })} style={{
+          height: 42, borderRadius: 14, fontSize: 12.5, fontWeight: 700, color: 'var(--onbtn)', background: 'var(--btn)', border: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        }}>
+          <IcoPlus />Thêm liên hệ
+        </Btn>
+        {zaloContactsLoading ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--mu)' }}>Đang tải...</div>
+        ) : zaloContacts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--mu)' }}>Chưa có liên hệ nào</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {zaloContacts.map((c) => (
+              <div key={c.id} style={{ padding: 13, borderRadius: 17, background: 'var(--sf)', border: '1px solid var(--ln)', display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                    <span style={{ font: '700 12.5px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{c.raw_phone || c.phone}</span>
+                    {c.customer_name && <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>{c.customer_name}</span>}
+                  </div>
+                  {c.zalo_name && <div style={{ fontSize: 11.5, color: 'var(--tx2)', marginTop: 3 }}>{c.zalo_name}</div>}
+                  <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 4 }}>{ZALO_REPORT_TARGET_LABEL[c.report_target || '']}</div>
+                  {c.note && <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 2 }}>{c.note}</div>}
+                </div>
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <Btn onClick={() => setZaloContactModal({ data: { id: c.id, phone: c.raw_phone || c.phone, customer_name: c.customer_name || '', zalo_name: c.zalo_name || '', report_target: c.report_target || '', note: c.note || '' }, isNew: false })} style={{
+                    width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--tx2)',
+                  }}><IcoEdit /></Btn>
+                  <Btn onClick={() => { if (window.confirm('Xóa liên hệ này khỏi danh bạ Zalo?')) deleteZaloContact(c.id); }} style={{
+                    width: 32, height: 32, borderRadius: 10, display: 'grid', placeItems: 'center', background: 'var(--badBg)', border: '1px solid var(--badLn)', color: 'var(--badTx)',
+                  }}><IcoTrash /></Btn>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function renderGuide() {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, animation: 'dcFade 240ms ease both' }}>
+        <div style={{ fontSize: 11.5, color: 'var(--mu)', lineHeight: 1.55 }}>
+          ShipUS — hệ thống quản lý vận chuyển nội địa.
+        </div>
+        {GUIDE_SECTIONS.map((s) => (
+          <div key={s.num} style={{ padding: 15, borderRadius: 18, background: 'var(--sf)', border: '1px solid var(--ln)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ font: '700 10px "JetBrains Mono",monospace', color: 'var(--ac)', opacity: .65 }}>{s.num}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--tx)' }}>{s.title}</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
+              {s.features.map((f, i) => (
+                <div key={i} style={{ display: 'flex', gap: 7, fontSize: 12, color: 'var(--tx2)', lineHeight: 1.5 }}>
+                  <span style={{ color: 'var(--ac)', flexShrink: 0, marginTop: 3, fontSize: 8 }}>◆</span>{f}
+                </div>
+              ))}
+            </div>
+            <Btn onClick={() => nav(s.routeKey)} style={{ marginTop: 12, fontSize: 11.5, fontWeight: 700, color: 'var(--ac)', background: 'none', border: 0, padding: 0 }}>
+              Mở trang →
+            </Btn>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   function renderSet() {
     const sd = settingsData;
     if (!sd) return <div style={{ textAlign: 'center', padding: '24px 0', fontSize: 12, color: 'var(--mu)' }}>Đang tải...</div>;
@@ -1537,6 +1898,42 @@ export default function MobilePWA() {
             ))
           }
         </Section>
+        {/* Tự động báo hàng về qua Zalo */}
+        <div style={{ ...cardStyle, padding: '14px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>Tự động báo hàng về qua Zalo</div>
+            <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 4, lineHeight: 1.5 }}>
+              Tự động quét lô hàng chưa báo (mỗi 5 phút) và gửi Zalo cho khách — chỉ áp dụng cho lô mới phát sinh sau khi bật.
+            </div>
+          </div>
+          <Btn onClick={() => toggleAutoNotify('auto_notify_arrival')} style={{
+            flexShrink: 0, width: 44, height: 26, borderRadius: 999, position: 'relative', border: 0,
+            background: company.auto_notify_arrival === 'true' ? 'var(--ac)' : 'var(--sf2)',
+          }}>
+            <span style={{
+              position: 'absolute', top: 3, width: 16, height: 16, borderRadius: 999, background: '#fff',
+              left: company.auto_notify_arrival === 'true' ? 24 : 4, transition: 'left 150ms ease',
+            }} />
+          </Btn>
+        </div>
+        {/* Tự động báo mã vận đơn qua Zalo */}
+        <div style={{ ...cardStyle, padding: '14px 14px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--tx)' }}>Tự động báo mã vận đơn qua Zalo</div>
+            <div style={{ fontSize: 10.5, color: 'var(--mu)', marginTop: 4, lineHeight: 1.5 }}>
+              Tự động gửi Zalo cho khách sau khi NV lưu mã vận đơn (đợi ~2-3 phút) — chỉ áp dụng cho lô mới phát sinh sau khi bật.
+            </div>
+          </div>
+          <Btn onClick={() => toggleAutoNotify('auto_notify_shipped')} style={{
+            flexShrink: 0, width: 44, height: 26, borderRadius: 999, position: 'relative', border: 0,
+            background: company.auto_notify_shipped === 'true' ? 'var(--ac)' : 'var(--sf2)',
+          }}>
+            <span style={{
+              position: 'absolute', top: 3, width: 16, height: 16, borderRadius: 999, background: '#fff',
+              left: company.auto_notify_shipped === 'true' ? 24 : 4, transition: 'left 150ms ease',
+            }} />
+          </Btn>
+        </div>
       </div>
     );
   }
@@ -1629,6 +2026,9 @@ export default function MobilePWA() {
         {route === 'khach' && renderKhach()}
         {route === 'cust'  && renderCust()}
         {route === 'rev'   && renderRev()}
+        {route === 'notiflog'     && renderNotifLog()}
+        {route === 'zalocontacts' && renderZaloContacts()}
+        {route === 'guide'        && renderGuide()}
         {route === 'set'   && renderSet()}
       </div>
 
@@ -1678,7 +2078,7 @@ export default function MobilePWA() {
             </div>
 
             {/* Nav items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minHeight: 0, overflowY: 'auto' }}>
               {NAV_ITEMS.map(({ key, label, Icon, badge }) => {
                 const isActive = route === key || (key === 'khach' && route === 'cust');
                 const badgeVal = badge === 'shipments' ? batchCustomers.length : badge === 'customers' ? customers.length : null;
@@ -1893,6 +2293,77 @@ export default function MobilePWA() {
             onRendered={handleBulkRendered}
           />
         </div>
+      )}
+
+      {/* ── Zalo Contact Modal ── */}
+      {zaloContactModal && (
+        <>
+          <div onClick={() => setZaloContactModal(null)} style={{ position: 'fixed', zIndex: 20, inset: 0, background: 'rgba(3,10,14,.62)', backdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 21, left: 0, right: 0, bottom: 0, padding: '10px 18px 30px', borderRadius: '28px 28px 0 0', background: 'var(--page-bg)', borderTop: '1px solid var(--ln)', boxShadow: '0 -30px 60px -20px rgba(0,0,0,.7)', animation: 'dcSheet 280ms cubic-bezier(.2,.9,.3,1) both', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'grid', placeItems: 'center', paddingBottom: 14 }}>
+              <span style={{ width: 42, height: 4.5, borderRadius: 5, background: 'var(--ln)' }} />
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>
+              {zaloContactModal.isNew ? 'Thêm liên hệ Zalo' : 'Sửa liên hệ Zalo'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--mu)', marginBottom: 5 }}>Số điện thoại *</label>
+                <input
+                  value={zaloContactModal.data.phone}
+                  onChange={(e) => setZaloContactModal((m) => ({ ...m, data: { ...m.data, phone: e.target.value } }))}
+                  placeholder="0917134252"
+                  style={{ width: '100%', height: 44, borderRadius: 13, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13.5, padding: '0 14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--mu)', marginBottom: 5 }}>Tên khách</label>
+                <input
+                  value={zaloContactModal.data.customer_name}
+                  onChange={(e) => setZaloContactModal((m) => ({ ...m, data: { ...m.data, customer_name: e.target.value } }))}
+                  placeholder="Để phân biệt các liên hệ"
+                  style={{ width: '100%', height: 44, borderRadius: 13, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13.5, padding: '0 14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--mu)', marginBottom: 5 }}>Tên nhóm/tài khoản Zalo</label>
+                <input
+                  value={zaloContactModal.data.zalo_name}
+                  onChange={(e) => setZaloContactModal((m) => ({ ...m, data: { ...m.data, zalo_name: e.target.value } }))}
+                  placeholder="Tên hiển thị đúng như trên Zalo"
+                  style={{ width: '100%', height: 44, borderRadius: 13, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13.5, padding: '0 14px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--mu)', marginBottom: 5 }}>Cách gửi</label>
+                <select
+                  value={zaloContactModal.data.report_target}
+                  onChange={(e) => setZaloContactModal((m) => ({ ...m, data: { ...m.data, report_target: e.target.value } }))}
+                  style={{ width: '100%', height: 44, borderRadius: 13, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13, padding: '0 14px', boxSizing: 'border-box' }}
+                >
+                  {Object.entries(ZALO_REPORT_TARGET_LABEL).map(([v, label]) => (
+                    <option key={v} value={v}>{label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--mu)', marginBottom: 5 }}>Ghi chú</label>
+                <input
+                  value={zaloContactModal.data.note}
+                  onChange={(e) => setZaloContactModal((m) => ({ ...m, data: { ...m.data, note: e.target.value } }))}
+                  placeholder="Tùy chọn"
+                  style={{ width: '100%', height: 44, borderRadius: 13, border: '1px solid var(--ln)', background: 'var(--sunk)', color: 'var(--tx)', fontSize: 13.5, padding: '0 14px', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 9, marginTop: 16 }}>
+              <Btn onClick={() => setZaloContactModal(null)} style={{ flexShrink: 0, padding: '0 20px', height: 48, borderRadius: 15, fontSize: 13, fontWeight: 700, color: 'var(--tx2)', background: 'var(--sf2)', border: '1px solid var(--ln)' }}>Hủy</Btn>
+              <Btn onClick={saveZaloContact} style={{ flex: 1, height: 48, borderRadius: 15, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: zaloContactSaving ? 'var(--mu)' : 'var(--btn)', border: 0 }}>
+                {zaloContactSaving ? 'Đang lưu...' : 'Lưu'}
+              </Btn>
+            </div>
+          </div>
+        </>
       )}
 
       {/* ── Row VanDon Modal (per-parcel van don) ── */}
