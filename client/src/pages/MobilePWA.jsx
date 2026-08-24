@@ -323,7 +323,7 @@ export default function MobilePWA() {
   const [zaloContactSaving, setZaloContactSaving] = useState(false);
 
   // Customer edit modal
-  const [custEditModal, setCustEditModal] = useState(null); // { name, phone, rate_id, saving }
+  const [custEditModal, setCustEditModal] = useState(null); // { name, phone, address, warehouse, code_us, code_uk, rate_id, notes, saving }
   const [custEditRates, setCustEditRates] = useState([]);
 
   // ── Data ─────────────────────────────────────────────────────────────────
@@ -2006,7 +2006,17 @@ export default function MobilePWA() {
                         setCustEditRates(rates);
                       } catch { rates = []; }
                     }
-                    setCustEditModal({ name: custDetail.name || '', phone: custDetail.phone || '', rate_id: custDetail.rate_id || '', saving: false });
+                    setCustEditModal({
+                      name: custDetail.name || '',
+                      phone: custDetail.phone || '',
+                      address: custDetail.address || '',
+                      warehouse: custDetail.warehouse || '',
+                      code_us: custDetail.code_us || '',
+                      code_uk: custDetail.code_uk || '',
+                      rate_id: custDetail.rate_id || '',
+                      notes: custDetail.notes || '',
+                      saving: false,
+                    });
                   }}
                 >
                   <IcoEdit />
@@ -2500,22 +2510,50 @@ export default function MobilePWA() {
             </div>
             {(() => {
               const inputStyle = { width: '100%', background: 'var(--sunk)', border: '1px solid var(--ln)', borderRadius: 10, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '10px 12px', boxSizing: 'border-box' };
+              const labelStyle = { fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'var(--mu)', marginBottom: 4, display: 'block' };
               const set = (field, val) => setCustEditModal(m => ({ ...m, [field]: val }));
+              const hasUS = (custEditModal.warehouse || '').includes('US');
+              const hasUK = (custEditModal.warehouse || '').includes('UK');
+              const toggleWh = (wh) => {
+                const curUS = (custEditModal.warehouse || '').includes('US');
+                const curUK = (custEditModal.warehouse || '').includes('UK');
+                let next;
+                if (wh === 'US') {
+                  const newUS = !curUS;
+                  if (newUS && curUK) next = 'US UK';
+                  else if (newUS) next = 'US';
+                  else if (curUK) next = 'UK';
+                  else next = '';
+                } else {
+                  const newUK = !curUK;
+                  if (newUK && curUS) next = 'US UK';
+                  else if (newUK) next = 'UK';
+                  else if (curUS) next = 'US';
+                  else next = '';
+                }
+                set('warehouse', next);
+              };
+              const leRate = custEditRates.find(r => r.name === 'Khách lẻ');
+              const buonRate = custEditRates.find(r => r.name === 'Khách buôn');
+              const groupRates = [leRate, buonRate].filter(Boolean);
+              const otherRates = custEditRates.filter(r => r.name !== 'Khách lẻ' && r.name !== 'Khách buôn');
               const handleSave = async () => {
                 if (!custEditModal.name.trim()) return;
+                if (hasUS && !custEditModal.code_us.trim()) { showToast('Vui lòng điền Mã KH kho US'); return; }
+                if (hasUK && !custEditModal.code_uk.trim()) { showToast('Vui lòng điền Mã KH kho UK'); return; }
                 setCustEditModal(m => ({ ...m, saving: true }));
                 try {
                   await axios.put(`/api/customers/${custDetail.id}`, {
-                    code_us: custDetail.code_us || custDetail.code || '',
-                    code_uk: custDetail.code_uk || '',
+                    code_us: custEditModal.code_us.trim(),
+                    code_uk: custEditModal.code_uk.trim(),
                     name: custEditModal.name.trim(),
                     phone: custEditModal.phone || null,
                     email: custDetail.email || null,
-                    address: custDetail.address || null,
+                    address: custEditModal.address || null,
                     channel: custDetail.channel || null,
-                    notes: custDetail.notes || null,
+                    notes: custEditModal.notes || null,
                     rate_id: custEditModal.rate_id || null,
-                    warehouse: custDetail.warehouse || null,
+                    warehouse: custEditModal.warehouse || null,
                     sale_username: custDetail.sale_username || null,
                     sale_name: custDetail.sale_name || null,
                   });
@@ -2529,16 +2567,65 @@ export default function MobilePWA() {
               };
               return (
                 <>
-                  <input style={inputStyle} placeholder="Tên khách *" value={custEditModal.name} onChange={e => set('name', e.target.value)} />
-                  <input style={inputStyle} placeholder="Số điện thoại" value={custEditModal.phone} onChange={e => set('phone', e.target.value)} />
+                  <div><label style={labelStyle}>Họ tên *</label>
+                    <input style={inputStyle} placeholder="Nguyễn Văn A" value={custEditModal.name} onChange={e => set('name', e.target.value)} />
+                  </div>
+                  <div><label style={labelStyle}>Số điện thoại</label>
+                    <input style={inputStyle} placeholder="0912 345 678" value={custEditModal.phone} onChange={e => set('phone', e.target.value)} />
+                  </div>
+                  <div><label style={labelStyle}>Địa chỉ</label>
+                    <input style={inputStyle} placeholder="123 Đường ABC, Quận 1, TP.HCM" value={custEditModal.address} onChange={e => set('address', e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Kho *</label>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: (hasUS || hasUK) ? 8 : 0 }}>
+                      {['US', 'UK'].map(wh => {
+                        const active = wh === 'US' ? hasUS : hasUK;
+                        return (
+                          <button key={wh} type="button" onClick={() => toggleWh(wh)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: `1.5px solid ${active ? 'var(--ac)' : 'var(--ln)'}`, background: active ? 'var(--acBg)' : 'var(--sf2)', color: active ? 'var(--ac)' : 'var(--tx2)', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                            <span style={{ width: 14, height: 14, borderRadius: 3, border: `2px solid ${active ? 'var(--ac)' : 'var(--mu)'}`, background: active ? 'var(--ac)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {active && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            </span>
+                            {wh}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {hasUS && <div style={{ marginBottom: 8 }}><label style={{ ...labelStyle, marginTop: 2 }}>Mã KH kho US *</label>
+                      <input style={inputStyle} placeholder="VD: KH001" value={custEditModal.code_us} onChange={e => set('code_us', e.target.value)} />
+                    </div>}
+                    {hasUK && <div><label style={{ ...labelStyle, marginTop: 2 }}>Mã KH kho UK *</label>
+                      <input style={inputStyle} placeholder="VD: KH001" value={custEditModal.code_uk} onChange={e => set('code_uk', e.target.value)} />
+                    </div>}
+                  </div>
                   {custEditRates.length > 0 && (
-                    <select style={{ ...inputStyle, appearance: 'none' }} value={custEditModal.rate_id} onChange={e => set('rate_id', e.target.value)}>
-                      <option value="">-- Chọn biểu phí --</option>
-                      {custEditRates.map(r => (
-                        <option key={r.id} value={r.id}>{r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')}đ/kg)</option>
-                      ))}
-                    </select>
+                    <div>
+                      <label style={labelStyle}>Nhóm KH</label>
+                      {groupRates.length > 0 && (
+                        <div style={{ display: 'flex', gap: 8, marginBottom: otherRates.length > 0 ? 8 : 0 }}>
+                          {groupRates.map(r => {
+                            const active = String(custEditModal.rate_id) === String(r.id);
+                            return (
+                              <button key={r.id} type="button" onClick={() => set('rate_id', String(r.id))} style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: `1.5px solid ${active ? 'var(--ac)' : 'var(--ln)'}`, background: active ? 'var(--acBg)' : 'var(--sf2)', color: active ? 'var(--ac)' : 'var(--tx2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                                {r.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      {otherRates.length > 0 && (
+                        <select style={{ ...inputStyle, appearance: 'none' }} value={custEditModal.rate_id} onChange={e => set('rate_id', e.target.value)}>
+                          <option value="">-- Biểu phí khác --</option>
+                          {otherRates.map(r => (
+                            <option key={r.id} value={r.id}>{r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')}đ/kg)</option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
                   )}
+                  <div><label style={labelStyle}>Ghi chú</label>
+                    <textarea style={{ ...inputStyle, resize: 'none', minHeight: 72 }} placeholder="Ghi chú về khách hàng..." value={custEditModal.notes} onChange={e => set('notes', e.target.value)} />
+                  </div>
                   <Btn onClick={handleSave} disabled={custEditModal.saving} style={{ height: 44, borderRadius: 13, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: custEditModal.saving ? 'var(--mu)' : 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {custEditModal.saving ? 'Đang lưu...' : 'Lưu'}
                   </Btn>
