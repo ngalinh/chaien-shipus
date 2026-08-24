@@ -409,6 +409,7 @@ export default function Shipping() {
         if (statusFilter !== 'all' && batchStatus !== statusFilter) continue;
         const paidAmt = rows[0]?.paid_amount || 0;
         const remAmt = rows[0]?.remaining_amount || 0;
+        const batchWeight = rows.reduce((a, s) => a + (s.weight || 0), 0);
         customers.push({
           custId,
           warehouseId: rows[0].warehouse_id ?? null,
@@ -421,8 +422,8 @@ export default function Shipping() {
           vanDonCode: rows[0]?.van_don_code || '',
           rows,
           count: rows.length,
-          totalWeight: rows.reduce((a, s) => a + (s.weight || 0), 0),
-          totalFee: paidAmt + remAmt || rows.reduce((a, s) => a + (s.weight || 0) * (s.customer_rate || 0) + (s.surcharge || 0), 0),
+          totalWeight: batchWeight,
+          totalFee: paidAmt + remAmt || Math.round(Math.max(0.5, batchWeight) * (rows[0]?.customer_rate || 0) + rows.reduce((a, s) => a + (s.surcharge || 0), 0)),
           paidStatus,
           paidAmount: paidAmt,
           remainingAmount: remAmt,

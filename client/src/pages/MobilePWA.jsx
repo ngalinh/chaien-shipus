@@ -466,12 +466,12 @@ export default function MobilePWA() {
       if (!map[cid]) {
         map[cid] = {
           id: cid, name: s.customer_name, code: s.customer_code,
-          kg: 0, fee: 0, rate: s.customer_rate, parcels: [],
+          kg: 0, _surcharge: 0, rate: s.customer_rate, parcels: [],
           paidStatuses: [], notifyStatus: s.batch_status || '', van_don_code: '',
         };
       }
-      map[cid].kg  += s.weight;
-      map[cid].fee += s.phi_vc || (s.weight * s.customer_rate + s.surcharge);
+      map[cid].kg         += s.weight;
+      map[cid]._surcharge += (s.surcharge || 0);
       map[cid].paidStatuses.push(s.paid_status || 'unpaid');
       if (s.batch_status) map[cid].notifyStatus = s.batch_status;
       if (s.van_don_code) map[cid].van_don_code = s.van_don_code;
@@ -481,7 +481,7 @@ export default function MobilePWA() {
       ...c,
       dateKey: batchDate,
       kg: Math.round(c.kg * 100) / 100,
-      fee: Math.round(c.fee),
+      fee: Math.round(Math.max(0.5, c.kg) * (c.rate || 0) + c._surcharge),
       paidStatus: groupPaidStatus(c.paidStatuses),
     })).sort((a, b) => b.fee - a.fee);
   }, [batchRows]);
@@ -539,14 +539,13 @@ export default function MobilePWA() {
       if (!custMap.has(cid)) {
         custMap.set(cid, {
           id: cid, name: s.customer_name, code: s.customer_code, dateKey: s.import_date,
-          kg: 0, fee: 0, rate: s.customer_rate, parcels: [],
+          kg: 0, _surcharge: 0, rate: s.customer_rate, parcels: [],
           paidStatuses: [], notifyStatus: s.batch_status || '', van_don_code: '',
         });
       }
       const c = custMap.get(cid);
-      const w = parseFloat(s.weight) > 0 ? Math.max(0.5, parseFloat(s.weight)) : 0;
-      c.kg  += w;
-      c.fee += parseFloat(s.phi_vc) || (w * (s.customer_rate || 0) + (s.surcharge || 0));
+      c.kg         += parseFloat(s.weight) || 0;
+      c._surcharge += s.surcharge || 0;
       c.paidStatuses.push(s.paid_status || 'unpaid');
       if (s.batch_status) c.notifyStatus = s.batch_status;
       if (s.van_don_code) c.van_don_code = s.van_don_code;
@@ -557,7 +556,7 @@ export default function MobilePWA() {
       let customers = [...custMap.values()].map((c) => ({
         ...c,
         kg: Math.round(c.kg * 100) / 100,
-        fee: Math.round(c.fee),
+        fee: Math.round(Math.max(0.5, c.kg) * (c.rate || 0) + (c._surcharge || 0)),
         paidStatus: groupPaidStatus(c.paidStatuses),
       }));
       if (payFilter === 'none') customers = customers.filter((c) => c.paidStatus === 'unpaid');
