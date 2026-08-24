@@ -86,10 +86,11 @@ export default function NotificationTemplate({
   );
   // Min 0.5kg áp dụng cho tổng batch, không phải từng kiện
   const displayTotalWeight = Math.max(0.5, totalWeight);
-  // Phí tổng theo min weight (scale khi totalWeight < 0.5, giả sử surcharge ≈ 0)
-  const displayTotalFee = totalWeight > 0 && totalWeight < 0.5
-    ? Math.round(totalFee * 0.5 / totalWeight)
-    : totalFee;
+  // Hệ số scale khi tổng cân < 0.5kg (ví dụ 0.1kg → scale = 5x)
+  const feeScale = totalWeight > 0 && totalWeight < 0.5 ? 0.5 / totalWeight : 1;
+  const displayTotalFee = feeScale !== 1 ? Math.round(totalFee * feeScale) : totalFee;
+  // Scale per-row fee theo cùng hệ số để tổng hàng con = tổng hàng cuối
+  const displayItemFee = (fee) => feeScale !== 1 ? Math.round((parseFloat(fee) || 0) * feeScale) : (parseFloat(fee) || 0);
 
   // QR VietQR: chỉ tạo khi map được mã ngân hàng. Nội dung CK = tên khách (bỏ dấu).
   const bankCode = bank ? vietqrBankCode(bank.bank_name) : null;
@@ -307,7 +308,7 @@ export default function NotificationTemplate({
                 {item.weight ? Number(item.weight).toFixed(2) : '–'}
               </div>
               <div data-nudge="7" style={{ fontSize: 15.5, fontWeight: 700, color: '#1c7ea3' }}>
-                {item.customer_fee ? fmtMoney(item.customer_fee) : '–'}
+                {item.customer_fee ? fmtMoney(displayItemFee(item.customer_fee)) : '–'}
               </div>
             </div>
           ))}
