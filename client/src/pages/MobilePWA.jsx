@@ -322,6 +322,10 @@ export default function MobilePWA() {
   const [zaloContactModal, setZaloContactModal] = useState(null); // { data, isNew }
   const [zaloContactSaving, setZaloContactSaving] = useState(false);
 
+  // Customer edit modal
+  const [custEditModal, setCustEditModal] = useState(null); // { name, phone, rate_id, saving }
+  const [custEditRates, setCustEditRates] = useState([]);
+
   // ── Data ─────────────────────────────────────────────────────────────────
   const [shipments,   setShipments]   = useState([]);
   const [customers,   setCustomers]   = useState([]);
@@ -1990,11 +1994,22 @@ export default function MobilePWA() {
           <div style={{ flexShrink: 0, display: 'flex', gap: 8 }}>
             {isCust ? (
               <>
-                <Btn style={{ width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)' }}>
-                  <IcoPhone />
-                </Btn>
-                <Btn style={{ width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--tx2)' }}>
-                  <IcoZalo />
+                <Btn
+                  style={{ width: 38, height: 38, borderRadius: 13, display: 'grid', placeItems: 'center', background: 'var(--acBg)', border: '1px solid var(--acLn)', color: 'var(--ac)' }}
+                  onClick={async () => {
+                    if (!custDetail) return;
+                    let rates = custEditRates;
+                    if (!rates.length) {
+                      try {
+                        const sd = settingsData || (await axios.get('/api/settings').then(r => { setSettingsData(r.data); return r.data; }));
+                        rates = sd.rates || [];
+                        setCustEditRates(rates);
+                      } catch { rates = []; }
+                    }
+                    setCustEditModal({ name: custDetail.name || '', phone: custDetail.phone || '', rate_id: custDetail.rate_id || '', saving: false });
+                  }}
+                >
+                  <IcoEdit />
                 </Btn>
               </>
             ) : (
@@ -2473,6 +2488,66 @@ export default function MobilePWA() {
           </>
         );
       })()}
+
+      {/* ── Customer edit modal ── */}
+      {custEditModal && custDetail && (
+        <>
+          <div onClick={() => setCustEditModal(null)} style={{ position: 'fixed', zIndex: 30, inset: 0, background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', animation: 'dcFade 200ms ease both' }} />
+          <div style={{ position: 'fixed', zIndex: 31, left: 0, right: 0, bottom: 0, background: 'var(--sf)', borderRadius: '20px 20px 0 0', padding: '20px 18px', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)', display: 'flex', flexDirection: 'column', gap: 10, animation: 'dcSheet 240ms ease both', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)' }}>Sửa thông tin khách</div>
+              <Btn onClick={() => setCustEditModal(null)} style={{ width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--sf2)', border: '1px solid var(--ln)', color: 'var(--mu)' }}><IcoX /></Btn>
+            </div>
+            {(() => {
+              const inputStyle = { width: '100%', background: 'var(--sunk)', border: '1px solid var(--ln)', borderRadius: 10, color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', padding: '10px 12px', boxSizing: 'border-box' };
+              const set = (field, val) => setCustEditModal(m => ({ ...m, [field]: val }));
+              const handleSave = async () => {
+                if (!custEditModal.name.trim()) return;
+                setCustEditModal(m => ({ ...m, saving: true }));
+                try {
+                  await axios.put(`/api/customers/${custDetail.id}`, {
+                    code_us: custDetail.code_us || custDetail.code || '',
+                    code_uk: custDetail.code_uk || '',
+                    name: custEditModal.name.trim(),
+                    phone: custEditModal.phone || null,
+                    email: custDetail.email || null,
+                    address: custDetail.address || null,
+                    channel: custDetail.channel || null,
+                    notes: custDetail.notes || null,
+                    rate_id: custEditModal.rate_id || null,
+                    warehouse: custDetail.warehouse || null,
+                    sale_username: custDetail.sale_username || null,
+                    sale_name: custDetail.sale_name || null,
+                  });
+                  setCustEditModal(null);
+                  await loadCustDetail(custDetail.id);
+                  showToast('Đã lưu thông tin khách');
+                } catch {
+                  setCustEditModal(m => ({ ...m, saving: false }));
+                  showToast('Lưu thất bại');
+                }
+              };
+              return (
+                <>
+                  <input style={inputStyle} placeholder="Tên khách *" value={custEditModal.name} onChange={e => set('name', e.target.value)} />
+                  <input style={inputStyle} placeholder="Số điện thoại" value={custEditModal.phone} onChange={e => set('phone', e.target.value)} />
+                  {custEditRates.length > 0 && (
+                    <select style={{ ...inputStyle, appearance: 'none' }} value={custEditModal.rate_id} onChange={e => set('rate_id', e.target.value)}>
+                      <option value="">-- Chọn biểu phí --</option>
+                      {custEditRates.map(r => (
+                        <option key={r.id} value={r.id}>{r.name} ({Number(r.rate_per_kg).toLocaleString('en-US')}đ/kg)</option>
+                      ))}
+                    </select>
+                  )}
+                  <Btn onClick={handleSave} disabled={custEditModal.saving} style={{ height: 44, borderRadius: 13, fontSize: 13.5, fontWeight: 700, color: 'var(--onbtn)', background: custEditModal.saving ? 'var(--mu)' : 'var(--btn)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {custEditModal.saving ? 'Đang lưu...' : 'Lưu'}
+                  </Btn>
+                </>
+              );
+            })()}
+          </div>
+        </>
+      )}
 
       {/* ── Toast ── */}
       {toastMsg && (
