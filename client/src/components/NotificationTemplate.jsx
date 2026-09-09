@@ -1,3 +1,4 @@
+import { feeTotals } from '../feeTotals.js';
 import { useRef, useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { formatDate, todayInputValue } from '../utils.jsx';
@@ -84,12 +85,9 @@ export default function NotificationTemplate({
     }),
     { totalWeight: 0, totalFee: 0 }
   );
-  // Min 0.5kg áp dụng cho tổng batch, không phải từng kiện
-  const displayTotalWeight = Math.max(0.5, totalWeight);
-  // Phí tổng theo min weight (scale khi totalWeight < 0.5, giả sử surcharge ≈ 0)
-  const displayTotalFee = totalWeight > 0 && totalWeight < 0.5
-    ? Math.round(totalFee * 0.5 / totalWeight)
-    : totalFee;
+  const batchTotals = feeTotals(items);
+  const displayTotalWeight = batchTotals?.weight ?? totalWeight;
+  const displayTotalFee = batchTotals?.fee ?? totalFee;
 
   // QR VietQR: chỉ tạo khi map được mã ngân hàng. Nội dung CK = tên khách (bỏ dấu).
   const bankCode = bank ? vietqrBankCode(bank.bank_name) : null;
@@ -337,6 +335,8 @@ export default function NotificationTemplate({
               Vui lòng thanh toán phí vận chuyển trước khi nhận hàng.
             </div>
           </div>
+          {batchTotals?.waived && <div style={{ fontSize: 12 }}>Đã bỏ min cho lô được điều chỉnh</div>}
+          {batchTotals?.discount > 0 && <div style={{ fontSize: 12 }}>Giảm giá: −{fmtMoney(batchTotals.discount)}</div>}
           <div style={{ fontSize: 29, fontWeight: 800, color: '#0f2e42', whiteSpace: 'nowrap' }}>{fmtMoney(displayTotalFee)}</div>
         </div>
 

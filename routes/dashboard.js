@@ -62,7 +62,7 @@ router.get('/', (req, res) => {
     // ── 1. Total customers with shipments in period ────────────────────────
     const totalCustomersRow = db.prepare(`
       SELECT COUNT(DISTINCT customer_id) AS total_customers
-      FROM shipments
+      FROM shipments_with_fees
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
 
@@ -76,7 +76,7 @@ router.get('/', (req, res) => {
     // ── 3. Total weight shipped in period ─────────────────────────────────
     const weightRow = db.prepare(`
       SELECT COALESCE(SUM(weight), 0) AS total_weight
-      FROM shipments
+      FROM shipments_with_fees
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
 
@@ -84,8 +84,8 @@ router.get('/', (req, res) => {
     //       nhập trong mục Giao dịch — bảng partner_payments, KHÔNG tính theo cước
     //       đối tác trên từng kiện nữa). Lợi nhuận gộp = khách trả − trả đối tác.
     const vcCustomerRow = db.prepare(`
-      SELECT ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2) AS total_vc_fee_customer
-      FROM shipments
+      SELECT ROUND(COALESCE(SUM(billed_fee), 0), 2) AS total_vc_fee_customer
+      FROM shipments_with_fees
       WHERE import_date >= ? AND import_date <= ?
     `).get(startDate, endDate);
 
@@ -127,10 +127,10 @@ router.get('/', (req, res) => {
         COUNT(DISTINCT customer_id)                                        AS active_customers,
         COUNT(*)                                                           AS shipment_count,
         ROUND(COALESCE(SUM(weight), 0), 2)                                 AS total_weight,
-        ROUND(COALESCE(SUM(weight * customer_rate + surcharge), 0), 2)     AS total_vc_fee_customer,
+        ROUND(COALESCE(SUM(billed_fee), 0), 2)     AS total_vc_fee_customer,
         ROUND(COALESCE(SUM(weight * partner_rate),               0), 2)     AS total_vc_fee_partner,
-        ROUND(COALESCE(SUM(weight * customer_rate + surcharge - weight * partner_rate), 0), 2) AS gross_margin
-      FROM shipments
+        ROUND(COALESCE(SUM(billed_fee - weight * partner_rate), 0), 2) AS gross_margin
+      FROM shipments_with_fees
       WHERE import_date >= ? AND import_date <= ?
       GROUP BY strftime('%Y-%m', import_date)
       ORDER BY month ASC
@@ -153,8 +153,8 @@ router.get('/', (req, res) => {
     const dailyRaw = db.prepare(`
       SELECT
         CAST(strftime('%d', import_date) AS INTEGER)                           AS day,
-        ROUND(COALESCE(SUM(weight * customer_rate + surcharge - weight * partner_rate), 0), 2) AS gross_margin
-      FROM shipments
+        ROUND(COALESCE(SUM(billed_fee - weight * partner_rate), 0), 2) AS gross_margin
+      FROM shipments_with_fees
       WHERE import_date >= ? AND import_date <= ?
       GROUP BY strftime('%d', import_date)
       ORDER BY day ASC
@@ -167,9 +167,9 @@ router.get('/', (req, res) => {
         c.code                                                          AS customer_code,
         c.name                                                          AS customer_name,
         ROUND(SUM(s.weight), 2)                                         AS total_weight,
-        ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)         AS total_vc_fee,
+        ROUND(SUM(s.billed_fee), 2)         AS total_vc_fee,
         COUNT(s.id)                                                     AS shipment_count
-      FROM shipments s
+      FROM shipments_with_fees s
       LEFT JOIN customers c ON c.id = s.customer_id
       WHERE s.import_date >= ? AND s.import_date <= ?
       GROUP BY s.customer_id
@@ -186,7 +186,7 @@ router.get('/', (req, res) => {
         ROUND(SUM(s.weight), 2)                                         AS total_weight,
         ROUND(SUM(s.weight * s.partner_rate), 2)                         AS total_partner_fee,
         COUNT(s.id)                                                     AS shipment_count
-      FROM shipments s
+      FROM shipments_with_fees s
       LEFT JOIN partner_warehouses pw ON pw.id = s.warehouse_id
       WHERE s.import_date >= ? AND s.import_date <= ?
       GROUP BY s.warehouse_id
@@ -242,8 +242,8 @@ router.get('/vc-revenue', (req, res) => {
         c.sale_username,
         c.sale_name,
         ROUND(SUM(s.weight), 2)                                  AS total_weight,
-        ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)  AS total_vc_fee
-      FROM shipments s
+        ROUND(SUM(s.billed_fee), 2)  AS total_vc_fee
+      FROM shipments_with_fees s
       JOIN customers c ON c.id = s.customer_id
       WHERE strftime('%Y-%m', s.import_date) = ? ${saleFilter}
       GROUP BY c.id
@@ -263,8 +263,8 @@ router.get('/vc-revenue', (req, res) => {
         c.sale_name,
         COUNT(DISTINCT c.id)                                     AS customer_count,
         ROUND(SUM(s.weight), 2)                                  AS total_weight,
-        ROUND(SUM(s.weight * s.customer_rate + s.surcharge), 2)  AS total_vc_fee
-      FROM shipments s
+        ROUND(SUM(s.billed_fee), 2)  AS total_vc_fee
+      FROM shipments_with_fees s
       JOIN customers c ON c.id = s.customer_id
       WHERE strftime('%Y-%m', s.import_date) = ? ${saleFilter}
       GROUP BY c.sale_username
