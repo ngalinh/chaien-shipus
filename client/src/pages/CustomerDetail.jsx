@@ -12,6 +12,7 @@ import { toast } from '../components/Toast.jsx';
 import PaymentModal from '../components/PaymentModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
 import CustomerModal from '../components/CustomerModal.jsx';
+import FeeAdjustmentModal, { FeeEditLink } from '../components/FeeAdjustmentModal.jsx';
 
 export default function CustomerDetail() {
   const { id } = useParams();
@@ -24,7 +25,8 @@ export default function CustomerDetail() {
   const [batches, setBatches] = useState([]);
   const [batchesLoading, setBatchesLoading] = useState(false);
   const [expandedBatch, setExpandedBatch] = useState(null);
-  const [selectedItems, setSelectedItems] = useState({});
+  const [feeGroup, setFeeGroup] = useState(null);
+  const [feeChoices, setFeeChoices] = useState(null);
 
   // Giao dịch tab state
   const [txData, setTxData] = useState(null);
@@ -124,41 +126,23 @@ export default function CustomerDetail() {
     setExpandedBatch((prev) => (prev === batchKey ? null : batchKey));
   }
 
-  function toggleItem(batchKey, shipId) {
-    setSelectedItems((prev) => {
-      const batchSel = new Set(prev[batchKey] || []);
-      if (batchSel.has(shipId)) batchSel.delete(shipId);
-      else batchSel.add(shipId);
-      return { ...prev, [batchKey]: batchSel };
-    });
+  function editBatchFee(batch) {
+    const groups = [...new Map((batch.details || []).map(s => [s.warehouse_id ?? 'none', {
+      ...s, customer_id: batch.customer_id, customer_name: customer.name, import_date: batch.batch_date,
+    }])).values()];
+    if (groups.length === 1) setFeeGroup(groups[0]);
+    else if (groups.length > 1) setFeeChoices(groups);
   }
 
-  function toggleAllItems(batchKey, details) {
-    setSelectedItems((prev) => {
-      const batchSel = prev[batchKey] || new Set();
-      const allSelected = details.every((s) => batchSel.has(s.id));
-      return {
-        ...prev,
-        [batchKey]: allSelected ? new Set() : new Set(details.map((s) => s.id)),
-      };
-    });
+  async function refreshFees() {
+    await Promise.all([fetchCustomer(), fetchBatches(), fetchTransactions()]);
   }
 
   function generateNotification(batch) {
     const batchKey = `${batch.customer_id}-${batch.batch_date}`;
-    const sel = selectedItems[batchKey] || new Set();
-    let details = batch.details || [];
-    if (sel.size > 0) {
-      details = details.filter((s) => sel.has(s.id));
-    }
+    const details = batch.details || [];
     if (details.length === 0) {
-      toast('Chọn ít nhất một kiện hàng hoặc không có kiện trong lô này', 'warning');
-      return;
-    }
-    // A fee exception belongs to the complete warehouse group, not individual parcels.
-    const selectedGroups = new Set(details.map(s => s.batch_fee_key).filter(Boolean));
-    if ((batch.details || []).some(s => selectedGroups.has(s.batch_fee_key) && !details.some(d => d.id === s.id))) {
-      toast('Vui lòng chọn đủ kiện cùng ngày và kho để phí trên thông báo khớp công nợ', 'warning');
+      toast('Không có kiện trong lô này', 'warning');
       return;
     }
     setNotifData({
@@ -170,7 +154,7 @@ export default function CustomerDetail() {
         tracking_no: s.tracking_no,
         product: s.product,
         weight: s.weight,
-        customer_fee: s.phi_vc || (s.weight * s.customer_rate + s.surcharge),
+        customer_fee: s.phi_vc ?? (s.weight * s.customer_rate + s.surcharge),
       })),
       fileName: `phieu-bao-hang-ve-${customer.code}-${batch.batch_date}.png`,
     });
@@ -350,9 +334,7 @@ export default function CustomerDetail() {
                   {batches.map((batch) => {
                     const bKey = `${batch.customer_id}-${batch.batch_date}`;
                     const isOpen = expandedBatch === bKey;
-                    const sel = selectedItems[bKey] || new Set();
                     const details = batch.details || [];
-                    const allSel = details.length > 0 && details.every((s) => sel.has(s.id));
 
                     return [
                       <tr
@@ -369,7 +351,10 @@ export default function CustomerDetail() {
                         <td>{batch.tracking_count}</td>
                         <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
                         <td>{formatCurrency(batch.total_surcharge)}</td>
-                        <td style={{ fontWeight: 600, color: 'var(--ac)' }}>{formatCurrency(batch.total_vc_fee)}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--ac)' }}>
+                          {formatCurrency(batch.total_vc_fee)}
+                          {getUserRole() !== 'staff' && details.length > 0 && <FeeEditLink onClick={() => editBatchFee(batch)} />}
+                        </td>
                         <td onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1 flex-wrap">
                             <button
@@ -402,14 +387,6 @@ export default function CustomerDetail() {
                               <table style={{ minWidth: 640, width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
                                 <thead>
                                   <tr style={{ background: 'var(--sf)' }}>
-                                    <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600, width: 32 }}>
-                                      <input
-                                        type="checkbox"
-                                        checked={allSel}
-                                        onChange={() => toggleAllItems(bKey, details)}
-                                        className="rounded"
-                                      />
-                                    </th>
                                     <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600, width: 32 }}>STT</th>
                                     <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Tracking #</th>
                                     <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, color: 'var(--mu)', fontWeight: 600 }}>Sản phẩm</th>
@@ -421,19 +398,11 @@ export default function CustomerDetail() {
                                 </thead>
                                 <tbody>
                                   {details.map((s, idx) => {
-                                    const vcFee = s.phi_vc || (s.weight * s.customer_rate + s.surcharge);
+                                    const vcFee = s.phi_vc ?? (s.weight * s.customer_rate + s.surcharge);
                                     return (
                                       <tr key={s.id} style={{ borderTop: '1px solid var(--ln)' }}
                                         onMouseEnter={e => e.currentTarget.style.background = 'var(--sf)'}
                                         onMouseLeave={e => e.currentTarget.style.background = ''}>
-                                        <td style={{ padding: '8px 12px' }}>
-                                          <input
-                                            type="checkbox"
-                                            checked={sel.has(s.id)}
-                                            onChange={() => toggleItem(bKey, s.id)}
-                                            className="rounded"
-                                          />
-                                        </td>
                                         <td style={{ padding: '8px 12px', color: 'var(--mu)' }}>{idx + 1}</td>
                                         <td style={{ padding: '8px 12px', fontFamily: '"JetBrains Mono", monospace', fontSize: 11 }}>{s.tracking_no || '–'}</td>
                                         <td style={{ padding: '8px 12px', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--tx)' }} title={s.product}>{s.product || '–'}</td>
@@ -529,6 +498,19 @@ export default function CustomerDetail() {
           )}
         </div>
       )}
+
+      {feeChoices && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(5px)', display: 'grid', placeItems: 'center', padding: 16 }}>
+          <div role="dialog" aria-modal="true" aria-label="Chọn kho điều chỉnh" style={{ padding: 24, background: 'var(--page-bg)', borderRadius: 16, width: '100%', maxWidth: 400 }}>
+            <h3>Chọn kho điều chỉnh</h3>
+            {feeChoices.map(group => <button type="button" className="btn-secondary" key={group.warehouse_id ?? 'none'} style={{ display: 'block', marginTop: 12 }} onClick={() => { setFeeGroup(group); setFeeChoices(null); }}>
+              {group.warehouse_code || 'Không có kho'} · {formatCurrency(group.batch_fee)}
+            </button>)}
+            <button type="button" className="btn-secondary" style={{ marginTop: 18 }} onClick={() => setFeeChoices(null)}>Hủy</button>
+          </div>
+        </div>
+      )}
+      {feeGroup && <FeeAdjustmentModal group={feeGroup} onClose={() => setFeeGroup(null)} onSaved={refreshFees} />}
 
       {/* Edit customer modal */}
       {editOpen && (
