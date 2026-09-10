@@ -1,3 +1,5 @@
+import { feeTotals } from '../feeTotals.js';
+import FeeAdjustmentModal, { FeeEditLink } from '../components/FeeAdjustmentModal.jsx';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -7,7 +9,7 @@ import shipusLogo from '../assets/shipus-logo.png';
 import ImportModal from '../components/ImportModal.jsx';
 import NotificationModal from '../components/NotificationModal.jsx';
 import NotificationTemplate from '../components/NotificationTemplate.jsx';
-import { getBassoUser } from '../utils.jsx';
+import { getBassoUser, getUserRole } from '../utils.jsx';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -263,6 +265,17 @@ function Btn({ onClick, style, children }) {
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function MobilePWA() {
+  const [feeGroup, setFeeGroup] = useState(null);
+  const [feeChoices, setFeeChoices] = useState(null);
+  function editCustomerFee(c) {
+    const groups = [...new Map(c.parcels.map(p => [p.batch_fee_key || `${p.import_date}|${p.warehouse_id}`, p])).values()];
+    if (groups.length === 1) setFeeGroup(groups[0]);
+    else setFeeChoices(groups);
+  }
+  async function refreshFees() {
+    await Promise.all([fetchShipments(), fetchHangShipments(hangPeriod, hangMonth), fetchCustomers(), fetchTransactions()]);
+  }
+
   const hangMonthRef = useRef(null);
 
   // ── State ─────────────────────────────────────────────────────────────────
@@ -485,7 +498,7 @@ export default function MobilePWA() {
       ...c,
       dateKey: batchDate,
       kg: Math.round(c.kg * 100) / 100,
-      fee: Math.round(Math.max(0.5, c.kg) * (c.rate || 0) + c._surcharge),
+      fee: (feeTotals(c.parcels)?.fee ?? Math.round(Math.max(0.5, c.kg) * (c.rate || 0) + (c._surcharge || 0))),
       paidStatus: groupPaidStatus(c.paidStatuses),
     })).sort((a, b) => b.fee - a.fee);
   }, [batchRows]);
@@ -560,7 +573,7 @@ export default function MobilePWA() {
       let customers = [...custMap.values()].map((c) => ({
         ...c,
         kg: Math.round(c.kg * 100) / 100,
-        fee: Math.round(Math.max(0.5, c.kg) * (c.rate || 0) + (c._surcharge || 0)),
+        fee: (feeTotals(c.parcels)?.fee ?? Math.round(Math.max(0.5, c.kg) * (c.rate || 0) + (c._surcharge || 0))),
         paidStatus: groupPaidStatus(c.paidStatuses),
       }));
       if (payFilter === 'none') customers = customers.filter((c) => c.paidStatus === 'unpaid');
@@ -673,6 +686,7 @@ export default function MobilePWA() {
         customerName: c.name,
         date: dateKey,
         items: c.parcels.map((p) => ({
+          ...p,
           tracking_no: p.tracking_no,
           product: p.product,
           weight: p.weight,
@@ -705,6 +719,7 @@ export default function MobilePWA() {
         phone: list[0].customer_phone || '',
         batchStatus: list[0].batch_status || '',
         items: list.map((s) => ({
+          ...s,
           tracking_no: s.tracking_no,
           product: s.product,
           weight: s.weight,
@@ -878,10 +893,9 @@ export default function MobilePWA() {
 
   async function saveRowEdit(id) {
     try {
-      const res = await axios.put(`/api/shipments/${id}`, rowEditVals);
-      const upd = (s) => s.id === id ? { ...s, ...res.data } : s;
-      setHangShips((prev) => prev.map(upd));
-      setCustParcels((prev) => prev.map(upd));
+      await axios.put(`/api/shipments/${id}`, rowEditVals);
+      await refreshFees();
+      if (custId) await loadCustDetail(custId);
       setRowEditId(null);
       setRowEditModal(false);
       showToast('Đã cập nhật');
@@ -893,8 +907,8 @@ export default function MobilePWA() {
     setRowDelId(id);
     try {
       await axios.delete(`/api/shipments/${id}`);
-      setHangShips((prev) => prev.filter((s) => s.id !== id));
-      setCustParcels((prev) => prev.filter((s) => s.id !== id));
+      await refreshFees();
+      if (custId) await loadCustDetail(custId);
       showToast('Đã xóa');
     } catch { showToast('Lỗi xóa'); }
     finally { setRowDelId(null); }
@@ -1067,6 +1081,8 @@ export default function MobilePWA() {
             </span>
             <span style={{ flexShrink: 0, textAlign: 'right' }}>
               <span style={{ display: 'block', font: '700 14px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(c.fee)}</span>
+              {getUserRole() !== 'staff' && <FeeEditLink onClick={() => editCustomerFee(c)} />}
+              {(feeTotals(c.parcels)?.discount > 0 || feeTotals(c.parcels)?.waived) && <small style={{ color: 'var(--mu)' }}>Đã điều chỉnh phí</small>}
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 5, padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, background: pui.bg, color: pui.color }}>
                 <span style={{ width: 5, height: 5, borderRadius: 5, background: pui.dot }} />
                 {pui.label}
@@ -1108,8 +1124,8 @@ export default function MobilePWA() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 8, font: '700 9.5px "JetBrains Mono",monospace', background: 'var(--acBg)', color: 'var(--ac)' }}>{p.warehouse_code || 'WH'}</span>
                     <span style={{ flex: 1, minWidth: 0, font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--tx2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.tracking_no || '—'}</span>
-                    <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(Math.max(0.5, p.weight))} kg</span>
-                    <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc || (Math.max(0.5, p.weight) * p.customer_rate + (p.surcharge || 0)))}</span>
+                    <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(p.weight)} kg</span>
+                    <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc ?? (p.weight * p.customer_rate + (p.surcharge || 0)))}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 7, justifyContent: 'flex-end' }}>
                     <Btn onClick={() => setRowVanDon({ id: p.id, tracking_no: p.tracking_no, code: p.shipment_van_don_code || '' })} style={{
@@ -1387,11 +1403,11 @@ export default function MobilePWA() {
         {/* Debt card */}
         <div style={{ ...cardStyle, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 11, color: 'var(--mu)' }}>Còn phải thu</span>
+            <span style={{ fontSize: 11, color: 'var(--mu)' }}>{stats.credit_balance > 0 ? 'Dư có' : 'Còn phải thu'}</span>
             <span style={{ fontSize: 11, color: 'var(--mu)' }}>Đã thu</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-            <span style={{ font: '700 20px "JetBrains Mono",monospace', color: 'var(--warnTx)' }}>{fmt(due)}</span>
+            <span style={{ font: '700 20px "JetBrains Mono",monospace', color: 'var(--warnTx)' }}>{fmt(stats.credit_balance || due)}</span>
             <span style={{ font: '700 14px "JetBrains Mono",monospace', color: 'var(--ac)' }}>{fmt(paid)}</span>
           </div>
           {due > 0 && (
@@ -1433,8 +1449,8 @@ export default function MobilePWA() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 8, font: '700 9.5px "JetBrains Mono",monospace', background: 'var(--acBg)', color: 'var(--ac)' }}>{p.warehouse_code || 'WH'}</span>
               <span style={{ flex: 1, minWidth: 0, font: '500 10.5px "JetBrains Mono",monospace', color: 'var(--tx2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.tracking_no || '—'}</span>
-              <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(Math.max(0.5, p.weight))} kg</span>
-              <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc || (Math.max(0.5, p.weight) * p.customer_rate))}</span>
+              <span style={{ flexShrink: 0, font: '600 10.5px "JetBrains Mono",monospace', color: 'var(--mu)' }}>{fmtKg(p.weight)} kg</span>
+              <span style={{ flexShrink: 0, font: '700 11px "JetBrains Mono",monospace', color: 'var(--tx)' }}>{fmt(p.phi_vc ?? (p.weight * p.customer_rate))}</span>
             </div>
             {p.product && <div style={{ marginTop: 4, fontSize: 10.5, color: 'var(--mu)', paddingLeft: 2 }}>{p.product}</div>}
             {p.import_date && <div style={{ marginTop: 3, fontSize: 10, color: 'var(--mu)', paddingLeft: 2 }}>Nhập kho: {fmtDate(p.import_date)}</div>}
@@ -1952,6 +1968,8 @@ export default function MobilePWA() {
 
   return (
     <div style={{ minHeight: '100vh', background: bg, color: 'var(--tx)', fontFamily: "'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif" }}>
+      {feeGroup && <FeeAdjustmentModal group={feeGroup} onClose={() => setFeeGroup(null)} onSaved={refreshFees} />}
+      {feeChoices && <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(5px)', display: 'grid', placeItems: 'center', padding: 16 }}><div role="dialog" aria-label="Chọn kho điều chỉnh" style={{ padding: 24, background: 'var(--page-bg)', borderRadius: 16, width: '100%', maxWidth: 400 }}><h3>Chọn kho điều chỉnh</h3>{feeChoices.map(p => <button className="btn-secondary" key={p.batch_fee_key} style={{ display: 'block', marginTop: 12 }} onClick={() => { setFeeGroup(p); setFeeChoices(null); }}>{p.warehouse_code || 'Không có kho'} · {fmt(p.batch_fee)} đ</button>)}<button className="btn-secondary" style={{ marginTop: 18 }} onClick={() => setFeeChoices(null)}>Hủy</button></div></div>}
       {/* Keyframe injector */}
       <style>{`
         @keyframes dcFade { from{opacity:0} to{opacity:1} }

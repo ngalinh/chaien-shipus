@@ -155,11 +155,18 @@ export default function CustomerDetail() {
       toast('Chọn ít nhất một kiện hàng hoặc không có kiện trong lô này', 'warning');
       return;
     }
+    // A fee exception belongs to the complete warehouse group, not individual parcels.
+    const selectedGroups = new Set(details.map(s => s.batch_fee_key).filter(Boolean));
+    if ((batch.details || []).some(s => selectedGroups.has(s.batch_fee_key) && !details.some(d => d.id === s.id))) {
+      toast('Vui lòng chọn đủ kiện cùng ngày và kho để phí trên thông báo khớp công nợ', 'warning');
+      return;
+    }
     setNotifData({
       batchKey,
       customerName: customer.name,
       date: batch.batch_date,
       items: details.map((s) => ({
+        ...s,
         tracking_no: s.tracking_no,
         product: s.product,
         weight: s.weight,
@@ -201,7 +208,7 @@ export default function CustomerDetail() {
     { label: 'Tổng kg', value: `${Number(stats.total_kg || 0).toFixed(2)} kg`, icon: Weight, color: 'var(--ac)' },
     { label: 'Tổng cước VC', value: formatCurrency(stats.total_vc_fee || 0), icon: Banknote, color: 'var(--ac)' },
     { label: 'Đã thanh toán', value: formatCurrency(stats.paid || 0), icon: CheckCircle, color: 'var(--okTx)' },
-    { label: 'Còn lại', value: formatCurrency(stats.remaining || 0), icon: CreditCard, color: 'var(--badTx)' },
+    { label: stats.credit_balance > 0 ? 'Dư có' : 'Còn lại', value: formatCurrency(stats.credit_balance || stats.remaining || 0), icon: CreditCard, color: stats.credit_balance > 0 ? 'var(--okTx)' : 'var(--badTx)' },
     { label: 'SL đã giao', value: stats.shipped_count || 0, icon: Package, color: 'var(--tx2)' },
     { label: 'SL chưa giao', value: stats.pending_count || 0, icon: Clock, color: 'var(--warnTx)' },
   ];

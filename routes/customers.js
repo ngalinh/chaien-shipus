@@ -128,14 +128,7 @@ router.get('/', (_req, res) => {
       SELECT c.*, cr.name AS rate_name, cr.rate_per_kg,
              MAX(s.import_date) AS latest_shipment_date,
              COALESCE((
-               SELECT SUM(batch_fee)
-               FROM (
-                 SELECT ROUND(MAX(0.5, COALESCE(SUM(weight), 0)) * COALESCE(MAX(customer_rate), 0)
-                              + COALESCE(SUM(surcharge), 0), 0) AS batch_fee
-                 FROM shipments
-                 WHERE customer_id = c.id
-                 GROUP BY import_date
-               )
+               SELECT SUM(fee) FROM shipping_batch_fees WHERE customer_id = c.id
              ), 0) AS total_vc_fee
       FROM customers c
       LEFT JOIN customer_rates cr ON cr.id = c.rate_id
@@ -218,14 +211,8 @@ router.get('/:id', (req, res) => {
 
     // Tổng phí VC tính theo lô (min 0.5kg/lô) — nhất quán với triggerAutoDebit
     const feeRow = db.prepare(`
-      SELECT COALESCE(SUM(batch_fee), 0) AS total_vc_fee
-      FROM (
-        SELECT ROUND(MAX(0.5, COALESCE(SUM(weight), 0)) * COALESCE(MAX(customer_rate), 0)
-                     + COALESCE(SUM(surcharge), 0), 0) AS batch_fee
-        FROM shipments
-        WHERE customer_id = ?
-        GROUP BY import_date
-      )
+      SELECT COALESCE(SUM(fee), 0) AS total_vc_fee
+      FROM shipping_batch_fees WHERE customer_id = ?
     `).get(customer.id);
 
     const paidRow = db.prepare(`
@@ -270,6 +257,7 @@ router.get('/:id', (req, res) => {
         total_vc_fee:  totalVcFee,
         paid,
         remaining,
+        credit_balance: Math.max(0, paid - totalVcFee),
       },
     });
   } catch (err) {

@@ -1,3 +1,4 @@
+import FeeAdjustmentModal, { FeeEditLink } from '../components/FeeAdjustmentModal.jsx';
 import { Fragment, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -36,6 +37,7 @@ function groupPaidStatus(rows) {
 }
 
 export default function Shipping() {
+  const [feeGroup, setFeeGroup] = useState(null);
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [importModal, setImportModal] = useState(false);
@@ -117,7 +119,7 @@ export default function Shipping() {
     setDeleting(id);
     try {
       await axios.delete(`/api/shipments/${id}`);
-      setShipments((prev) => prev.filter((s) => s.id !== id));
+      await fetchShipments();
       toast('Đã xóa', 'success');
     } catch (err) {
       toast(err.response?.data?.error || 'Không thể xóa', 'error');
@@ -139,8 +141,8 @@ export default function Shipping() {
 
   async function saveEdit(id) {
     try {
-      const res = await axios.put(`/api/shipments/${id}`, editValues);
-      setShipments((prev) => prev.map((s) => (s.id === id ? { ...s, ...res.data } : s)));
+      await axios.put(`/api/shipments/${id}`, editValues);
+      await fetchShipments();
       setEditingId(null);
       toast('Đã cập nhật', 'success');
     } catch (err) {
@@ -164,7 +166,8 @@ export default function Shipping() {
       customerName,
       date: batchDate,
       items: rows.map((s) => ({
-        tracking_no: s.tracking_no,
+        ...s,
+          tracking_no: s.tracking_no,
         product: s.product,
         weight: s.weight,
         customer_fee: s.phi_vc || (s.weight * s.customer_rate + s.surcharge),
@@ -198,6 +201,7 @@ export default function Shipping() {
         phone: list[0].customer_phone || '',
         batchStatus: list[0].batch_status || '',
         items: list.map((s) => ({
+          ...s,
           tracking_no: s.tracking_no,
           product: s.product,
           weight: s.weight,
@@ -423,7 +427,7 @@ export default function Shipping() {
           rows,
           count: rows.length,
           totalWeight: batchWeight,
-          totalFee: paidAmt + remAmt || Math.round(Math.max(0.5, batchWeight) * (rows[0]?.customer_rate || 0) + rows.reduce((a, s) => a + (s.surcharge || 0), 0)),
+          totalFee: rows[0].batch_fee ?? (paidAmt + remAmt),
           paidStatus,
           paidAmount: paidAmt,
           remainingAmount: remAmt,
@@ -443,6 +447,7 @@ export default function Shipping() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 4px 0' }}>
+      {feeGroup && <FeeAdjustmentModal group={feeGroup} onClose={() => setFeeGroup(null)} onSaved={fetchShipments} />}
       {/* Header */}
       <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
@@ -657,6 +662,8 @@ export default function Shipping() {
                                 </td>
                                 <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 700, color: 'var(--tx)' }}>
                                   {formatCurrency(cust.totalFee)}
+                                  {(cust.rows[0].waive_minimum || cust.rows[0].fee_discount > 0) && <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--mu)' }}>{cust.rows[0].waive_minimum ? 'Bỏ min · ' : ''}Giảm {formatCurrency(cust.rows[0].fee_discount || 0)}</div>}
+                                  {getUserRole() !== 'staff' && <FeeEditLink onClick={() => setFeeGroup(cust.rows[0])} />}
                                 </td>
                                 <td onClick={e => e.stopPropagation()}>
                                   <select
@@ -857,7 +864,7 @@ export default function Shipping() {
                             </div>
                             <div className="flex items-center justify-between text-xs mb-2" style={{ color: 'var(--mu)' }}>
                               <span>{cust.totalWeight.toFixed(2)} kg ({cust.count} kiện) · {formatCurrency(cust.customerRate)}/kg</span>
-                              <span className="font-semibold text-primary-400 text-sm">{formatCurrency(cust.totalFee)}</span>
+                              <div><span className="font-semibold text-primary-400 text-sm">{formatCurrency(cust.totalFee)}</span>{getUserRole() !== 'staff' && <FeeEditLink onClick={() => setFeeGroup(cust.rows[0])} />}</div>
                             </div>
                             <div className="flex items-center gap-2 mb-2" onClick={(e) => e.stopPropagation()}>
                               <span className="text-xs shrink-0" style={{ color: 'var(--mu)' }}>Trạng thái:</span>

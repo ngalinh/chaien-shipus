@@ -3,6 +3,7 @@
 const crypto  = require('crypto');
 const express = require('express');
 const db      = require('../db');
+const { attachBatchFees } = require('../lib/shippingFees');
 const { computePaidStatus } = require('../lib/paidStatus');
 const { sendZaloMessage, runnerBaseUrl, headers: runnerHeaders } = require('../lib/zaloNotify');
 const { maybeNotify: maybeAutoNotifyShipped } = require('../lib/autoNotifyShipped');
@@ -27,16 +28,8 @@ function todayStr() {
 // can share it without circular deps.
 function triggerAutoDebit(importDate, customerId) {
   const feeRow = db.prepare(`
-    SELECT COALESCE(SUM(wh_fee), 0) AS total_vc_fee,
-           COALESCE(SUM(cnt), 0)    AS cnt
-    FROM (
-      SELECT ROUND(MAX(0.5, COALESCE(SUM(weight), 0)) * COALESCE(MAX(customer_rate), 0)
-                   + COALESCE(SUM(surcharge), 0), 0) AS wh_fee,
-             COUNT(*) AS cnt
-      FROM shipments
-      WHERE import_date = ? AND customer_id = ?
-      GROUP BY warehouse_id
-    )
+    SELECT COALESCE(SUM(fee), 0) AS total_vc_fee, COALESCE(SUM(count), 0) AS cnt
+    FROM shipping_batch_fees WHERE import_date = ? AND customer_id = ?
   `).get(importDate, customerId);
 
   const fee   = feeRow ? feeRow.total_vc_fee : 0;
@@ -109,7 +102,7 @@ router.get('/', (req, res) => {
       r.remaining_amount   = info ? info.remaining_amount  : 0;
     }
 
-    res.json(rows);
+    res.json(attachBatchFees(rows));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -439,13 +432,8 @@ router.get('/bao-khach', (req, res) => {
         ROUND(SUM(s.weight),   2)                                        AS total_weight,
         ROUND(SUM(s.weight * s.partner_rate),  2)                        AS total_partner_fee,
         ROUND(SUM(s.surcharge), 2)                                       AS total_surcharge,
-        (SELECT COALESCE(SUM(wh_fee), 0)
-         FROM (SELECT ROUND(MAX(0.5, COALESCE(SUM(s2.weight), 0)) * COALESCE(MAX(s2.customer_rate), 0)
-                            + COALESCE(SUM(s2.surcharge), 0), 0) AS wh_fee
-               FROM shipments s2
-               WHERE s2.import_date = s.import_date AND s2.customer_id = s.customer_id
-               GROUP BY s2.warehouse_id)
-        )                                                                 AS total_vc_fee,
+        (SELECT COALESCE(SUM(fee), 0) FROM shipping_batch_fees f
+         WHERE f.import_date = s.import_date AND f.customer_id = s.customer_id) AS total_vc_fee,
         bi.van_don_code,
         bi.notified_at,
         COALESCE(bi.status, '')                                          AS status,
@@ -493,7 +481,7 @@ router.get('/bao-khach', (req, res) => {
         paid_status: info ? info.status : 'unpaid',
         paid_amount: info ? info.paid_amount : 0,
         remaining_amount: info ? info.remaining_amount : Math.round(b.total_vc_fee || 0),
-        details: detailStmt.all(b.batch_date, b.customer_id),
+        details: attachBatchFees(detailStmt.all(b.batch_date, b.customer_id)),
       };
     });
 
@@ -570,7 +558,8 @@ router.get('/print-data', (req, res) => {
     if (!customer) return res.status(404).json({ error: 'Customer not found' });
 
     const items = db.prepare(`
-      SELECT tracking_no, product, weight, ROUND(weight * customer_rate + surcharge, 2) AS customer_fee
+      SELECT import_date, customer_id, warehouse_id, tracking_no, product, weight,
+             ROUND(weight * customer_rate + surcharge, 2) AS customer_fee
       FROM shipments WHERE import_date = ? AND customer_id = ?
     `).all(batch_date, cid);
 
@@ -582,7 +571,7 @@ router.get('/print-data', (req, res) => {
     res.json({
       customerName: customer.name,
       date: batch_date,
-      items,
+      items: attachBatchFees(items),
       company: { company_name: companyRow?.value || 'ShipUS' },
       bank,
     });
@@ -682,6 +671,55 @@ router.patch('/batch-status', (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
+});
+
+// Edit a single customer/date/warehouse fee. Payments are never changed.
+router.get('/batch-fee', (req, res) => {
+  try {
+    const { batch_date, customer_id, warehouse_id } = req.query;
+    const fee = db.prepare(`SELECT * FROM shipping_batch_fees
+      WHERE import_date = ? AND customer_id = ? AND warehouse_id IS ?`)
+      .get(batch_date || '', Number(customer_id), warehouse_id == null || warehouse_id === '' ? null : Number(warehouse_id));
+    if (!fee) return res.status(404).json({ error: 'Không tìm thấy lô hàng' });
+    const history = db.prepare(`SELECT * FROM shipping_fee_history
+      WHERE batch_date = ? AND customer_id = ? AND warehouse_key = ? ORDER BY id DESC LIMIT 50`)
+      .all(fee.import_date, fee.customer_id, fee.warehouse_id ?? -1);
+    res.json({ ...fee, history });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.patch('/batch-fee', (req, res) => {
+  try {
+    const { batch_date, customer_id, warehouse_id, waive_minimum, discount, reason, updated_by } = req.body;
+    const cid = Number(customer_id);
+    const wid = warehouse_id == null ? null : Number(warehouse_id);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(batch_date || '') || !Number.isInteger(cid) || cid <= 0 ||
+        (wid !== null && (!Number.isInteger(wid) || wid <= 0)) || typeof waive_minimum !== 'boolean' ||
+        !Number.isSafeInteger(discount) || discount < 0 || typeof reason !== 'string' || !reason.trim() || reason.length > 1000) {
+      return res.status(400).json({ error: 'Kiểm tra lô hàng, số tiền giảm và lý do điều chỉnh' });
+    }
+    const save = db.transaction(() => {
+      const fee = db.prepare(`SELECT * FROM shipping_batch_fees
+        WHERE import_date = ? AND customer_id = ? AND warehouse_id IS ?`).get(batch_date, cid, wid);
+      if (!fee) { const err = new Error('Không tìm thấy lô hàng'); err.status = 404; throw err; }
+      const base = Math.round(Math.max(waive_minimum ? 0 : 0.5, fee.total_weight) * fee.customer_rate + fee.total_surcharge);
+      if (discount > Math.max(0, base)) { const err = new Error('Giảm giá không được vượt phí vận chuyển'); err.status = 400; throw err; }
+      const actor = typeof updated_by === 'string' ? updated_by.slice(0, 200) : null;
+      db.prepare(`INSERT INTO shipping_fee_adjustments
+        (batch_date, customer_id, warehouse_key, waive_minimum, discount, reason, updated_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(batch_date, customer_id, warehouse_key) DO UPDATE SET
+          waive_minimum = excluded.waive_minimum, discount = excluded.discount, reason = excluded.reason,
+          updated_by = excluded.updated_by, updated_at = datetime('now')`)
+        .run(batch_date, cid, wid ?? -1, Number(waive_minimum), discount, reason.trim(), actor);
+      db.prepare(`INSERT INTO shipping_fee_history
+        (batch_date, customer_id, warehouse_key, waive_minimum, discount, reason, updated_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`).run(batch_date, cid, wid ?? -1, Number(waive_minimum), discount, reason.trim(), actor);
+      triggerAutoDebit(batch_date, cid);
+      return { ok: true, fee: base - discount };
+    });
+    res.json(save());
+  } catch (err) { res.status(err.status || 500).json({ error: err.message }); }
 });
 
 // PATCH /api/shipments/batch-rate

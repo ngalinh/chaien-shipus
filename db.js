@@ -229,4 +229,51 @@ try {
   if (le) db.prepare('UPDATE customers SET rate_id = ? WHERE rate_id IS NULL').run(le.id);
 } catch { /* ignore */ }
 
+// An exception belongs to one customer/date/warehouse, never to the customer.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS shipping_fee_adjustments (
+    batch_date TEXT NOT NULL,
+    customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    warehouse_key INTEGER NOT NULL,
+    waive_minimum INTEGER NOT NULL DEFAULT 0 CHECK (waive_minimum IN (0, 1)),
+    discount INTEGER NOT NULL DEFAULT 0 CHECK (discount >= 0),
+    reason TEXT NOT NULL,
+    updated_by TEXT,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (batch_date, customer_id, warehouse_key)
+  );
+  CREATE TABLE IF NOT EXISTS shipping_fee_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    batch_date TEXT NOT NULL,
+    customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    warehouse_key INTEGER NOT NULL,
+    waive_minimum INTEGER NOT NULL,
+    discount INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    updated_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE VIEW IF NOT EXISTS shipping_batch_fees AS
+    SELECT b.*, COALESCE(a.waive_minimum, 0) AS waive_minimum,
+           COALESCE(a.discount, 0) AS discount, COALESCE(a.reason, '') AS adjustment_reason,
+           a.updated_by, a.updated_at,
+           ROUND(MAX(CASE WHEN a.waive_minimum = 1 THEN 0 ELSE 0.5 END, b.total_weight) * b.customer_rate + b.total_surcharge) AS base_fee,
+           MAX(0, ROUND(MAX(CASE WHEN a.waive_minimum = 1 THEN 0 ELSE 0.5 END, b.total_weight) * b.customer_rate + b.total_surcharge) - COALESCE(a.discount, 0)) AS fee
+    FROM (
+      SELECT import_date, customer_id, warehouse_id, COUNT(*) AS count,
+             COALESCE(SUM(weight), 0) AS total_weight,
+             COALESCE(MAX(customer_rate), 0) AS customer_rate,
+             COALESCE(SUM(surcharge), 0) AS total_surcharge
+      FROM shipments GROUP BY import_date, customer_id, warehouse_id
+    ) b
+    LEFT JOIN shipping_fee_adjustments a ON a.batch_date = b.import_date
+      AND a.customer_id = b.customer_id AND a.warehouse_key = COALESCE(b.warehouse_id, -1);
+`);
+
+// Allocate a batch total across its parcels only for aggregate reporting.
+db.exec(`CREATE VIEW IF NOT EXISTS shipments_with_fees AS
+  SELECT s.*, f.fee * 1.0 / f.count AS billed_fee
+  FROM shipments s JOIN shipping_batch_fees f ON f.import_date = s.import_date
+    AND f.customer_id = s.customer_id AND f.warehouse_id IS s.warehouse_id`);
+
 module.exports = db;
