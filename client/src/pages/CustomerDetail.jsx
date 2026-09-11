@@ -326,7 +326,7 @@ export default function CustomerDetail() {
                     <th>SL tracking</th>
                     <th>Tổng cân nặng</th>
                     <th>Tổng phụ thu</th>
-                    <th>Tổng phí VC</th>
+                    <th style={{ textAlign: 'right' }}>Tổng phí VC</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -351,7 +351,7 @@ export default function CustomerDetail() {
                         <td>{batch.tracking_count}</td>
                         <td>{Number(batch.total_weight || 0).toFixed(2)} kg</td>
                         <td>{formatCurrency(batch.total_surcharge)}</td>
-                        <td style={{ fontWeight: 600, color: 'var(--ac)' }}>
+                        <td style={{ textAlign: 'right', fontFamily: '"JetBrains Mono", monospace', fontSize: 13.5, fontWeight: 700, color: 'var(--tx)' }}>
                           {formatCurrency(batch.total_vc_fee)}
                           {getUserRole() !== 'staff' && details.length > 0 && <FeeEditLink onClick={() => editBatchFee(batch)} />}
                         </td>
