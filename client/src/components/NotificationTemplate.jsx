@@ -97,7 +97,10 @@ export default function NotificationTemplate({
       `?amount=${Math.round(displayTotalFee)}&addInfo=${encodeURIComponent(transferNote)}`
     : null;
 
-  // Tải QR về dataURL trước khi chụp (tránh ảnh ngoài bị taint/CORS trong html2canvas).
+  // Tải QR rồi rasterize sang PNG thật (qua canvas) trước khi chụp. VietQR hiện trả
+  // SVG dù URL xin .png (redirect 301 .png → .svg) — html2canvas không vẽ được <img>
+  // có src là SVG data-URI nên QR sẽ biến mất khỏi ảnh phiếu dù component vẫn "chụp
+  // thành công". Rasterize ép về PNG để tránh phụ thuộc định dạng ảnh VietQR trả về.
   // qr.done=false ⇒ hoãn chụp cho tới khi QR sẵn sàng (hoặc lỗi/timeout).
   // Có timeout để tránh treo vô hạn nếu mạng/firewall chặn img.vietqr.io.
   const [qr, setQr] = useState({ done: !qrSrc, url: null });
@@ -108,10 +111,18 @@ export default function NotificationTemplate({
     const timeout = setTimeout(() => controller.abort(), 6000);
     fetch(qrSrc, { signal: controller.signal })
       .then((r) => r.blob())
-      .then((b) => new Promise((res) => {
-        const fr = new FileReader();
-        fr.onload = () => res(fr.result);
-        fr.readAsDataURL(b);
+      .then((blob) => new Promise((resolve, reject) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(blob);
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = canvas.height = 316; // 158*2, nét hơn khi phiếu chụp ở scale:2
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(objectUrl);
+          resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('QR image decode failed')); };
+        img.src = objectUrl;
       }))
       .then((url) => alive && setQr({ done: true, url }))
       .catch(() => alive && setQr({ done: true, url: null }))
