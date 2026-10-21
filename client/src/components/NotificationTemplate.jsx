@@ -92,8 +92,11 @@ export default function NotificationTemplate({
   // QR VietQR: chỉ tạo khi map được mã ngân hàng. Nội dung CK = tên khách (bỏ dấu).
   const bankCode = bank ? vietqrBankCode(bank.bank_name) : null;
   const transferNote = noAccent(customerName || '').toUpperCase().trim();
+  // Gọi thẳng .svg (không phải .png): VietQR redirect .png -> .svg bằng 301 KHÔNG có
+  // header CORS trên chính response redirect đó, khiến fetch() bị chặn CORS ngay tại
+  // bước redirect dù đích .svg có CORS đầy đủ. Gọi .svg trực tiếp để không qua redirect.
   const qrSrc = bankCode
-    ? `https://img.vietqr.io/image/${bankCode}-${bank.account_number}-qr_only.png` +
+    ? `https://img.vietqr.io/image/${bankCode}-${bank.account_number}-qr_only.svg` +
       `?amount=${Math.round(displayTotalFee)}&addInfo=${encodeURIComponent(transferNote)}`
     : null;
 
